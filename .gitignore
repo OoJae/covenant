@@ -15,6 +15,10 @@ __pycache__/
 /contracts/*/cache/
 /contracts/*/broadcast/*/31337/
 /contracts/*/broadcast/**/dry-run/
+# the same for Foundry projects under tools/
+/tools/**/lib/
+/tools/**/out/
+/tools/**/cache/
 
 # secrets: never commit
 .env
@@ -27,6 +31,7 @@ keystore/
 dist/
 dist-*/
 chips/build/
+chips/**/build/
 
 # internal planning notes: not part of the public repository
 buildplan.md

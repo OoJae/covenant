@@ -1,0 +1,53 @@
+name: pages
+
+# Builds the static site in web/ and publishes it to GitHub Pages.
+# The site is self-contained (relative URLs, hash routes), so it works under any path.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      # web and the workspace packages it depends on; the services are not needed for the site
+      - run: pnpm install --filter "web..."
+      # tests that do not need the network, then typecheck + build + size budget
+      - run: pnpm --filter @covenant/tap20 --filter @covenant/chain --filter @covenant/dieshot --filter web test:offline
+      - run: pnpm --filter web build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
