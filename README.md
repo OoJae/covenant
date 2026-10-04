@@ -36,9 +36,11 @@ Updated as each part lands. Nothing below is claimed until it is marked done.
 | Reference model and golden vectors (`chips/golden/`) | Done |
 | IGNIX fork probes (`contracts/probes/`): 112 fork tests of how the live Directed vault, curve and graduation treat a contract recipient | Done; findings in `contracts/probes/FINDINGS.md` |
 | Circuit reader (`packages/`, `web/`): reads any TapeOut circuit from X Layer, draws it, runs a beat in the browser and checks it against the chain | Working; no kernel pages yet |
+| Chip toolchain (`chips/tools/tapc`): Verilog to NAND and LATCH records, TAP-20 packer and simulator, proofs by Yosys SAT and z3, differential test against a chain | Done; 96 tests |
+| Probe circuit (`chips/probe`): 118 gates, proven on every state and input | Built; not taped out yet |
+| Flagship chip, the Flow Governor (`chips/rtl`, `chips/model`, `chips/props`): 1,889 NAND + 64 LATCH, 98 properties proven for every state and input | Built and proven; constants under review, will be rebuilt before tape-out |
+| Keeper and paid compile endpoint (`services/`) | Built and tested; not deployed |
 | Issuance contracts (processor creator and payees) | In progress |
-| Chip toolchain (Verilog to TAP-20, simulators, proofs) | In progress |
-| Flagship chip (Flow Governor) | In progress |
 | Kernel v1, sealed evaluator, Fab | In progress |
 | Mainnet deployments | None yet |
 
