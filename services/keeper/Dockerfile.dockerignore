@@ -1,0 +1,8 @@
+# Used by BuildKit for services/keeper/Dockerfile when the build context is the repository root.
+# Everything is excluded; only what the image needs is let back in.
+*
+!package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!services/keeper/package.json
+!services/keeper/src

@@ -34,11 +34,12 @@ Updated as each part lands. Nothing below is claimed until it is marked done.
 |---|---|
 | Chip interface v1 (`chips/INTERFACE.md`) | Frozen |
 | Reference model and golden vectors (`chips/golden/`) | Done |
+| IGNIX fork probes (`contracts/probes/`): 112 fork tests of how the live Directed vault, curve and graduation treat a contract recipient | Done; findings in `contracts/probes/FINDINGS.md` |
+| Circuit reader (`packages/`, `web/`): reads any TapeOut circuit from X Layer, draws it, runs a beat in the browser and checks it against the chain | Working; no kernel pages yet |
 | Issuance contracts (processor creator and payees) | In progress |
 | Chip toolchain (Verilog to TAP-20, simulators, proofs) | In progress |
 | Flagship chip (Flow Governor) | In progress |
 | Kernel v1, sealed evaluator, Fab | In progress |
-| Dashboard | In progress |
 | Mainnet deployments | None yet |
 
 Adoption today is zero.

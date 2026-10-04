@@ -1,0 +1,68 @@
+# Backup keeper: a GitHub Actions cron that settles any kernel the primary keeper (Railway) has missed.
+#
+# To enable: copy this file to .github/workflows/keeper-backup.yml and set, in the repository settings
+# (Settings -> Secrets and variables -> Actions):
+#
+#   Variables:  KEEPER_KERNELS   comma-separated kernel addresses (same value as KERNELS on Railway)
+#               KEEPER_TANK      KeeperTank address, or leave unset to call settle() directly
+#               KEEPER_ADDRESS   the declared keeper wallet address (the run fails if the key does not match)
+#   Secret:     KEEPER_PRIVATE_KEY
+#
+# It runs `--once` with MIN_EPOCH_LAG=2, so it only acts when a whole epoch has gone by without a settle.
+# To stop it: Actions tab -> keeper-backup -> "Disable workflow" (or delete the workflow file) and remove the secret.
+#
+# Notes
+# - GitHub may start scheduled runs several minutes late and pauses schedules after 60 days without
+#   repository activity. This is a backup, not the primary keeper.
+# - Only first-party actions are used, pinned by commit, and pnpm is installed with npm: the job holds a
+#   private key, so no third-party action code runs in it.
+
+name: keeper-backup
+
+on:
+  schedule:
+    - cron: '7-59/10 * * * *' # every 10 minutes, off the top of the hour
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Simulate only: print what would be sent, send nothing'
+        type: boolean
+        default: false
+
+# Never two runs at once: they would use the same wallet nonce.
+concurrency:
+  group: keeper-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 26
+
+      - name: Install pnpm (the version pinned in package.json)
+        run: npm install -g "$(node -p "require('./package.json').packageManager.split('+')[0]")"
+
+      - name: Install the keeper's dependencies
+        run: pnpm install --frozen-lockfile --prod --filter @covenant/keeper
+
+      - name: Settle once
+        working-directory: services/keeper
+        env:
+          KERNELS: ${{ vars.KEEPER_KERNELS }}
+          TANK: ${{ vars.KEEPER_TANK }}
+          KEEPER_ADDRESS: ${{ vars.KEEPER_ADDRESS }}
+          KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
+          MIN_EPOCH_LAG: '2'
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: node src/index.ts --once

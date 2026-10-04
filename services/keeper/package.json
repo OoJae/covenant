@@ -1,0 +1,25 @@
+{
+  "name": "@covenant/keeper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Covenant keeper: calls settle() once per epoch for each kernel. Liveness only; the wallet can do nothing else.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "once": "node src/index.ts --once",
+    "dry-run": "node src/index.ts --once --dry-run",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "viem": "^2.57.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "typescript": "^7.0.0"
+  }
+}

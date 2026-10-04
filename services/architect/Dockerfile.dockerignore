@@ -1,0 +1,19 @@
+# Used by BuildKit for services/architect/Dockerfile when the build context is the repository root.
+# Everything is excluded; only what the image needs is let back in.
+*
+!package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!services/architect/package.json
+!services/architect/src
+!services/architect/scripts
+!chips
+
+# Local Python environments, caches, scratch directories and build output stay out of the image.
+chips/.venv
+chips/.venv-*
+chips/**/__pycache__
+chips/**/*.pyc
+chips/**/.pytest_cache
+chips/**/build
+chips/out

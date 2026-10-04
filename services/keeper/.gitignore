@@ -1,0 +1,2 @@
+# The repository root ignores .env.* (secrets). The example file holds names only and must be committed.
+!.env.example
