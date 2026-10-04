@@ -1,0 +1,12 @@
+#!/bin/sh
+# tapc wrapper: runs the package with the pinned interpreter in chips/.venv (never the system python3).
+set -e
+here=$(cd "$(dirname "$0")" && pwd)
+tools=$(dirname "$here")
+chips=$(dirname "$tools")
+py="$chips/.venv/bin/python"
+if [ ! -x "$py" ]; then
+  echo "tapc: $py not found. Run 'make -C $chips venv' first." >&2
+  exit 127
+fi
+PYTHONPATH="$tools${PYTHONPATH:+:$PYTHONPATH}" exec "$py" -m tapc "$@"

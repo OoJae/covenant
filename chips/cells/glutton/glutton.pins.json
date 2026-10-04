@@ -1,0 +1,35 @@
+{
+ "format": "tapc-pins/1",
+ "inputs": [
+  {"name": "TAX", "lsb": 0, "width": 10},
+  {"name": "TAXCUM", "lsb": 10, "width": 10},
+  {"name": "REV", "lsb": 20, "width": 10},
+  {"name": "REVCUM", "lsb": 30, "width": 10},
+  {"name": "RES", "lsb": 40, "width": 10},
+  {"name": "ESC", "lsb": 50, "width": 10},
+  {"name": "PROG", "lsb": 60, "width": 8},
+  {"name": "LOCK", "lsb": 68, "width": 8},
+  {"name": "DT", "lsb": 76, "width": 4},
+  {"name": "GRAD", "lsb": 80, "width": 1},
+  {"name": "ZERO", "lsb": 81, "width": 15}
+ ],
+ "outputs": [
+  {"name": "T_BUY", "lsb": 0, "width": 9},
+  {"name": "T_HOLD", "lsb": 9, "width": 9},
+  {"name": "T_ALLOW", "lsb": 18, "width": 9},
+  {"name": "T_RES", "lsb": 27, "width": 9},
+  {"name": "V_BUY", "lsb": 36, "width": 9},
+  {"name": "V_HOLD", "lsb": 45, "width": 9},
+  {"name": "V_ALLOW", "lsb": 54, "width": 9},
+  {"name": "V_RES", "lsb": 63, "width": 9},
+  {"name": "REL", "lsb": 72, "width": 9},
+  {"name": "CEIL", "lsb": 81, "width": 10},
+  {"name": "MODE", "lsb": 91, "width": 3},
+  {"name": "TIER", "lsb": 94, "width": 2},
+  {"name": "FLAGS", "lsb": 96, "width": 8},
+  {"name": "AUX", "lsb": 104, "width": 8}
+ ],
+ "state": [
+  {"name": "HEARTBEAT", "lsb": 0, "width": 1}
+ ]
+}

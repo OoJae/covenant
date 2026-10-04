@@ -1,0 +1,17 @@
+# chips/.venv, Python 3.12 (created with /Users/oluwademilade/.local/bin/python3.12 -m venv chips/.venv).
+# Installed and frozen on 2026-10-04. Every version below is what `pip freeze` reported after the install.
+#
+# Direct requirements
+yowasp-yosys==0.69.0.0.post1233   # Yosys 0.69 (git sha1 9f75ca1f9) + ABC, compiled to WebAssembly
+z3-solver==5.1.0.0                # second, independent proof path
+pytest==9.1.1
+
+# Transitive (pinned so that the netlist keccak is reproducible)
+yowasp-runtime==1.96
+wasmtime==47.0.1
+click==8.5.0
+platformdirs==4.12.3
+iniconfig==2.3.0
+packaging==26.3
+pluggy==1.6.0
+Pygments==2.21.0

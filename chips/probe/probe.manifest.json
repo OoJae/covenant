@@ -1,0 +1,230 @@
+{
+ "format": "tapc-manifest/1",
+ "name": "probe",
+ "standard": "TAP-20 draft (updated 2026-09-30)",
+ "nIn": 2,
+ "nOut": 10,
+ "nState": 9,
+ "nNand": 109,
+ "nLatch": 9,
+ "nRef": 0,
+ "gateCount": 118,
+ "signals": 122,
+ "depth": 31,
+ "bytes": 799,
+ "keccak256": "0xbe0a646df5b58df69e5dc50f492dcc5bdcffa440c3188b8b786ff506cb181325",
+ "latchesFirst": true,
+ "layout": {
+  "const0": 0,
+  "const1": 1,
+  "firstInput": 2,
+  "firstLatch": 4,
+  "firstNand": 13,
+  "firstOutput": 112,
+  "outputDuplicates": 5,
+  "outputBuffers": 0,
+  "outputConstants": 0
+ },
+ "inputs": [
+  {
+   "bit": 0,
+   "name": "en",
+   "signal": 2
+  },
+  {
+   "bit": 1,
+   "name": "clr",
+   "signal": 3
+  }
+ ],
+ "outputs": [
+  {
+   "bit": 0,
+   "name": "count[0]",
+   "signal": 112
+  },
+  {
+   "bit": 1,
+   "name": "count[1]",
+   "signal": 113
+  },
+  {
+   "bit": 2,
+   "name": "count[2]",
+   "signal": 114
+  },
+  {
+   "bit": 3,
+   "name": "count[3]",
+   "signal": 115
+  },
+  {
+   "bit": 4,
+   "name": "count[4]",
+   "signal": 116
+  },
+  {
+   "bit": 5,
+   "name": "count[5]",
+   "signal": 117
+  },
+  {
+   "bit": 6,
+   "name": "count[6]",
+   "signal": 118
+  },
+  {
+   "bit": 7,
+   "name": "count[7]",
+   "signal": 119
+  },
+  {
+   "bit": 8,
+   "name": "flag",
+   "signal": 120
+  },
+  {
+   "bit": 9,
+   "name": "parity",
+   "signal": 121
+  }
+ ],
+ "latches": [
+  {
+   "bit": 0,
+   "name": "count[0]",
+   "record": 0,
+   "signal": 4,
+   "d": 34
+  },
+  {
+   "bit": 1,
+   "name": "count[1]",
+   "record": 1,
+   "signal": 5,
+   "d": 42
+  },
+  {
+   "bit": 2,
+   "name": "count[2]",
+   "record": 2,
+   "signal": 6,
+   "d": 49
+  },
+  {
+   "bit": 3,
+   "name": "count[3]",
+   "record": 3,
+   "signal": 7,
+   "d": 57
+  },
+  {
+   "bit": 4,
+   "name": "count[4]",
+   "record": 4,
+   "signal": 8,
+   "d": 65
+  },
+  {
+   "bit": 5,
+   "name": "count[5]",
+   "record": 5,
+   "signal": 9,
+   "d": 117
+  },
+  {
+   "bit": 6,
+   "name": "count[6]",
+   "record": 6,
+   "signal": 10,
+   "d": 118
+  },
+  {
+   "bit": 7,
+   "name": "count[7]",
+   "record": 7,
+   "signal": 11,
+   "d": 119
+  },
+  {
+   "bit": 8,
+   "name": "flag",
+   "record": 8,
+   "signal": 12,
+   "d": 120
+  }
+ ],
+ "fields": {
+  "inputs": [
+   {
+    "name": "en",
+    "lsb": 0,
+    "width": 1
+   },
+   {
+    "name": "clr",
+    "lsb": 1,
+    "width": 1
+   }
+  ],
+  "outputs": [
+   {
+    "name": "count",
+    "lsb": 0,
+    "width": 8
+   },
+   {
+    "name": "flag",
+    "lsb": 8,
+    "width": 1
+   },
+   {
+    "name": "parity",
+    "lsb": 9,
+    "width": 1
+   }
+  ],
+  "state": [
+   {
+    "name": "count",
+    "lsb": 0,
+    "width": 8
+   },
+   {
+    "name": "flag",
+    "lsb": 8,
+    "width": 1
+   }
+  ]
+ },
+ "tapeout": {
+  "nIn": 2,
+  "nOut": 10,
+  "burnNand": 109,
+  "burnLatch": 9
+ },
+ "tool": {
+  "tapc": "0.1.0"
+ },
+ "build": {
+  "top": "probe_core",
+  "recipe": "rich-compress2",
+  "library": "rich",
+  "abcScript": "strash; ifraig; balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; dch -f; map -a; topo",
+  "ripple": true,
+  "hier": false,
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "packages": {
+   "yowasp-yosys": "0.69.0.0.post1233",
+   "yowasp-runtime": "1.96",
+   "wasmtime": "47.0.1",
+   "z3-solver": "5.1.0.0"
+  },
+  "sources": [
+   {
+    "file": "probe_core.v",
+    "sha256": "98073167f2d733b4b580a36dbbebcaed2174ab845d3afc6dd4a3d148412aec6a"
+   }
+  ]
+ }
+}

@@ -1,0 +1,142 @@
+{
+ "format": "covenant-fork-test/1",
+ "chainId": 196,
+ "forkBlock": 72373000,
+ "upstream": "https://rpc.xlayer.tech",
+ "factory": "0x1f09daefa827f02cbb40967cc91b259763760761",
+ "note": "local anvil fork; nothing was sent to mainnet",
+ "freeTestProcessor": {
+  "circuits": "0x839bdD6fa7A66416A609A735e11DE5411B98574e",
+  "supplyCap": 100000,
+  "minted": 100000,
+  "usable": false
+ },
+ "processor": {
+  "circuits": "0xB04EB79D1A5EECaabAAfF7B77d7c27578EE693FF",
+  "transistors": "0x84b5a5c6fE305319458113b87c09a2A241427D2D",
+  "implementation": "0x977f217887E085D298Cb3819cDAD5A0ee35F29B2",
+  "implementationCodeHash": "0x7a15c353205e5245f40f5f5524542a982a4bb3b9a28476e4f10845163f941b30"
+ },
+ "stepGas": {
+  "method": "eth_estimateGas of step(id, state, inputs) from an EOA (includes the 21,000 base and calldata)",
+  "samples": 18,
+  "min": 4604301,
+  "max": 4633104,
+  "mean": 4616824,
+  "calldataBytes": 228,
+  "perGate": 2364.0
+ },
+ "gluttonStepGas": 379203,
+ "difftest": {
+  "vectors": 16107,
+  "matchedSimulator": 16107,
+  "mismatched": 0,
+  "errors": 0,
+  "kinds": {
+   "boundary": 3000,
+   "scenario": 6086,
+   "tour": 19,
+   "uniform": 4000,
+   "walk": 3000,
+   "witness": 2
+  },
+  "chainVersusModelMismatches": 0,
+  "chainVersusModelVectors": 16107,
+  "callsPerEthCall": 55,
+  "seconds": 28.4,
+  "localNetlistMatches": true,
+  "evidence": "chips/out/fg.difftest.jsonl"
+ },
+ "witness": {
+  "ok": true,
+  "x": "0x00a406000099010000100000",
+  "stateA": "0x3cf144c908004000",
+  "stateB": "0x00e1840903008001",
+  "routeA": {
+   "T_BUY": 160,
+   "T_HOLD": 0,
+   "T_ALLOW": 32,
+   "T_RES": 64,
+   "REL": 2,
+   "CEIL": 432,
+   "MODE": 1,
+   "TIER": 1,
+   "modeName": "CRUISE",
+   "flags": "dip,quiet,warm"
+  },
+  "routeB": {
+   "T_BUY": 256,
+   "T_HOLD": 0,
+   "T_ALLOW": 0,
+   "T_RES": 0,
+   "REL": 34,
+   "CEIL": 432,
+   "MODE": 3,
+   "TIER": 1,
+   "modeName": "DEFEND",
+   "flags": "dip,quiet,release"
+  }
+ },
+ "chips": {
+  "fg": {
+   "name": "fg",
+   "id": 1,
+   "nNand": 1889,
+   "nLatch": 64,
+   "gateCount": 1953,
+   "bytes": 13479,
+   "keccak256": "0x2fd0e007398296a5845c8a7e3b99d5149d6c02ae670afe373abd191fb2591a89",
+   "tapeoutGasUsed": 5747410,
+   "tapeoutTx": "0xcbed02f4c20a4f3de57fc1933b1929f91b33a4ae2533c511fd3b879131e0ce55"
+  },
+  "glutton": {
+   "name": "glutton",
+   "id": 2,
+   "nNand": 113,
+   "nLatch": 1,
+   "gateCount": 114,
+   "bytes": 795,
+   "keccak256": "0x3278542c10a5aa6e8fe993fc12cfb3a0c9d240450eae569bd431367094519582",
+   "tapeoutGasUsed": 530264,
+   "tapeoutTx": "0xd4d24655fb21cb3d504f7a12735eb7a3fe24188358c5a4ca5d46ed36c6da1bc7",
+   "difftest": {
+    "vectors": 300,
+    "matched": 300,
+    "mismatched": 0,
+    "errors": 0
+   },
+   "demands": {
+    "T_BUY": 0,
+    "T_ALLOW": 256,
+    "V_ALLOW": 256,
+    "REL": 256,
+    "CEIL": 1023
+   }
+  },
+  "glutton512": {
+   "name": "glutton512",
+   "id": 3,
+   "nNand": 113,
+   "nLatch": 1,
+   "gateCount": 114,
+   "bytes": 795,
+   "keccak256": "0xcfb1f51e727184bdb9850cfa6ed4e8ff53806a50d248fa5417439e6ac0b9d4e4",
+   "tapeoutGasUsed": 530216,
+   "tapeoutTx": "0x43c7e2dabc6955c57977b06bca3102f731125b7100ce7989127a85804cdd877f",
+   "difftest": {
+    "vectors": 300,
+    "matched": 300,
+    "mismatched": 0,
+    "errors": 0
+   },
+   "demands": {
+    "T_BUY": 256,
+    "T_ALLOW": 256,
+    "V_ALLOW": 256,
+    "REL": 256,
+    "CEIL": 1023
+   }
+  }
+ },
+ "ok": true
+}

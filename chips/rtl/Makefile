@@ -1,0 +1,93 @@
+# Flow Governor and Glutton: build, test, prove. Run from anywhere:  make -C chips/rtl <target>
+#
+#   make venv       create chips/.venv-fg (Python 3.12, yowasp-yosys, z3-solver)
+#   make params     regenerate fg_params.vh from fg_params.json
+#   make model      model self-check (200,000 random vectors)
+#   make scenarios  every scenario, the behaviour checks and the cadence-equivalence test
+#   make synth      RTL -> NAND/LATCH TAP-20 bytes: chips/out/fg.tap, fg.hex, fg.manifest.json, fg.map.json
+#   make test       RTL == model on the bytes (600,000 vectors + every scenario trace)
+#   make prove      equivalence, P1..P7 (yosys SAT and z3), witness -> chips/out/fg.proofs.json
+#   make mutants    ten deliberately broken chips: each must fail its proof
+#   make export     fg.fields.json, fg.vectors.json, per-epoch scenario tables
+#   make glutton    the hostile demo chips and their clamp demo
+#   make fork       local anvil fork: tape out, 10,000+ vector difftest, step gas -> chips/out/fg.fork.json
+#   make all        everything except `fork`
+#   make check      `all` without rebuilding the netlist: verifies the committed bytes
+#
+# Nothing here sends a mainnet transaction or reads a key. `make fork` starts a LOCAL anvil fork.
+
+RTL     := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+CHIPS   := $(patsubst %/,%,$(dir $(RTL)))
+PYTHON  ?= $(firstword $(wildcard $(HOME)/.local/bin/python3.12) python3.12)
+VENV    ?= $(CHIPS)/.venv-fg
+PY      := $(VENV)/bin/python
+TAPC    := PYTHONPATH=$(CHIPS)/tools $(PY) -m tapc
+OUT     := $(CHIPS)/out
+RECIPE  ?= auto
+FORK_BLOCK ?= 72373000
+N       ?= 200000
+
+.PHONY: venv params model scenarios synth test prove mutants export glutton fork all check clean
+
+venv: $(VENV)/.installed
+$(VENV)/.installed:
+	test -x $(PY) || $(PYTHON) -m venv $(VENV)
+	$(PY) -m pip install --disable-pip-version-check yowasp-yosys==0.69.0.0.post1233 z3-solver==5.1.0.0
+	touch $@
+
+params: venv
+	$(PY) $(RTL)/gen_params.py
+
+model: venv
+	$(PY) $(RTL)/gen_params.py --check
+	$(PY) $(CHIPS)/model/flow_governor.py
+
+scenarios: venv
+	$(PY) $(CHIPS)/model/scenarios.py
+
+synth: venv
+	$(PY) $(RTL)/gen_params.py --check
+	$(TAPC) synth $(RTL)/fg_params.vh $(RTL)/fg_core.v --name fg --top fg_core --nin 96 --nout 112 \
+		--pins $(CHIPS)/synth/fg.pins.json --out $(OUT) --build $(CHIPS)/synth/build/fg \
+		--recipe $(RECIPE) --max-bytes 24000 --shape covenant-v1
+	$(TAPC) info $(OUT)/fg.tap
+
+test: venv
+	$(PY) $(RTL)/test_fg.py --tap $(OUT)/fg.tap --n $(N)
+
+prove: venv
+	$(PY) $(CHIPS)/props/prove.py --tap $(OUT)/fg.tap
+
+mutants: venv
+	$(PY) $(CHIPS)/props/mutants.py
+
+export: venv
+	$(PY) $(CHIPS)/model/export.py
+	$(TAPC) sim $(OUT)/fg.tap --check $(OUT)/fg.vectors.json
+
+GL := $(CHIPS)/cells/glutton
+GLPROPS := --props-v $(GL)/glutton_props.v --props-top glutton_props --tap-module glutton_tap \
+	--signal p_demands_everything --signal p_heartbeat --signal p_ignores_inputs
+
+glutton: venv
+	$(TAPC) synth $(GL)/glutton_core.v --name glutton --top glutton_core --nin 96 --nout 112 \
+		--pins $(GL)/glutton.pins.json --out $(GL) --build $(CHIPS)/synth/build/glutton --shape covenant-v1
+	$(TAPC) synth $(GL)/glutton512_core.v --name glutton512 --top glutton512_core --nin 96 --nout 112 \
+		--pins $(GL)/glutton.pins.json --out $(GL) --build $(CHIPS)/synth/build/glutton512 --shape covenant-v1
+	$(TAPC) prove all --rtl $(GL)/glutton_core.v --top glutton_core --tap $(GL)/glutton.tap $(GLPROPS) \
+		--signal p_group_256 --work $(CHIPS)/synth/build/glutton/prove --report $(GL)/glutton.proofs.json
+	$(TAPC) prove all --rtl $(GL)/glutton512_core.v --top glutton512_core --tap $(GL)/glutton512.tap $(GLPROPS) \
+		--signal p_group_512 --work $(CHIPS)/synth/build/glutton512/prove --report $(GL)/glutton512.proofs.json
+	$(PY) $(GL)/demo.py
+
+fork: venv
+	$(PY) $(CHIPS)/synth/fork_test.py --block $(FORK_BLOCK) --n 10000
+
+check: model scenarios test prove export
+	$(PY) $(CHIPS)/cells/glutton/demo.py
+
+all: params model scenarios synth test prove export glutton
+
+clean:
+	rm -rf $(CHIPS)/synth/build $(CHIPS)/props/build
+	find $(RTL) $(CHIPS)/model $(CHIPS)/props $(CHIPS)/synth $(CHIPS)/cells -name __pycache__ -type d -prune -exec rm -rf {} +

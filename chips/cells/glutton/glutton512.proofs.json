@@ -1,0 +1,79 @@
+{
+ "format": "tapc-proofs/1",
+ "name": "glutton512",
+ "keccak256": "0xcfb1f51e727184bdb9850cfa6ed4e8ff53806a50d248fa5417439e6ac0b9d4e4",
+ "bytes": 795,
+ "nIn": 96,
+ "nOut": 112,
+ "nState": 1,
+ "nNand": 113,
+ "nLatch": 1,
+ "ok": true,
+ "tool": {
+  "tapc": "0.1.0",
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "z3": "5.1.0"
+ },
+ "proofs": [
+  {
+   "name": "glutton512_core == netlist",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton512_core == netlist",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_demands_everything",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_heartbeat",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_ignores_inputs",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_group_512",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_demands_everything",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_heartbeat",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_ignores_inputs",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "glutton_props.p_group_512",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "format": "tapc-pins/1",
+ "inputs": [
+  {"name": "en", "lsb": 0, "width": 1},
+  {"name": "clr", "lsb": 1, "width": 1}
+ ],
+ "outputs": [
+  {"name": "count", "lsb": 0, "width": 8},
+  {"name": "flag", "lsb": 8, "width": 1},
+  {"name": "parity", "lsb": 9, "width": 1}
+ ],
+ "state": [
+  {"name": "count", "lsb": 0, "width": 8},
+  {"name": "flag", "lsb": 8, "width": 1}
+ ]
+}

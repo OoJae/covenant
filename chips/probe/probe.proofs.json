@@ -1,0 +1,151 @@
+{
+ "format": "tapc-proofs/1",
+ "name": "probe",
+ "keccak256": "0xbe0a646df5b58df69e5dc50f492dcc5bdcffa440c3188b8b786ff506cb181325",
+ "bytes": 799,
+ "nIn": 2,
+ "nOut": 10,
+ "nState": 9,
+ "nNand": 109,
+ "nLatch": 9,
+ "ok": true,
+ "tool": {
+  "tapc": "0.1.0",
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "z3": "5.1.0"
+ },
+ "proofs": [
+  {
+   "name": "probe_core == netlist",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_core == netlist",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_flag_sticky",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_saturated_implies_flag",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_outputs_mirror_state",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_parity",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_clr_wins",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_hold",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_never_wraps",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_counts_by_one",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_flag_sticky",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_saturated_implies_flag",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_outputs_mirror_state",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_parity",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_clr_wins",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_hold",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_never_wraps",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "probe_props.p_counts_by_one",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "flag_sticky",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "full_spec",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "never_wraps",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "saturated_implies_flag",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  }
+ ]
+}

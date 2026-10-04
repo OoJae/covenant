@@ -1,0 +1,155 @@
+{
+ "format": "covenant-witness/1",
+ "chip": "flow-governor",
+ "claim": "two reachable states answer one input word with different routes",
+ "x": "0x00a406000099010000100000",
+ "xFields": {
+  "TAXCUM": 425,
+  "RES": 409,
+  "DT": 1
+ },
+ "reachA": {
+  "inputs": [
+   "0xa9a506000000000000100000"
+  ],
+  "state": "0x3cf144c908004000",
+  "stateFields": {
+   "A": 316,
+   "PK": 79,
+   "PKDIV": 1,
+   "MODE": 1,
+   "TIER": 1,
+   "GSEEN": 0,
+   "WARM": 3,
+   "LIVE": 8,
+   "SUR": 0,
+   "TR": 0,
+   "CD": 0,
+   "NBANK": 0,
+   "NDEF": 0,
+   "CLOCK": 1
+  }
+ },
+ "reachB": {
+  "inputs": [
+   "0xa9a506000000000000100000",
+   "0x00a406000099010000100000",
+   "0x00a406000099010000100000",
+   "0x00a406000099010000100000",
+   "0x00a406000099010000100000",
+   "0x00a406000099010000100000"
+  ],
+  "state": "0x00e1840903008001",
+  "stateFields": {
+   "A": 256,
+   "PK": 78,
+   "PKDIV": 2,
+   "MODE": 1,
+   "TIER": 1,
+   "GSEEN": 0,
+   "WARM": 0,
+   "LIVE": 3,
+   "SUR": 0,
+   "TR": 0,
+   "CD": 0,
+   "NBANK": 0,
+   "NDEF": 0,
+   "CLOCK": 6
+  }
+ },
+ "outA": {
+  "y": "0xa0008000020000008002604b8603",
+  "newState": "0x30f1848907008000",
+  "route": {
+   "T_BUY": 160,
+   "T_HOLD": 0,
+   "T_ALLOW": 32,
+   "T_RES": 64,
+   "REL": 2,
+   "CEIL": 432,
+   "MODE": 1,
+   "TIER": 1,
+   "modeName": "CRUISE",
+   "flags": "dip,quiet,warm"
+  }
+ },
+ "outB": {
+  "y": "0x00010000000000008022605b0e11",
+  "newState": "0xf4e0c40bc200c101",
+  "route": {
+   "T_BUY": 256,
+   "T_HOLD": 0,
+   "T_ALLOW": 0,
+   "T_RES": 0,
+   "REL": 34,
+   "CEIL": 432,
+   "MODE": 3,
+   "TIER": 1,
+   "modeName": "DEFEND",
+   "flags": "dip,quiet,release"
+  }
+ },
+ "differs": [
+  "REL",
+  "T_ALLOW",
+  "T_BUY",
+  "T_RES"
+ ],
+ "tour": {
+  "inputs": [
+   "0x000000000000000000100000",
+   "0x8f3d06000000000000100000",
+   "0x8f5d0600007f010000100000",
+   "0x8f6d06000087010000100000",
+   "0x8f7d0600008b010000100000",
+   "0x8f850600008f010000100000",
+   "0xb9e906000091010000100000",
+   "0x00e8060000b6010000100000",
+   "0x00e8060000b6010000100000",
+   "0x00e8060000b5010000100000",
+   "0x00e8060000b3010000100000",
+   "0x00e8060000b2010000100000",
+   "0x00e8060000b1010000100000",
+   "0x00e8060000b1010000100000",
+   "0x00e8060000b0010000100000",
+   "0x00e8060000b0010000100000",
+   "0x00e8060000b0010000100000",
+   "0x00e8060000b0010000100000",
+   "0x00e8060000b0010000100000"
+  ],
+  "modes": [
+   "IDLE",
+   "CRUISE",
+   "CRUISE",
+   "CRUISE",
+   "CRUISE",
+   "CRUISE",
+   "BANK",
+   "BANK",
+   "DEFEND",
+   "DEFEND",
+   "DEFEND",
+   "DEFEND",
+   "REST",
+   "REST",
+   "REST",
+   "REST",
+   "REST",
+   "REST",
+   "DEFEND"
+  ],
+  "firstStepInMode": {
+   "IDLE": 1,
+   "CRUISE": 2,
+   "BANK": 7,
+   "DEFEND": 9,
+   "REST": 13
+  },
+  "finalState": "0x6ec0c30bc008c204"
+ },
+ "cast": [
+  "# free read calls on the taped chip; CPU = processor (Circuits) address, ID = circuit id",
+  "cast call $CPU 'step(uint256,bytes,bytes)(bytes,bytes)' $ID 0x3cf144c908004000 0x00a406000099010000100000",
+  "cast call $CPU 'step(uint256,bytes,bytes)(bytes,bytes)' $ID 0x00e1840903008001 0x00a406000099010000100000"
+ ]
+}

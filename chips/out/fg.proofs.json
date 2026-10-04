@@ -1,0 +1,661 @@
+{
+ "format": "covenant-proofs/1",
+ "chip": "flow-governor",
+ "keccak256": "0x2fd0e007398296a5845c8a7e3b99d5149d6c02ae670afe373abd191fb2591a89",
+ "bytes": 13479,
+ "nNand": 1889,
+ "nLatch": 64,
+ "ok": true,
+ "space": "every 64-bit state and every 96-bit input word (2^160 pairs), except P7 which is a witness",
+ "envelope": {
+  "epochLen": 900,
+  "capT": 48,
+  "capV": 0,
+  "allowCumBps": 1875,
+  "ceilMax": 440,
+  "relMax": 128,
+  "floorRel": 2,
+  "floorMin": 1,
+  "fallbackEpochs": 16,
+  "fbAllow": 8,
+  "buyEnabled": true
+ },
+ "tools": {
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "z3": "5.1.0"
+ },
+ "wallSeconds": 112.7,
+ "groups": [
+  {
+   "id": "P1",
+   "title": "share groups sum to 256",
+   "prefix": "p1_"
+  },
+  {
+   "id": "P2",
+   "title": "clamp-freedom against the envelope",
+   "prefix": "p2_"
+  },
+  {
+   "id": "P3",
+   "title": "ratchets never loosen",
+   "prefix": "p3_"
+  },
+  {
+   "id": "P4",
+   "title": "inductive state invariant",
+   "prefix": "p4_"
+  },
+  {
+   "id": "P5",
+   "title": "unused inputs are ignored",
+   "prefix": "p5_"
+  },
+  {
+   "id": "P6",
+   "title": "cooldown",
+   "prefix": "p6_"
+  },
+  {
+   "id": "P7",
+   "title": "reachability witness",
+   "prefix": "w_"
+  },
+  {
+   "id": "PX",
+   "title": "extras",
+   "prefix": "px_"
+  }
+ ],
+ "proofs": [
+  {
+   "name": "EQ fg_core == netlist bytes",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 90.853
+  },
+  {
+   "name": "EQ fg_core == netlist bytes",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 112.483
+  },
+  {
+   "name": "fg_props.p1_t_sum",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.477
+  },
+  {
+   "name": "fg_props.p1_t_sum",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.257
+  },
+  {
+   "name": "fg_props.p1_t_each",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.442
+  },
+  {
+   "name": "fg_props.p1_t_each",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.309
+  },
+  {
+   "name": "fg_props.p1_v_sum",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.27
+  },
+  {
+   "name": "fg_props.p1_v_sum",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.475
+  },
+  {
+   "name": "fg_props.p1_v_each",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.332
+  },
+  {
+   "name": "fg_props.p1_v_each",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.56
+  },
+  {
+   "name": "fg_props.p1_hold_zero",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.278
+  },
+  {
+   "name": "fg_props.p1_hold_zero",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.48
+  },
+  {
+   "name": "fg_props.p2_allow_cap",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.304
+  },
+  {
+   "name": "fg_props.p2_allow_cap",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.144
+  },
+  {
+   "name": "fg_props.p2_vallow_cap",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.292
+  },
+  {
+   "name": "fg_props.p2_vallow_cap",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.014
+  },
+  {
+   "name": "fg_props.p2_rel_cap",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.407
+  },
+  {
+   "name": "fg_props.p2_rel_cap",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 3.603
+  },
+  {
+   "name": "fg_props.p2_floor",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.602
+  },
+  {
+   "name": "fg_props.p2_floor",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 8.254
+  },
+  {
+   "name": "fg_props.p2_floor_always",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.676
+  },
+  {
+   "name": "fg_props.p2_floor_always",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 7.339
+  },
+  {
+   "name": "fg_props.p2_ceil",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.405
+  },
+  {
+   "name": "fg_props.p2_ceil",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.845
+  },
+  {
+   "name": "fg_props.p2_ceil_finite",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.476
+  },
+  {
+   "name": "fg_props.p2_ceil_finite",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.088
+  },
+  {
+   "name": "fg_props.p3_tier_up",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.665
+  },
+  {
+   "name": "fg_props.p3_tier_up",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.81
+  },
+  {
+   "name": "fg_props.p3_tier_out",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.66
+  },
+  {
+   "name": "fg_props.p3_tier_out",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.248
+  },
+  {
+   "name": "fg_props.p3_allow_bound",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.511
+  },
+  {
+   "name": "fg_props.p3_allow_bound",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.72
+  },
+  {
+   "name": "fg_props.p3_ceil_exact",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.392
+  },
+  {
+   "name": "fg_props.p3_ceil_exact",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.378
+  },
+  {
+   "name": "fg_props.p3_tier_frozen_grad",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.321
+  },
+  {
+   "name": "fg_props.p3_tier_frozen_grad",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.449
+  },
+  {
+   "name": "fg_props.p3_mono_allow",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 6.875
+  },
+  {
+   "name": "fg_props.p3_mono_allow",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.912
+  },
+  {
+   "name": "fg_props.p3_mono_ceil",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.337
+  },
+  {
+   "name": "fg_props.p3_mono_ceil",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.855
+  },
+  {
+   "name": "fg_props.p3_no_allow_grad",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.29
+  },
+  {
+   "name": "fg_props.p3_no_allow_grad",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.022
+  },
+  {
+   "name": "fg_props.p4_init",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.252
+  },
+  {
+   "name": "fg_props.p4_init",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.225
+  },
+  {
+   "name": "fg_props.p4_step",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.386
+  },
+  {
+   "name": "fg_props.p4_step",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.977
+  },
+  {
+   "name": "fg_props.p4_mode_out",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.324
+  },
+  {
+   "name": "fg_props.p4_mode_out",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.131
+  },
+  {
+   "name": "fg_props.p5_ignored",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 10.911
+  },
+  {
+   "name": "fg_props.p5_ignored",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.251
+  },
+  {
+   "name": "fg_props.p6_no_release",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.34
+  },
+  {
+   "name": "fg_props.p6_no_release",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.85
+  },
+  {
+   "name": "fg_props.p6_counts_down",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.295
+  },
+  {
+   "name": "fg_props.p6_counts_down",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 3.133
+  },
+  {
+   "name": "fg_props.p6_stays",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.728
+  },
+  {
+   "name": "fg_props.p6_stays",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.974
+  },
+  {
+   "name": "fg_props.p6_tranche_flag",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.689
+  },
+  {
+   "name": "fg_props.p6_tranche_flag",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 33.143
+  },
+  {
+   "name": "fg_props.p6_defend_shares",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.379
+  },
+  {
+   "name": "fg_props.p6_defend_shares",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 3.096
+  },
+  {
+   "name": "fg_props.px_dt0",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 2.677
+  },
+  {
+   "name": "fg_props.px_dt0",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.173
+  },
+  {
+   "name": "fg_props.px_gseen",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.591
+  },
+  {
+   "name": "fg_props.px_gseen",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 2.305
+  },
+  {
+   "name": "fg_props.px_grad_step",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.665
+  },
+  {
+   "name": "fg_props.px_grad_step",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 3.413
+  },
+  {
+   "name": "fg_witness.w_reach_a",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 2.531
+  },
+  {
+   "name": "fg_witness.w_reach_b",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 3.322
+  },
+  {
+   "name": "fg_witness.w_same_x_different_route",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 3.322
+  },
+  {
+   "name": "fg_witness.w_out_a",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 3.322
+  },
+  {
+   "name": "fg_witness.w_out_b",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 3.322
+  },
+  {
+   "name": "fg_witness.w_tour_modes",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 3.322
+  },
+  {
+   "name": "fg_witness.w_tour_end",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 3.322
+  },
+  {
+   "name": "bytes: P7 witness chains and mode tour (26 concrete steps)",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.037
+  },
+  {
+   "name": "bytes: p1_no_holder_share",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "bytes: p1_t_group_sums_to_256",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.47
+  },
+  {
+   "name": "bytes: p1_v_group_sums_to_256",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "bytes: p2_k2_allowance_cap",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.929
+  },
+  {
+   "name": "bytes: p2_k2c_ceiling",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.507
+  },
+  {
+   "name": "bytes: p2_k2v_revenue_allowance_cap",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "bytes: p2_k3_release_cap",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.987
+  },
+  {
+   "name": "bytes: p2_k5_floor_for_every_reserve",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.879
+  },
+  {
+   "name": "bytes: p2_k5_reserve_floor",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.887
+  },
+  {
+   "name": "bytes: p3_allowance_bounded_by_tier",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.841
+  },
+  {
+   "name": "bytes: p3_graduated_tier_frozen_and_no_allowance",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.006
+  },
+  {
+   "name": "bytes: p3_higher_tier_never_loosens",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.894
+  },
+  {
+   "name": "bytes: p3_tier_never_decreases",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.823
+  },
+  {
+   "name": "bytes: p4_invariant_holds_at_reset",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.002
+  },
+  {
+   "name": "bytes: p4_invariant_is_inductive",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.922
+  },
+  {
+   "name": "bytes: p4_mode_output_is_mode_latch",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.011
+  },
+  {
+   "name": "bytes: p5_unused_inputs_ignored",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "bytes: p6_cooldown",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.866
+  },
+  {
+   "name": "bytes: p6_release_above_leak_is_a_flagged_tranche",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.844
+  },
+  {
+   "name": "bytes: px_dt_zero_reads_as_one",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.017
+  },
+  {
+   "name": "bytes: px_graduation_seen_once",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.425
+  },
+  {
+   "name": "bytes: px_graduation_step_only_reseeds",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.932
+  },
+  {
+   "name": "P7 witness and tour replayed on the bytes",
+   "engine": "tapc.sim",
+   "status": "proved",
+   "seconds": 0.006
+  },
+  {
+   "name": "K2L never binds (lifetime cap)",
+   "engine": "argument + randomized test",
+   "status": "proved",
+   "seconds": 1.159,
+   "detail": "200000 random settles with the allowance share at capT: 0 K2L hits"
+  }
+ ]
+}

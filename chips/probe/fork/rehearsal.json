@@ -1,0 +1,34 @@
+{
+ "rpc": "http://127.0.0.1:28545",
+ "chain_id": 196,
+ "fork_block": 72372765,
+ "account": "0x357dc7283ad9ec141d236615dbeb0a89f0455a27",
+ "factory": "0x1f09DAeFA827f02CBb40967cc91b259763760761",
+ "cpu": "0xdcdbef5d18a5c588291d8a81fbe76b06c6788508",
+ "transistors": "0xe8231ebce6f97e55e97ee857891776bd0b02509a",
+ "circuit_id": 1,
+ "deploy_fee": 6600000000000000,
+ "protocol_fee": 660000000000000,
+ "tapeout_fee": 1300000000000000,
+ "mint_price": 20000000000000,
+ "gas": {
+  "createCPU": 737714,
+  "mintNand": 157599,
+  "mintLatch": 86434,
+  "tapeout": 567908
+ },
+ "value": {
+  "createCPU": 6600000000000000,
+  "mintNand": 2840000000000000,
+  "mintLatch": 840000000000000,
+  "tapeout": 1300000000000000
+ },
+ "netlist_matches": true,
+ "circuit_info": {
+  "nIn": 2,
+  "nOut": 10,
+  "nState": 9,
+  "gateCount": 118
+ },
+ "note": "LOCAL ANVIL FORK. Nothing here happened on a real chain."
+}

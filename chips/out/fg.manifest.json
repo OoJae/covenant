@@ -1,0 +1,1759 @@
+{
+ "format": "tapc-manifest/1",
+ "name": "fg",
+ "standard": "TAP-20 draft (updated 2026-09-30)",
+ "nIn": 96,
+ "nOut": 112,
+ "nState": 64,
+ "nNand": 1889,
+ "nLatch": 64,
+ "nRef": 0,
+ "gateCount": 1953,
+ "signals": 2051,
+ "depth": 154,
+ "bytes": 13479,
+ "keccak256": "0x2fd0e007398296a5845c8a7e3b99d5149d6c02ae670afe373abd191fb2591a89",
+ "latchesFirst": true,
+ "layout": {
+  "const0": 0,
+  "const1": 1,
+  "firstInput": 2,
+  "firstLatch": 98,
+  "firstNand": 162,
+  "firstOutput": 1939,
+  "outputDuplicates": 81,
+  "outputBuffers": 0,
+  "outputConstants": 65
+ },
+ "inputs": [
+  {
+   "bit": 0,
+   "name": "TAX[0]",
+   "signal": 2
+  },
+  {
+   "bit": 1,
+   "name": "TAX[1]",
+   "signal": 3
+  },
+  {
+   "bit": 2,
+   "name": "TAX[2]",
+   "signal": 4
+  },
+  {
+   "bit": 3,
+   "name": "TAX[3]",
+   "signal": 5
+  },
+  {
+   "bit": 4,
+   "name": "TAX[4]",
+   "signal": 6
+  },
+  {
+   "bit": 5,
+   "name": "TAX[5]",
+   "signal": 7
+  },
+  {
+   "bit": 6,
+   "name": "TAX[6]",
+   "signal": 8
+  },
+  {
+   "bit": 7,
+   "name": "TAX[7]",
+   "signal": 9
+  },
+  {
+   "bit": 8,
+   "name": "TAX[8]",
+   "signal": 10
+  },
+  {
+   "bit": 9,
+   "name": "TAX[9]",
+   "signal": 11
+  },
+  {
+   "bit": 10,
+   "name": "TAXCUM[0]",
+   "signal": 12
+  },
+  {
+   "bit": 11,
+   "name": "TAXCUM[1]",
+   "signal": 13
+  },
+  {
+   "bit": 12,
+   "name": "TAXCUM[2]",
+   "signal": 14
+  },
+  {
+   "bit": 13,
+   "name": "TAXCUM[3]",
+   "signal": 15
+  },
+  {
+   "bit": 14,
+   "name": "TAXCUM[4]",
+   "signal": 16
+  },
+  {
+   "bit": 15,
+   "name": "TAXCUM[5]",
+   "signal": 17
+  },
+  {
+   "bit": 16,
+   "name": "TAXCUM[6]",
+   "signal": 18
+  },
+  {
+   "bit": 17,
+   "name": "TAXCUM[7]",
+   "signal": 19
+  },
+  {
+   "bit": 18,
+   "name": "TAXCUM[8]",
+   "signal": 20
+  },
+  {
+   "bit": 19,
+   "name": "TAXCUM[9]",
+   "signal": 21
+  },
+  {
+   "bit": 20,
+   "name": "REV[0]",
+   "signal": 22
+  },
+  {
+   "bit": 21,
+   "name": "REV[1]",
+   "signal": 23
+  },
+  {
+   "bit": 22,
+   "name": "REV[2]",
+   "signal": 24
+  },
+  {
+   "bit": 23,
+   "name": "REV[3]",
+   "signal": 25
+  },
+  {
+   "bit": 24,
+   "name": "REV[4]",
+   "signal": 26
+  },
+  {
+   "bit": 25,
+   "name": "REV[5]",
+   "signal": 27
+  },
+  {
+   "bit": 26,
+   "name": "REV[6]",
+   "signal": 28
+  },
+  {
+   "bit": 27,
+   "name": "REV[7]",
+   "signal": 29
+  },
+  {
+   "bit": 28,
+   "name": "REV[8]",
+   "signal": 30
+  },
+  {
+   "bit": 29,
+   "name": "REV[9]",
+   "signal": 31
+  },
+  {
+   "bit": 30,
+   "name": "REVCUM[0]",
+   "signal": 32
+  },
+  {
+   "bit": 31,
+   "name": "REVCUM[1]",
+   "signal": 33
+  },
+  {
+   "bit": 32,
+   "name": "REVCUM[2]",
+   "signal": 34
+  },
+  {
+   "bit": 33,
+   "name": "REVCUM[3]",
+   "signal": 35
+  },
+  {
+   "bit": 34,
+   "name": "REVCUM[4]",
+   "signal": 36
+  },
+  {
+   "bit": 35,
+   "name": "REVCUM[5]",
+   "signal": 37
+  },
+  {
+   "bit": 36,
+   "name": "REVCUM[6]",
+   "signal": 38
+  },
+  {
+   "bit": 37,
+   "name": "REVCUM[7]",
+   "signal": 39
+  },
+  {
+   "bit": 38,
+   "name": "REVCUM[8]",
+   "signal": 40
+  },
+  {
+   "bit": 39,
+   "name": "REVCUM[9]",
+   "signal": 41
+  },
+  {
+   "bit": 40,
+   "name": "RES[0]",
+   "signal": 42
+  },
+  {
+   "bit": 41,
+   "name": "RES[1]",
+   "signal": 43
+  },
+  {
+   "bit": 42,
+   "name": "RES[2]",
+   "signal": 44
+  },
+  {
+   "bit": 43,
+   "name": "RES[3]",
+   "signal": 45
+  },
+  {
+   "bit": 44,
+   "name": "RES[4]",
+   "signal": 46
+  },
+  {
+   "bit": 45,
+   "name": "RES[5]",
+   "signal": 47
+  },
+  {
+   "bit": 46,
+   "name": "RES[6]",
+   "signal": 48
+  },
+  {
+   "bit": 47,
+   "name": "RES[7]",
+   "signal": 49
+  },
+  {
+   "bit": 48,
+   "name": "RES[8]",
+   "signal": 50
+  },
+  {
+   "bit": 49,
+   "name": "RES[9]",
+   "signal": 51
+  },
+  {
+   "bit": 50,
+   "name": "ESC[0]",
+   "signal": 52
+  },
+  {
+   "bit": 51,
+   "name": "ESC[1]",
+   "signal": 53
+  },
+  {
+   "bit": 52,
+   "name": "ESC[2]",
+   "signal": 54
+  },
+  {
+   "bit": 53,
+   "name": "ESC[3]",
+   "signal": 55
+  },
+  {
+   "bit": 54,
+   "name": "ESC[4]",
+   "signal": 56
+  },
+  {
+   "bit": 55,
+   "name": "ESC[5]",
+   "signal": 57
+  },
+  {
+   "bit": 56,
+   "name": "ESC[6]",
+   "signal": 58
+  },
+  {
+   "bit": 57,
+   "name": "ESC[7]",
+   "signal": 59
+  },
+  {
+   "bit": 58,
+   "name": "ESC[8]",
+   "signal": 60
+  },
+  {
+   "bit": 59,
+   "name": "ESC[9]",
+   "signal": 61
+  },
+  {
+   "bit": 60,
+   "name": "PROG[0]",
+   "signal": 62
+  },
+  {
+   "bit": 61,
+   "name": "PROG[1]",
+   "signal": 63
+  },
+  {
+   "bit": 62,
+   "name": "PROG[2]",
+   "signal": 64
+  },
+  {
+   "bit": 63,
+   "name": "PROG[3]",
+   "signal": 65
+  },
+  {
+   "bit": 64,
+   "name": "PROG[4]",
+   "signal": 66
+  },
+  {
+   "bit": 65,
+   "name": "PROG[5]",
+   "signal": 67
+  },
+  {
+   "bit": 66,
+   "name": "PROG[6]",
+   "signal": 68
+  },
+  {
+   "bit": 67,
+   "name": "PROG[7]",
+   "signal": 69
+  },
+  {
+   "bit": 68,
+   "name": "LOCK[0]",
+   "signal": 70
+  },
+  {
+   "bit": 69,
+   "name": "LOCK[1]",
+   "signal": 71
+  },
+  {
+   "bit": 70,
+   "name": "LOCK[2]",
+   "signal": 72
+  },
+  {
+   "bit": 71,
+   "name": "LOCK[3]",
+   "signal": 73
+  },
+  {
+   "bit": 72,
+   "name": "LOCK[4]",
+   "signal": 74
+  },
+  {
+   "bit": 73,
+   "name": "LOCK[5]",
+   "signal": 75
+  },
+  {
+   "bit": 74,
+   "name": "LOCK[6]",
+   "signal": 76
+  },
+  {
+   "bit": 75,
+   "name": "LOCK[7]",
+   "signal": 77
+  },
+  {
+   "bit": 76,
+   "name": "DT[0]",
+   "signal": 78
+  },
+  {
+   "bit": 77,
+   "name": "DT[1]",
+   "signal": 79
+  },
+  {
+   "bit": 78,
+   "name": "DT[2]",
+   "signal": 80
+  },
+  {
+   "bit": 79,
+   "name": "DT[3]",
+   "signal": 81
+  },
+  {
+   "bit": 80,
+   "name": "GRAD",
+   "signal": 82
+  },
+  {
+   "bit": 81,
+   "name": "ZERO[0]",
+   "signal": 83
+  },
+  {
+   "bit": 82,
+   "name": "ZERO[1]",
+   "signal": 84
+  },
+  {
+   "bit": 83,
+   "name": "ZERO[2]",
+   "signal": 85
+  },
+  {
+   "bit": 84,
+   "name": "ZERO[3]",
+   "signal": 86
+  },
+  {
+   "bit": 85,
+   "name": "ZERO[4]",
+   "signal": 87
+  },
+  {
+   "bit": 86,
+   "name": "ZERO[5]",
+   "signal": 88
+  },
+  {
+   "bit": 87,
+   "name": "ZERO[6]",
+   "signal": 89
+  },
+  {
+   "bit": 88,
+   "name": "ZERO[7]",
+   "signal": 90
+  },
+  {
+   "bit": 89,
+   "name": "ZERO[8]",
+   "signal": 91
+  },
+  {
+   "bit": 90,
+   "name": "ZERO[9]",
+   "signal": 92
+  },
+  {
+   "bit": 91,
+   "name": "ZERO[10]",
+   "signal": 93
+  },
+  {
+   "bit": 92,
+   "name": "ZERO[11]",
+   "signal": 94
+  },
+  {
+   "bit": 93,
+   "name": "ZERO[12]",
+   "signal": 95
+  },
+  {
+   "bit": 94,
+   "name": "ZERO[13]",
+   "signal": 96
+  },
+  {
+   "bit": 95,
+   "name": "ZERO[14]",
+   "signal": 97
+  }
+ ],
+ "outputs": [
+  {
+   "bit": 0,
+   "name": "T_BUY[0]",
+   "signal": 1939
+  },
+  {
+   "bit": 1,
+   "name": "T_BUY[1]",
+   "signal": 1940
+  },
+  {
+   "bit": 2,
+   "name": "T_BUY[2]",
+   "signal": 1941
+  },
+  {
+   "bit": 3,
+   "name": "T_BUY[3]",
+   "signal": 1942
+  },
+  {
+   "bit": 4,
+   "name": "T_BUY[4]",
+   "signal": 1943
+  },
+  {
+   "bit": 5,
+   "name": "T_BUY[5]",
+   "signal": 1944
+  },
+  {
+   "bit": 6,
+   "name": "T_BUY[6]",
+   "signal": 1945
+  },
+  {
+   "bit": 7,
+   "name": "T_BUY[7]",
+   "signal": 1946
+  },
+  {
+   "bit": 8,
+   "name": "T_BUY[8]",
+   "signal": 1947
+  },
+  {
+   "bit": 9,
+   "name": "T_HOLD[0]",
+   "signal": 1948
+  },
+  {
+   "bit": 10,
+   "name": "T_HOLD[1]",
+   "signal": 1949
+  },
+  {
+   "bit": 11,
+   "name": "T_HOLD[2]",
+   "signal": 1950
+  },
+  {
+   "bit": 12,
+   "name": "T_HOLD[3]",
+   "signal": 1951
+  },
+  {
+   "bit": 13,
+   "name": "T_HOLD[4]",
+   "signal": 1952
+  },
+  {
+   "bit": 14,
+   "name": "T_HOLD[5]",
+   "signal": 1953
+  },
+  {
+   "bit": 15,
+   "name": "T_HOLD[6]",
+   "signal": 1954
+  },
+  {
+   "bit": 16,
+   "name": "T_HOLD[7]",
+   "signal": 1955
+  },
+  {
+   "bit": 17,
+   "name": "T_HOLD[8]",
+   "signal": 1956
+  },
+  {
+   "bit": 18,
+   "name": "T_ALLOW[0]",
+   "signal": 1957
+  },
+  {
+   "bit": 19,
+   "name": "T_ALLOW[1]",
+   "signal": 1958
+  },
+  {
+   "bit": 20,
+   "name": "T_ALLOW[2]",
+   "signal": 1959
+  },
+  {
+   "bit": 21,
+   "name": "T_ALLOW[3]",
+   "signal": 1960
+  },
+  {
+   "bit": 22,
+   "name": "T_ALLOW[4]",
+   "signal": 1961
+  },
+  {
+   "bit": 23,
+   "name": "T_ALLOW[5]",
+   "signal": 1962
+  },
+  {
+   "bit": 24,
+   "name": "T_ALLOW[6]",
+   "signal": 1963
+  },
+  {
+   "bit": 25,
+   "name": "T_ALLOW[7]",
+   "signal": 1964
+  },
+  {
+   "bit": 26,
+   "name": "T_ALLOW[8]",
+   "signal": 1965
+  },
+  {
+   "bit": 27,
+   "name": "T_RES[0]",
+   "signal": 1966
+  },
+  {
+   "bit": 28,
+   "name": "T_RES[1]",
+   "signal": 1967
+  },
+  {
+   "bit": 29,
+   "name": "T_RES[2]",
+   "signal": 1968
+  },
+  {
+   "bit": 30,
+   "name": "T_RES[3]",
+   "signal": 1969
+  },
+  {
+   "bit": 31,
+   "name": "T_RES[4]",
+   "signal": 1970
+  },
+  {
+   "bit": 32,
+   "name": "T_RES[5]",
+   "signal": 1971
+  },
+  {
+   "bit": 33,
+   "name": "T_RES[6]",
+   "signal": 1972
+  },
+  {
+   "bit": 34,
+   "name": "T_RES[7]",
+   "signal": 1973
+  },
+  {
+   "bit": 35,
+   "name": "T_RES[8]",
+   "signal": 1974
+  },
+  {
+   "bit": 36,
+   "name": "V_BUY[0]",
+   "signal": 1975
+  },
+  {
+   "bit": 37,
+   "name": "V_BUY[1]",
+   "signal": 1976
+  },
+  {
+   "bit": 38,
+   "name": "V_BUY[2]",
+   "signal": 1977
+  },
+  {
+   "bit": 39,
+   "name": "V_BUY[3]",
+   "signal": 1978
+  },
+  {
+   "bit": 40,
+   "name": "V_BUY[4]",
+   "signal": 1979
+  },
+  {
+   "bit": 41,
+   "name": "V_BUY[5]",
+   "signal": 1980
+  },
+  {
+   "bit": 42,
+   "name": "V_BUY[6]",
+   "signal": 1981
+  },
+  {
+   "bit": 43,
+   "name": "V_BUY[7]",
+   "signal": 1982
+  },
+  {
+   "bit": 44,
+   "name": "V_BUY[8]",
+   "signal": 1983
+  },
+  {
+   "bit": 45,
+   "name": "V_HOLD[0]",
+   "signal": 1984
+  },
+  {
+   "bit": 46,
+   "name": "V_HOLD[1]",
+   "signal": 1985
+  },
+  {
+   "bit": 47,
+   "name": "V_HOLD[2]",
+   "signal": 1986
+  },
+  {
+   "bit": 48,
+   "name": "V_HOLD[3]",
+   "signal": 1987
+  },
+  {
+   "bit": 49,
+   "name": "V_HOLD[4]",
+   "signal": 1988
+  },
+  {
+   "bit": 50,
+   "name": "V_HOLD[5]",
+   "signal": 1989
+  },
+  {
+   "bit": 51,
+   "name": "V_HOLD[6]",
+   "signal": 1990
+  },
+  {
+   "bit": 52,
+   "name": "V_HOLD[7]",
+   "signal": 1991
+  },
+  {
+   "bit": 53,
+   "name": "V_HOLD[8]",
+   "signal": 1992
+  },
+  {
+   "bit": 54,
+   "name": "V_ALLOW[0]",
+   "signal": 1993
+  },
+  {
+   "bit": 55,
+   "name": "V_ALLOW[1]",
+   "signal": 1994
+  },
+  {
+   "bit": 56,
+   "name": "V_ALLOW[2]",
+   "signal": 1995
+  },
+  {
+   "bit": 57,
+   "name": "V_ALLOW[3]",
+   "signal": 1996
+  },
+  {
+   "bit": 58,
+   "name": "V_ALLOW[4]",
+   "signal": 1997
+  },
+  {
+   "bit": 59,
+   "name": "V_ALLOW[5]",
+   "signal": 1998
+  },
+  {
+   "bit": 60,
+   "name": "V_ALLOW[6]",
+   "signal": 1999
+  },
+  {
+   "bit": 61,
+   "name": "V_ALLOW[7]",
+   "signal": 2000
+  },
+  {
+   "bit": 62,
+   "name": "V_ALLOW[8]",
+   "signal": 2001
+  },
+  {
+   "bit": 63,
+   "name": "V_RES[0]",
+   "signal": 2002
+  },
+  {
+   "bit": 64,
+   "name": "V_RES[1]",
+   "signal": 2003
+  },
+  {
+   "bit": 65,
+   "name": "V_RES[2]",
+   "signal": 2004
+  },
+  {
+   "bit": 66,
+   "name": "V_RES[3]",
+   "signal": 2005
+  },
+  {
+   "bit": 67,
+   "name": "V_RES[4]",
+   "signal": 2006
+  },
+  {
+   "bit": 68,
+   "name": "V_RES[5]",
+   "signal": 2007
+  },
+  {
+   "bit": 69,
+   "name": "V_RES[6]",
+   "signal": 2008
+  },
+  {
+   "bit": 70,
+   "name": "V_RES[7]",
+   "signal": 2009
+  },
+  {
+   "bit": 71,
+   "name": "V_RES[8]",
+   "signal": 2010
+  },
+  {
+   "bit": 72,
+   "name": "REL[0]",
+   "signal": 2011
+  },
+  {
+   "bit": 73,
+   "name": "REL[1]",
+   "signal": 2012
+  },
+  {
+   "bit": 74,
+   "name": "REL[2]",
+   "signal": 2013
+  },
+  {
+   "bit": 75,
+   "name": "REL[3]",
+   "signal": 2014
+  },
+  {
+   "bit": 76,
+   "name": "REL[4]",
+   "signal": 2015
+  },
+  {
+   "bit": 77,
+   "name": "REL[5]",
+   "signal": 2016
+  },
+  {
+   "bit": 78,
+   "name": "REL[6]",
+   "signal": 2017
+  },
+  {
+   "bit": 79,
+   "name": "REL[7]",
+   "signal": 2018
+  },
+  {
+   "bit": 80,
+   "name": "REL[8]",
+   "signal": 2019
+  },
+  {
+   "bit": 81,
+   "name": "CEIL[0]",
+   "signal": 2020
+  },
+  {
+   "bit": 82,
+   "name": "CEIL[1]",
+   "signal": 2021
+  },
+  {
+   "bit": 83,
+   "name": "CEIL[2]",
+   "signal": 2022
+  },
+  {
+   "bit": 84,
+   "name": "CEIL[3]",
+   "signal": 2023
+  },
+  {
+   "bit": 85,
+   "name": "CEIL[4]",
+   "signal": 2024
+  },
+  {
+   "bit": 86,
+   "name": "CEIL[5]",
+   "signal": 2025
+  },
+  {
+   "bit": 87,
+   "name": "CEIL[6]",
+   "signal": 2026
+  },
+  {
+   "bit": 88,
+   "name": "CEIL[7]",
+   "signal": 2027
+  },
+  {
+   "bit": 89,
+   "name": "CEIL[8]",
+   "signal": 2028
+  },
+  {
+   "bit": 90,
+   "name": "CEIL[9]",
+   "signal": 2029
+  },
+  {
+   "bit": 91,
+   "name": "MODE[0]",
+   "signal": 2030
+  },
+  {
+   "bit": 92,
+   "name": "MODE[1]",
+   "signal": 2031
+  },
+  {
+   "bit": 93,
+   "name": "MODE[2]",
+   "signal": 2032
+  },
+  {
+   "bit": 94,
+   "name": "TIER[0]",
+   "signal": 2033
+  },
+  {
+   "bit": 95,
+   "name": "TIER[1]",
+   "signal": 2034
+  },
+  {
+   "bit": 96,
+   "name": "FLAGS[0]",
+   "signal": 2035
+  },
+  {
+   "bit": 97,
+   "name": "FLAGS[1]",
+   "signal": 2036
+  },
+  {
+   "bit": 98,
+   "name": "FLAGS[2]",
+   "signal": 2037
+  },
+  {
+   "bit": 99,
+   "name": "FLAGS[3]",
+   "signal": 2038
+  },
+  {
+   "bit": 100,
+   "name": "FLAGS[4]",
+   "signal": 2039
+  },
+  {
+   "bit": 101,
+   "name": "FLAGS[5]",
+   "signal": 2040
+  },
+  {
+   "bit": 102,
+   "name": "FLAGS[6]",
+   "signal": 2041
+  },
+  {
+   "bit": 103,
+   "name": "FLAGS[7]",
+   "signal": 2042
+  },
+  {
+   "bit": 104,
+   "name": "AUX[0]",
+   "signal": 2043
+  },
+  {
+   "bit": 105,
+   "name": "AUX[1]",
+   "signal": 2044
+  },
+  {
+   "bit": 106,
+   "name": "AUX[2]",
+   "signal": 2045
+  },
+  {
+   "bit": 107,
+   "name": "AUX[3]",
+   "signal": 2046
+  },
+  {
+   "bit": 108,
+   "name": "AUX[4]",
+   "signal": 2047
+  },
+  {
+   "bit": 109,
+   "name": "AUX[5]",
+   "signal": 2048
+  },
+  {
+   "bit": 110,
+   "name": "AUX[6]",
+   "signal": 2049
+  },
+  {
+   "bit": 111,
+   "name": "AUX[7]",
+   "signal": 2050
+  }
+ ],
+ "latches": [
+  {
+   "bit": 0,
+   "name": "A[0]",
+   "record": 0,
+   "signal": 98,
+   "d": 606
+  },
+  {
+   "bit": 1,
+   "name": "A[1]",
+   "record": 1,
+   "signal": 99,
+   "d": 626
+  },
+  {
+   "bit": 2,
+   "name": "A[2]",
+   "record": 2,
+   "signal": 100,
+   "d": 645
+  },
+  {
+   "bit": 3,
+   "name": "A[3]",
+   "record": 3,
+   "signal": 101,
+   "d": 660
+  },
+  {
+   "bit": 4,
+   "name": "A[4]",
+   "record": 4,
+   "signal": 102,
+   "d": 677
+  },
+  {
+   "bit": 5,
+   "name": "A[5]",
+   "record": 5,
+   "signal": 103,
+   "d": 693
+  },
+  {
+   "bit": 6,
+   "name": "A[6]",
+   "record": 6,
+   "signal": 104,
+   "d": 710
+  },
+  {
+   "bit": 7,
+   "name": "A[7]",
+   "record": 7,
+   "signal": 105,
+   "d": 726
+  },
+  {
+   "bit": 8,
+   "name": "A[8]",
+   "record": 8,
+   "signal": 106,
+   "d": 742
+  },
+  {
+   "bit": 9,
+   "name": "A[9]",
+   "record": 9,
+   "signal": 107,
+   "d": 757
+  },
+  {
+   "bit": 10,
+   "name": "A[10]",
+   "record": 10,
+   "signal": 108,
+   "d": 770
+  },
+  {
+   "bit": 11,
+   "name": "A[11]",
+   "record": 11,
+   "signal": 109,
+   "d": 788
+  },
+  {
+   "bit": 12,
+   "name": "PK[0]",
+   "record": 12,
+   "signal": 110,
+   "d": 963
+  },
+  {
+   "bit": 13,
+   "name": "PK[1]",
+   "record": 13,
+   "signal": 111,
+   "d": 969
+  },
+  {
+   "bit": 14,
+   "name": "PK[2]",
+   "record": 14,
+   "signal": 112,
+   "d": 975
+  },
+  {
+   "bit": 15,
+   "name": "PK[3]",
+   "record": 15,
+   "signal": 113,
+   "d": 981
+  },
+  {
+   "bit": 16,
+   "name": "PK[4]",
+   "record": 16,
+   "signal": 114,
+   "d": 987
+  },
+  {
+   "bit": 17,
+   "name": "PK[5]",
+   "record": 17,
+   "signal": 115,
+   "d": 993
+  },
+  {
+   "bit": 18,
+   "name": "PK[6]",
+   "record": 18,
+   "signal": 116,
+   "d": 999
+  },
+  {
+   "bit": 19,
+   "name": "PK[7]",
+   "record": 19,
+   "signal": 117,
+   "d": 1005
+  },
+  {
+   "bit": 20,
+   "name": "PK[8]",
+   "record": 20,
+   "signal": 118,
+   "d": 1011
+  },
+  {
+   "bit": 21,
+   "name": "PK[9]",
+   "record": 21,
+   "signal": 119,
+   "d": 1014
+  },
+  {
+   "bit": 22,
+   "name": "PKDIV[0]",
+   "record": 22,
+   "signal": 120,
+   "d": 1018
+  },
+  {
+   "bit": 23,
+   "name": "PKDIV[1]",
+   "record": 23,
+   "signal": 121,
+   "d": 1021
+  },
+  {
+   "bit": 24,
+   "name": "MODE[0]",
+   "record": 24,
+   "signal": 122,
+   "d": 2030
+  },
+  {
+   "bit": 25,
+   "name": "MODE[1]",
+   "record": 25,
+   "signal": 123,
+   "d": 2031
+  },
+  {
+   "bit": 26,
+   "name": "MODE[2]",
+   "record": 26,
+   "signal": 124,
+   "d": 1478
+  },
+  {
+   "bit": 27,
+   "name": "TIER[0]",
+   "record": 27,
+   "signal": 125,
+   "d": 1530
+  },
+  {
+   "bit": 28,
+   "name": "TIER[1]",
+   "record": 28,
+   "signal": 126,
+   "d": 1531
+  },
+  {
+   "bit": 29,
+   "name": "GSEEN",
+   "record": 29,
+   "signal": 127,
+   "d": 1532
+  },
+  {
+   "bit": 30,
+   "name": "WARM[0]",
+   "record": 30,
+   "signal": 128,
+   "d": 1544
+  },
+  {
+   "bit": 31,
+   "name": "WARM[1]",
+   "record": 31,
+   "signal": 129,
+   "d": 1547
+  },
+  {
+   "bit": 32,
+   "name": "LIVE[0]",
+   "record": 32,
+   "signal": 130,
+   "d": 1548
+  },
+  {
+   "bit": 33,
+   "name": "LIVE[1]",
+   "record": 33,
+   "signal": 131,
+   "d": 1549
+  },
+  {
+   "bit": 34,
+   "name": "LIVE[2]",
+   "record": 34,
+   "signal": 132,
+   "d": 1550
+  },
+  {
+   "bit": 35,
+   "name": "LIVE[3]",
+   "record": 35,
+   "signal": 133,
+   "d": 1172
+  },
+  {
+   "bit": 36,
+   "name": "SUR[0]",
+   "record": 36,
+   "signal": 134,
+   "d": 1551
+  },
+  {
+   "bit": 37,
+   "name": "SUR[1]",
+   "record": 37,
+   "signal": 135,
+   "d": 1382
+  },
+  {
+   "bit": 38,
+   "name": "TR[0]",
+   "record": 38,
+   "signal": 136,
+   "d": 1563
+  },
+  {
+   "bit": 39,
+   "name": "TR[1]",
+   "record": 39,
+   "signal": 137,
+   "d": 1569
+  },
+  {
+   "bit": 40,
+   "name": "CD[0]",
+   "record": 40,
+   "signal": 138,
+   "d": 1615
+  },
+  {
+   "bit": 41,
+   "name": "CD[1]",
+   "record": 41,
+   "signal": 139,
+   "d": 1623
+  },
+  {
+   "bit": 42,
+   "name": "CD[2]",
+   "record": 42,
+   "signal": 140,
+   "d": 1629
+  },
+  {
+   "bit": 43,
+   "name": "NBANK[0]",
+   "record": 43,
+   "signal": 141,
+   "d": 1644
+  },
+  {
+   "bit": 44,
+   "name": "NBANK[1]",
+   "record": 44,
+   "signal": 142,
+   "d": 1650
+  },
+  {
+   "bit": 45,
+   "name": "NBANK[2]",
+   "record": 45,
+   "signal": 143,
+   "d": 1655
+  },
+  {
+   "bit": 46,
+   "name": "NBANK[3]",
+   "record": 46,
+   "signal": 144,
+   "d": 1662
+  },
+  {
+   "bit": 47,
+   "name": "NBANK[4]",
+   "record": 47,
+   "signal": 145,
+   "d": 1663
+  },
+  {
+   "bit": 48,
+   "name": "NDEF[0]",
+   "record": 48,
+   "signal": 146,
+   "d": 1677
+  },
+  {
+   "bit": 49,
+   "name": "NDEF[1]",
+   "record": 49,
+   "signal": 147,
+   "d": 1682
+  },
+  {
+   "bit": 50,
+   "name": "NDEF[2]",
+   "record": 50,
+   "signal": 148,
+   "d": 1687
+  },
+  {
+   "bit": 51,
+   "name": "NDEF[3]",
+   "record": 51,
+   "signal": 149,
+   "d": 1693
+  },
+  {
+   "bit": 52,
+   "name": "NDEF[4]",
+   "record": 52,
+   "signal": 150,
+   "d": 1698
+  },
+  {
+   "bit": 53,
+   "name": "NDEF[5]",
+   "record": 53,
+   "signal": 151,
+   "d": 1701
+  },
+  {
+   "bit": 54,
+   "name": "CLOCK[0]",
+   "record": 54,
+   "signal": 152,
+   "d": 1705
+  },
+  {
+   "bit": 55,
+   "name": "CLOCK[1]",
+   "record": 55,
+   "signal": 153,
+   "d": 1713
+  },
+  {
+   "bit": 56,
+   "name": "CLOCK[2]",
+   "record": 56,
+   "signal": 154,
+   "d": 1725
+  },
+  {
+   "bit": 57,
+   "name": "CLOCK[3]",
+   "record": 57,
+   "signal": 155,
+   "d": 1734
+  },
+  {
+   "bit": 58,
+   "name": "CLOCK[4]",
+   "record": 58,
+   "signal": 156,
+   "d": 1739
+  },
+  {
+   "bit": 59,
+   "name": "CLOCK[5]",
+   "record": 59,
+   "signal": 157,
+   "d": 1744
+  },
+  {
+   "bit": 60,
+   "name": "CLOCK[6]",
+   "record": 60,
+   "signal": 158,
+   "d": 1749
+  },
+  {
+   "bit": 61,
+   "name": "CLOCK[7]",
+   "record": 61,
+   "signal": 159,
+   "d": 1754
+  },
+  {
+   "bit": 62,
+   "name": "CLOCK[8]",
+   "record": 62,
+   "signal": 160,
+   "d": 1760
+  },
+  {
+   "bit": 63,
+   "name": "CLOCK[9]",
+   "record": 63,
+   "signal": 161,
+   "d": 1765
+  }
+ ],
+ "fields": {
+  "inputs": [
+   {
+    "name": "TAX",
+    "lsb": 0,
+    "width": 10
+   },
+   {
+    "name": "TAXCUM",
+    "lsb": 10,
+    "width": 10
+   },
+   {
+    "name": "REV",
+    "lsb": 20,
+    "width": 10
+   },
+   {
+    "name": "REVCUM",
+    "lsb": 30,
+    "width": 10
+   },
+   {
+    "name": "RES",
+    "lsb": 40,
+    "width": 10
+   },
+   {
+    "name": "ESC",
+    "lsb": 50,
+    "width": 10
+   },
+   {
+    "name": "PROG",
+    "lsb": 60,
+    "width": 8
+   },
+   {
+    "name": "LOCK",
+    "lsb": 68,
+    "width": 8
+   },
+   {
+    "name": "DT",
+    "lsb": 76,
+    "width": 4
+   },
+   {
+    "name": "GRAD",
+    "lsb": 80,
+    "width": 1
+   },
+   {
+    "name": "ZERO",
+    "lsb": 81,
+    "width": 15
+   }
+  ],
+  "outputs": [
+   {
+    "name": "T_BUY",
+    "lsb": 0,
+    "width": 9
+   },
+   {
+    "name": "T_HOLD",
+    "lsb": 9,
+    "width": 9
+   },
+   {
+    "name": "T_ALLOW",
+    "lsb": 18,
+    "width": 9
+   },
+   {
+    "name": "T_RES",
+    "lsb": 27,
+    "width": 9
+   },
+   {
+    "name": "V_BUY",
+    "lsb": 36,
+    "width": 9
+   },
+   {
+    "name": "V_HOLD",
+    "lsb": 45,
+    "width": 9
+   },
+   {
+    "name": "V_ALLOW",
+    "lsb": 54,
+    "width": 9
+   },
+   {
+    "name": "V_RES",
+    "lsb": 63,
+    "width": 9
+   },
+   {
+    "name": "REL",
+    "lsb": 72,
+    "width": 9
+   },
+   {
+    "name": "CEIL",
+    "lsb": 81,
+    "width": 10
+   },
+   {
+    "name": "MODE",
+    "lsb": 91,
+    "width": 3
+   },
+   {
+    "name": "TIER",
+    "lsb": 94,
+    "width": 2
+   },
+   {
+    "name": "FLAGS",
+    "lsb": 96,
+    "width": 8
+   },
+   {
+    "name": "AUX",
+    "lsb": 104,
+    "width": 8
+   }
+  ],
+  "state": [
+   {
+    "name": "A",
+    "lsb": 0,
+    "width": 12
+   },
+   {
+    "name": "PK",
+    "lsb": 12,
+    "width": 10
+   },
+   {
+    "name": "PKDIV",
+    "lsb": 22,
+    "width": 2
+   },
+   {
+    "name": "MODE",
+    "lsb": 24,
+    "width": 3
+   },
+   {
+    "name": "TIER",
+    "lsb": 27,
+    "width": 2
+   },
+   {
+    "name": "GSEEN",
+    "lsb": 29,
+    "width": 1
+   },
+   {
+    "name": "WARM",
+    "lsb": 30,
+    "width": 2
+   },
+   {
+    "name": "LIVE",
+    "lsb": 32,
+    "width": 4
+   },
+   {
+    "name": "SUR",
+    "lsb": 36,
+    "width": 2
+   },
+   {
+    "name": "TR",
+    "lsb": 38,
+    "width": 2
+   },
+   {
+    "name": "CD",
+    "lsb": 40,
+    "width": 3
+   },
+   {
+    "name": "NBANK",
+    "lsb": 43,
+    "width": 5
+   },
+   {
+    "name": "NDEF",
+    "lsb": 48,
+    "width": 6
+   },
+   {
+    "name": "CLOCK",
+    "lsb": 54,
+    "width": 10
+   }
+  ]
+ },
+ "tapeout": {
+  "nIn": 96,
+  "nOut": 112,
+  "burnNand": 1889,
+  "burnLatch": 64
+ },
+ "tool": {
+  "tapc": "0.1.0"
+ },
+ "build": {
+  "top": "fg_core",
+  "recipe": "rich-dc2-compress",
+  "library": "rich",
+  "abcScript": "strash; ifraig; dc2; dc2; balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; dch -f; map -a; topo",
+  "ripple": true,
+  "hier": false,
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "packages": {
+   "yowasp-yosys": "0.69.0.0.post1233",
+   "yowasp-runtime": "1.96",
+   "wasmtime": "47.0.1",
+   "z3-solver": "5.1.0.0"
+  },
+  "sources": [
+   {
+    "file": "fg_params.vh",
+    "sha256": "6a46394342a95d5b36ccc2b31647b30d7fe52235bc9bc3bcd544b2fe2eb41378"
+   },
+   {
+    "file": "fg_core.v",
+    "sha256": "ea6c6d233a8960c3e37a94a2ca68a021e1f63c7d5b8c1fac7673b1ec4a9e367d"
+   }
+  ]
+ }
+}

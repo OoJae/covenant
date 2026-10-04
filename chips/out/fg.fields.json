@@ -1,0 +1,807 @@
+{
+ "chip": "flow-governor",
+ "version": 1,
+ "nIn": 96,
+ "nOut": 112,
+ "nState": 64,
+ "state": [
+  {
+   "name": "A",
+   "offset": 0,
+   "width": 12,
+   "meaning": "Average tax rate per epoch, in quarter-codes above the regime floor (0 = at the floor)"
+  },
+  {
+   "name": "PK",
+   "offset": 12,
+   "width": 10,
+   "meaning": "Decaying peak of the average, in codes above the regime floor"
+  },
+  {
+   "name": "PKDIV",
+   "offset": 22,
+   "width": 2,
+   "meaning": "Peak-decay prescaler: the peak loses one code every 4 elapsed epochs"
+  },
+  {
+   "name": "MODE",
+   "offset": 24,
+   "width": 3,
+   "meaning": "0 IDLE, 1 CRUISE, 2 BANK, 3 DEFEND, 4 REST"
+  },
+  {
+   "name": "TIER",
+   "offset": 27,
+   "width": 2,
+   "meaning": "Allowance ratchet tier 0..3; never decreases"
+  },
+  {
+   "name": "GSEEN",
+   "offset": 29,
+   "width": 1,
+   "meaning": "Graduation already seen (the re-seed happens once)"
+  },
+  {
+   "name": "WARM",
+   "offset": 30,
+   "width": 2,
+   "meaning": "Warm-up epochs left after a cold start (no surge classification, average jumps up)"
+  },
+  {
+   "name": "LIVE",
+   "offset": 32,
+   "width": 4,
+   "meaning": "Epochs of patience left before a drought is declared; 0 = cold (average is stale)"
+  },
+  {
+   "name": "SUR",
+   "offset": 36,
+   "width": 2,
+   "meaning": "Surge meter 0..3: +1 per surge epoch, -1 per other epoch; BANK starts at 2, ends at 0"
+  },
+  {
+   "name": "TR",
+   "offset": 38,
+   "width": 2,
+   "meaning": "Tranche epochs left in the open DEFEND window"
+  },
+  {
+   "name": "CD",
+   "offset": 40,
+   "width": 3,
+   "meaning": "Cooldown epochs left in REST"
+  },
+  {
+   "name": "NBANK",
+   "offset": 43,
+   "width": 5,
+   "meaning": "Lifetime count of BANK episodes (saturates at 31); telemetry only"
+  },
+  {
+   "name": "NDEF",
+   "offset": 48,
+   "width": 6,
+   "meaning": "Lifetime count of DEFEND windows opened (saturates at 63); telemetry only"
+  },
+  {
+   "name": "CLOCK",
+   "offset": 54,
+   "width": 10,
+   "meaning": "Elapsed epochs modulo 1024 (advances by DT on every step); telemetry only"
+  }
+ ],
+ "stateBits": [
+  {
+   "bit": 0,
+   "field": "A",
+   "index": 0,
+   "row": 0,
+   "col": 0
+  },
+  {
+   "bit": 1,
+   "field": "A",
+   "index": 1,
+   "row": 0,
+   "col": 1
+  },
+  {
+   "bit": 2,
+   "field": "A",
+   "index": 2,
+   "row": 0,
+   "col": 2
+  },
+  {
+   "bit": 3,
+   "field": "A",
+   "index": 3,
+   "row": 0,
+   "col": 3
+  },
+  {
+   "bit": 4,
+   "field": "A",
+   "index": 4,
+   "row": 0,
+   "col": 4
+  },
+  {
+   "bit": 5,
+   "field": "A",
+   "index": 5,
+   "row": 0,
+   "col": 5
+  },
+  {
+   "bit": 6,
+   "field": "A",
+   "index": 6,
+   "row": 0,
+   "col": 6
+  },
+  {
+   "bit": 7,
+   "field": "A",
+   "index": 7,
+   "row": 0,
+   "col": 7
+  },
+  {
+   "bit": 8,
+   "field": "A",
+   "index": 8,
+   "row": 1,
+   "col": 0
+  },
+  {
+   "bit": 9,
+   "field": "A",
+   "index": 9,
+   "row": 1,
+   "col": 1
+  },
+  {
+   "bit": 10,
+   "field": "A",
+   "index": 10,
+   "row": 1,
+   "col": 2
+  },
+  {
+   "bit": 11,
+   "field": "A",
+   "index": 11,
+   "row": 1,
+   "col": 3
+  },
+  {
+   "bit": 12,
+   "field": "PK",
+   "index": 0,
+   "row": 1,
+   "col": 4
+  },
+  {
+   "bit": 13,
+   "field": "PK",
+   "index": 1,
+   "row": 1,
+   "col": 5
+  },
+  {
+   "bit": 14,
+   "field": "PK",
+   "index": 2,
+   "row": 1,
+   "col": 6
+  },
+  {
+   "bit": 15,
+   "field": "PK",
+   "index": 3,
+   "row": 1,
+   "col": 7
+  },
+  {
+   "bit": 16,
+   "field": "PK",
+   "index": 4,
+   "row": 2,
+   "col": 0
+  },
+  {
+   "bit": 17,
+   "field": "PK",
+   "index": 5,
+   "row": 2,
+   "col": 1
+  },
+  {
+   "bit": 18,
+   "field": "PK",
+   "index": 6,
+   "row": 2,
+   "col": 2
+  },
+  {
+   "bit": 19,
+   "field": "PK",
+   "index": 7,
+   "row": 2,
+   "col": 3
+  },
+  {
+   "bit": 20,
+   "field": "PK",
+   "index": 8,
+   "row": 2,
+   "col": 4
+  },
+  {
+   "bit": 21,
+   "field": "PK",
+   "index": 9,
+   "row": 2,
+   "col": 5
+  },
+  {
+   "bit": 22,
+   "field": "PKDIV",
+   "index": 0,
+   "row": 2,
+   "col": 6
+  },
+  {
+   "bit": 23,
+   "field": "PKDIV",
+   "index": 1,
+   "row": 2,
+   "col": 7
+  },
+  {
+   "bit": 24,
+   "field": "MODE",
+   "index": 0,
+   "row": 3,
+   "col": 0
+  },
+  {
+   "bit": 25,
+   "field": "MODE",
+   "index": 1,
+   "row": 3,
+   "col": 1
+  },
+  {
+   "bit": 26,
+   "field": "MODE",
+   "index": 2,
+   "row": 3,
+   "col": 2
+  },
+  {
+   "bit": 27,
+   "field": "TIER",
+   "index": 0,
+   "row": 3,
+   "col": 3
+  },
+  {
+   "bit": 28,
+   "field": "TIER",
+   "index": 1,
+   "row": 3,
+   "col": 4
+  },
+  {
+   "bit": 29,
+   "field": "GSEEN",
+   "index": 0,
+   "row": 3,
+   "col": 5
+  },
+  {
+   "bit": 30,
+   "field": "WARM",
+   "index": 0,
+   "row": 3,
+   "col": 6
+  },
+  {
+   "bit": 31,
+   "field": "WARM",
+   "index": 1,
+   "row": 3,
+   "col": 7
+  },
+  {
+   "bit": 32,
+   "field": "LIVE",
+   "index": 0,
+   "row": 4,
+   "col": 0
+  },
+  {
+   "bit": 33,
+   "field": "LIVE",
+   "index": 1,
+   "row": 4,
+   "col": 1
+  },
+  {
+   "bit": 34,
+   "field": "LIVE",
+   "index": 2,
+   "row": 4,
+   "col": 2
+  },
+  {
+   "bit": 35,
+   "field": "LIVE",
+   "index": 3,
+   "row": 4,
+   "col": 3
+  },
+  {
+   "bit": 36,
+   "field": "SUR",
+   "index": 0,
+   "row": 4,
+   "col": 4
+  },
+  {
+   "bit": 37,
+   "field": "SUR",
+   "index": 1,
+   "row": 4,
+   "col": 5
+  },
+  {
+   "bit": 38,
+   "field": "TR",
+   "index": 0,
+   "row": 4,
+   "col": 6
+  },
+  {
+   "bit": 39,
+   "field": "TR",
+   "index": 1,
+   "row": 4,
+   "col": 7
+  },
+  {
+   "bit": 40,
+   "field": "CD",
+   "index": 0,
+   "row": 5,
+   "col": 0
+  },
+  {
+   "bit": 41,
+   "field": "CD",
+   "index": 1,
+   "row": 5,
+   "col": 1
+  },
+  {
+   "bit": 42,
+   "field": "CD",
+   "index": 2,
+   "row": 5,
+   "col": 2
+  },
+  {
+   "bit": 43,
+   "field": "NBANK",
+   "index": 0,
+   "row": 5,
+   "col": 3
+  },
+  {
+   "bit": 44,
+   "field": "NBANK",
+   "index": 1,
+   "row": 5,
+   "col": 4
+  },
+  {
+   "bit": 45,
+   "field": "NBANK",
+   "index": 2,
+   "row": 5,
+   "col": 5
+  },
+  {
+   "bit": 46,
+   "field": "NBANK",
+   "index": 3,
+   "row": 5,
+   "col": 6
+  },
+  {
+   "bit": 47,
+   "field": "NBANK",
+   "index": 4,
+   "row": 5,
+   "col": 7
+  },
+  {
+   "bit": 48,
+   "field": "NDEF",
+   "index": 0,
+   "row": 6,
+   "col": 0
+  },
+  {
+   "bit": 49,
+   "field": "NDEF",
+   "index": 1,
+   "row": 6,
+   "col": 1
+  },
+  {
+   "bit": 50,
+   "field": "NDEF",
+   "index": 2,
+   "row": 6,
+   "col": 2
+  },
+  {
+   "bit": 51,
+   "field": "NDEF",
+   "index": 3,
+   "row": 6,
+   "col": 3
+  },
+  {
+   "bit": 52,
+   "field": "NDEF",
+   "index": 4,
+   "row": 6,
+   "col": 4
+  },
+  {
+   "bit": 53,
+   "field": "NDEF",
+   "index": 5,
+   "row": 6,
+   "col": 5
+  },
+  {
+   "bit": 54,
+   "field": "CLOCK",
+   "index": 0,
+   "row": 6,
+   "col": 6
+  },
+  {
+   "bit": 55,
+   "field": "CLOCK",
+   "index": 1,
+   "row": 6,
+   "col": 7
+  },
+  {
+   "bit": 56,
+   "field": "CLOCK",
+   "index": 2,
+   "row": 7,
+   "col": 0
+  },
+  {
+   "bit": 57,
+   "field": "CLOCK",
+   "index": 3,
+   "row": 7,
+   "col": 1
+  },
+  {
+   "bit": 58,
+   "field": "CLOCK",
+   "index": 4,
+   "row": 7,
+   "col": 2
+  },
+  {
+   "bit": 59,
+   "field": "CLOCK",
+   "index": 5,
+   "row": 7,
+   "col": 3
+  },
+  {
+   "bit": 60,
+   "field": "CLOCK",
+   "index": 6,
+   "row": 7,
+   "col": 4
+  },
+  {
+   "bit": 61,
+   "field": "CLOCK",
+   "index": 7,
+   "row": 7,
+   "col": 5
+  },
+  {
+   "bit": 62,
+   "field": "CLOCK",
+   "index": 8,
+   "row": 7,
+   "col": 6
+  },
+  {
+   "bit": 63,
+   "field": "CLOCK",
+   "index": 9,
+   "row": 7,
+   "col": 7
+  }
+ ],
+ "modes": {
+  "0": "IDLE",
+  "1": "CRUISE",
+  "2": "BANK",
+  "3": "DEFEND",
+  "4": "REST"
+ },
+ "flags": [
+  {
+   "name": "surge",
+   "bit": 0,
+   "meaning": "this reading is at least twice the recent peak of the average"
+  },
+  {
+   "name": "dip",
+   "bit": 1,
+   "meaning": "this reading is at most half the average"
+  },
+  {
+   "name": "quiet",
+   "bit": 2,
+   "meaning": "this reading is at or below the regime floor"
+  },
+  {
+   "name": "release",
+   "bit": 3,
+   "meaning": "a reserve tranche is released in this step (DEFEND routing)"
+  },
+  {
+   "name": "regime",
+   "bit": 4,
+   "meaning": "graduation seen in this step: averages re-seeded"
+  },
+  {
+   "name": "tierup",
+   "bit": 5,
+   "meaning": "the allowance tier stepped up in this step"
+  },
+  {
+   "name": "cooldown",
+   "bit": 6,
+   "meaning": "the chip is in REST after this step (cooling down after a DEFEND window)"
+  },
+  {
+   "name": "warm",
+   "bit": 7,
+   "meaning": "cold start or warm-up: the average is being seeded"
+  }
+ ],
+ "aux": "drawdown depth: codes by which the average sits below its decaying peak, saturating at 255",
+ "inputsUsed": [
+  "TAX",
+  "TAXCUM",
+  "RES",
+  "DT",
+  "GRAD"
+ ],
+ "inputsIgnored": [
+  "REV",
+  "REVCUM",
+  "ESC",
+  "PROG",
+  "LOCK",
+  "ZERO"
+ ],
+ "input": [
+  {
+   "name": "TAX",
+   "offset": 0,
+   "width": 10
+  },
+  {
+   "name": "TAXCUM",
+   "offset": 10,
+   "width": 10
+  },
+  {
+   "name": "REV",
+   "offset": 20,
+   "width": 10
+  },
+  {
+   "name": "REVCUM",
+   "offset": 30,
+   "width": 10
+  },
+  {
+   "name": "RES",
+   "offset": 40,
+   "width": 10
+  },
+  {
+   "name": "ESC",
+   "offset": 50,
+   "width": 10
+  },
+  {
+   "name": "PROG",
+   "offset": 60,
+   "width": 8
+  },
+  {
+   "name": "LOCK",
+   "offset": 68,
+   "width": 8
+  },
+  {
+   "name": "DT",
+   "offset": 76,
+   "width": 4
+  },
+  {
+   "name": "GRAD",
+   "offset": 80,
+   "width": 1
+  },
+  {
+   "name": "ZERO",
+   "offset": 81,
+   "width": 15
+  }
+ ],
+ "output": [
+  {
+   "name": "T_BUY",
+   "offset": 0,
+   "width": 9
+  },
+  {
+   "name": "T_HOLD",
+   "offset": 9,
+   "width": 9
+  },
+  {
+   "name": "T_ALLOW",
+   "offset": 18,
+   "width": 9
+  },
+  {
+   "name": "T_RES",
+   "offset": 27,
+   "width": 9
+  },
+  {
+   "name": "V_BUY",
+   "offset": 36,
+   "width": 9
+  },
+  {
+   "name": "V_HOLD",
+   "offset": 45,
+   "width": 9
+  },
+  {
+   "name": "V_ALLOW",
+   "offset": 54,
+   "width": 9
+  },
+  {
+   "name": "V_RES",
+   "offset": 63,
+   "width": 9
+  },
+  {
+   "name": "REL",
+   "offset": 72,
+   "width": 9
+  },
+  {
+   "name": "CEIL",
+   "offset": 81,
+   "width": 10
+  },
+  {
+   "name": "MODE",
+   "offset": 91,
+   "width": 3
+  },
+  {
+   "name": "TIER",
+   "offset": 94,
+   "width": 2
+  },
+  {
+   "name": "FLAGS",
+   "offset": 96,
+   "width": 8
+  },
+  {
+   "name": "AUX",
+   "offset": 104,
+   "width": 8
+  }
+ ],
+ "params": {
+  "name": "flow-governor",
+  "version": 1,
+  "nIn": 96,
+  "nOut": 112,
+  "nState": 64,
+  "FLOOR_Q": 346,
+  "FLOOR_T": 530,
+  "RESMIN_Q": 389,
+  "RESMIN_T": 573,
+  "M1": 425,
+  "M2": 452,
+  "M3": 479,
+  "AL0": 48,
+  "AL1": 32,
+  "AL2": 16,
+  "AL3": 8,
+  "CEIL0": 440,
+  "CEIL_STEP": 8,
+  "RC": 64,
+  "RB_MIN": 128,
+  "RB_GAIN": 4,
+  "RB_SPAN": 16,
+  "SURGE_TH": 8,
+  "XSURGE_TH": 32,
+  "DIP_TH": 8,
+  "DD_TH": 16,
+  "SUR_ON": 2,
+  "SLEW_Q": 12,
+  "PK_DIV": 4,
+  "DRYN": 8,
+  "WARMN": 3,
+  "TRN": 4,
+  "CDN": 6,
+  "TR_MIN": 32,
+  "TR_MAX": 64,
+  "REL_CAP": 128,
+  "LEAK": 2,
+  "LOG8DT": [
+   0,
+   0,
+   8,
+   13,
+   16,
+   19,
+   21,
+   22,
+   24,
+   25,
+   27,
+   28,
+   29,
+   30,
+   30,
+   31
+  ]
+ },
+ "envelope": {
+  "epochLen": 900,
+  "capT": 48,
+  "capV": 0,
+  "allowCumBps": 1875,
+  "ceilMax": 440,
+  "relMax": 128,
+  "floorRel": 2,
+  "floorMin": 1,
+  "fallbackEpochs": 16,
+  "fbAllow": 8,
+  "buyEnabled": true
+ }
+}

@@ -1,0 +1,2 @@
+# scratch from `make probe` (Yosys scripts, logs, BLIF, SMT files); everything needed is in the files next to this one
+build/
