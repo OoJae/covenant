@@ -1,9 +1,12 @@
-"""Reference model of the Covenant kernel arithmetic (interface v1).
+"""Reference model of the Covenant kernel arithmetic (interface v1, revision 2).
 
 This file is the single source of truth for:
   * the lg8 / exp8 log code,
   * the bit layout of the 96-bit input word and the 112-bit output word,
-  * how a kernel turns a chip's output word into routed amounts (clamps K1..K5).
+  * how a kernel turns a chip's output word into routed amounts (clamps K1..K5),
+  * how the kernel sizes its buy legs (impact cap, largest non-graduating buy, exact quotes).
+
+Where the pseudo-code in chips/INTERFACE.md and this file differ, this file wins.
 
 The Solidity kernel, the TypeScript dashboard and the chip test benches must agree
 with it bit for bit. `gen_vectors.py` turns it into `vectors.json`.
@@ -32,7 +35,11 @@ def lg8(x: int) -> int:
 
 
 def exp8(c: int) -> int:
-    """Floor inverse of lg8: the smallest amount whose code is c (0 for c = 0)."""
+    """Floor inverse of lg8: exp8(lg8(x)) <= x for every x.
+
+    For a code that lg8 produces it is the smallest amount with that code. (lg8 never
+    produces codes 2..8, 10..12 and a few more below 25; exp8 is still defined for them.)
+    """
     if not 0 <= c <= LG8_MAX:
         raise ValueError("code out of range")
     if c == 0:
@@ -132,9 +139,9 @@ class Envelope:
     capV: int = 128           # max V_ALLOW, 0..255 (kernel v2)
     allowCumBps: int = 2500   # lifetime allowance <= allowCumBps/10000 of cumulative inflow; <= 9999
     ceilMax: int = 1023       # lg8 code; max allowance per settle; 1023 = none
-    relMax: int = 128         # max REL, 0..256
+    relMax: int = 128         # max REL, 1..256
     floorRel: int = 2         # min REL while lg8(reserve) >= floorMin; 1..relMax
-    floorMin: int = 400       # lg8 code; the floor applies at or above this reserve code
+    floorMin: int = 400       # lg8 code; the floor applies at or above this reserve code (factory: 1..425)
 
 
 @dataclass
@@ -151,12 +158,16 @@ class Routed:
 
 
 def route_tax(env: Envelope, out_word: int, inflow: int, reserve0: int,
-              cum_inflow: int, allow_paid_cum: int) -> Routed:
+              cum_inflow: int, allow_paid_cum: int, graduated: bool = False) -> Routed:
     """Routing of the regime asset for one settle.
 
-    cum_inflow already includes `inflow`. allow_paid_cum is the allowance credited so far.
-    A failed or shrunk buy leg does not change these numbers: the unexecuted part simply
-    stays in the reserve (reserve_after assumes full execution).
+    cum_inflow already includes `inflow`. allow_paid_cum is the allowance credited so far in
+    the current regime (both totals restart at graduation). A failed or shrunk buy leg does
+    not change these numbers: the unexecuted part simply stays in the reserve (reserve_after
+    assumes full execution).
+
+    graduated: kernel v1 pays no allowance after graduation. The T_ALLOW share is added to
+    the reserve share and none of K2, K2C, K2L is evaluated.
     """
     o = unpack_output(out_word)
     clamp = 0
@@ -164,23 +175,28 @@ def route_tax(env: Envelope, out_word: int, inflow: int, reserve0: int,
     if max(tb, th, ta, tr) > 256 or tb + th + ta + tr != 256:
         tb, th, ta, tr = 0, 0, 0, 256
         clamp |= K1T
-    if ta > env.capT:
-        tr += ta - env.capT        # the excess stays in reserve
-        ta = env.capT
-        clamp |= K2
+    if graduated:
+        tr += ta                   # no allowance in the token regime; not a clamp
+        ta = 0
+        allow = 0
+    else:
+        if ta > env.capT:
+            tr += ta - env.capT    # the excess stays in reserve
+            ta = env.capT
+            clamp |= K2
 
-    allow = inflow * ta // 256
-    if o["CEIL"] != LG8_MAX:       # the chip's own ceiling is not a clamp
-        allow = min(allow, exp8(o["CEIL"]))
-    if env.ceilMax != LG8_MAX and allow > exp8(env.ceilMax):
-        allow = exp8(env.ceilMax)
-        clamp |= K2C
-    room = cum_inflow * env.allowCumBps // 10000 - allow_paid_cum
-    if room < 0:
-        room = 0
-    if allow > room:
-        allow = room
-        clamp |= K2L
+        allow = inflow * ta // 256
+        if o["CEIL"] != LG8_MAX:   # the chip's own ceiling is not a clamp
+            allow = min(allow, exp8(o["CEIL"]))
+        if env.ceilMax != LG8_MAX and allow > exp8(env.ceilMax):
+            allow = exp8(env.ceilMax)
+            clamp |= K2C
+        room = cum_inflow * env.allowCumBps // 10000 - allow_paid_cum
+        if room < 0:
+            room = 0
+        if allow > room:
+            allow = room
+            clamp |= K2L
 
     buy_share = inflow * tb // 256
     to_reserve = inflow - allow - buy_share
@@ -222,11 +238,91 @@ def lock_code(locked_or_burned: int, total_supply: int) -> int:
     return min(255, locked_or_burned * 255 // total_supply)
 
 
-def dt_code(epoch_now: int, last_epoch: int) -> int:
-    d = epoch_now - last_epoch
+def dt_code(epoch_now: int, last_step_epoch: int) -> int:
+    """Epochs since the last persisted step (0 = bind), at least 1, saturating at 15."""
+    d = epoch_now - last_step_epoch
     if d < 1:
         raise ValueError("settle needs a new epoch")
     return min(15, d)
+
+
+# --------------------------------------------------------------------------- buy sizing
+# Mirrors IGNIX's verified CurveTrading.buy / CurveMath (contracts/vendor/ignix-xlayer) and a
+# Uniswap V2 buy of a taxed IGNIX token. Checked against the live Manager by the fork tests in
+# contracts/probes (Q4, Q7). All rates are in bps.
+
+BPS = 10_000
+AMOUNT_MAX = (1 << 128) - 1        # the kernel keeps every amount in 128 bits
+V2_ROUND_TRIP_FEE_BPS = 25         # the part of the pair's 0.3% + 0.3% no trader can recover
+
+
+def sat128(x: int) -> int:
+    return min(AMOUNT_MAX, x)
+
+
+def ceil_div(a: int, b: int) -> int:
+    return 0 if a == 0 else (a - 1) // b + 1
+
+
+def impact_cap(quote_reserve: int, round_trip_fee_bps: int, tax_buy_bps: int,
+               tax_sell_bps: int, capT: int) -> int:
+    """Largest kernel buy, in quote, for a pool whose quote-side reserve is quote_reserve."""
+    keep = 0 if capT >= 256 else 256 - capT
+    return quote_reserve * (round_trip_fee_bps * 256 + (tax_buy_bps + tax_sell_bps) * keep) // (256 * 4 * BPS)
+
+
+def curve_net(buy_fee_bps: int, tax_buy_bps: int, quote_in: int) -> int:
+    return quote_in - quote_in * (buy_fee_bps + tax_buy_bps) // BPS
+
+
+def curve_out(v_quote: int, v_token: int, buy_fee_bps: int, tax_buy_bps: int, quote_in: int) -> int:
+    """Tokens a non-crossing curve buy delivers when no anti-snipe surcharge applies."""
+    net = curve_net(buy_fee_bps, tax_buy_bps, quote_in)
+    return v_token - ceil_div(v_quote * v_token, v_quote + net)
+
+
+def max_non_graduating_buy(v_quote: int, v_token: int, sold: int, sellable: int,
+                           buy_fee_bps: int, tax_buy_bps: int) -> int:
+    """Largest gross buy that leaves at least one base unit of token on the curve."""
+    if sold >= sellable:
+        return 0
+    left = sellable - sold
+    if v_token <= left:
+        return 0
+    r = v_token - left
+    top = ceil_div(v_quote * v_token, r)
+    if top <= v_quote + 1:
+        return 0
+    net_max = top - 1 - v_quote
+    return net_max * BPS // (BPS - (buy_fee_bps + tax_buy_bps))
+
+
+def curve_buy(decided: int, v_quote: int, v_token: int, sold: int, sellable: int,
+              buy_fee_bps: int, sell_fee_bps: int, tax_buy_bps: int, tax_sell_bps: int,
+              capT: int) -> Tuple[int, int, bool]:
+    """Size of the kernel's curve buy: (amount, min tokens out, shrunk).
+
+    amount = min(decided, impact cap, largest non-graduating buy). An amount whose quote is
+    zero tokens is skipped (amount 0 is returned with out 0).
+    """
+    cap = min(impact_cap(v_quote, buy_fee_bps + sell_fee_bps, tax_buy_bps, tax_sell_bps, capT),
+              max_non_graduating_buy(v_quote, v_token, sold, sellable, buy_fee_bps, tax_buy_bps))
+    amount = min(decided, cap)
+    shrunk = decided > cap
+    out = curve_out(v_quote, v_token, buy_fee_bps, tax_buy_bps, amount) if amount else 0
+    if out == 0:
+        return 0, 0, shrunk
+    return amount, out, shrunk
+
+
+def v2_net_out(amount_in: int, reserve_in: int, reserve_out: int, tax_buy_bps: int) -> int:
+    """Tokens the recipient of a Uniswap V2 buy of a taxed IGNIX token receives."""
+    if amount_in == 0 or reserve_in == 0 or reserve_out == 0:
+        return 0
+    in_with_fee = amount_in * 997
+    gross = in_with_fee * reserve_out // (reserve_in * 1000 + in_with_fee)
+    tax_buy_bps = min(tax_buy_bps, BPS)
+    return gross - gross * tax_buy_bps // BPS
 
 
 def state_to_bytes32(bits: int, n_state: int) -> bytes:
@@ -238,5 +334,12 @@ def state_to_bytes32(bits: int, n_state: int) -> bytes:
 if __name__ == "__main__":
     assert lg8(1) == 1 and lg8(10 ** 18) == 478 and lg8(10 ** 6) == 160
     assert all(exp8(lg8(x)) <= x for x in range(1, 5000))
+    # A fresh IGNIX curve with an 85 OKB graduation and 3% buy tax (CurveMath.params), and two
+    # numbers measured against the live Manager on a fork (contracts/probes, Q3 and Q4).
+    C, D = 800_000_000 * 10 ** 18, 200_000_000 * 10 ** 18
+    T = C * C // (C - D)
+    E = 85 * 10 ** 18 * (T - C) // C
+    assert max_non_graduating_buy(E, T, 0, C, 100, 300) == 88541666666666666665
+    assert curve_out(E, T, 100, 300, 5 * 10 ** 17) == 17769551133734382230654437
     print("kernel_model self-check ok")
     print(asdict(Envelope()))
