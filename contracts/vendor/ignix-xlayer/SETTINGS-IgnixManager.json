@@ -1,0 +1,14 @@
+{
+  "contractName": "IgnixManager",
+  "compilerVersion": "v0.8.26+commit.8a97fa7a",
+  "optimization": "1",
+  "optimizationRuns": "200",
+  "evmVersion": "default",
+  "remappings": [
+    "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@uniswap/v4-core/=node_modules/@uniswap/v4-core/",
+    "@uniswap/v4-periphery/=node_modules/@uniswap/v4-periphery/",
+    "forge-std/=lib/forge-std/src/"
+  ]
+}

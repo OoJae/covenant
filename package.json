@@ -1,0 +1,8 @@
+{
+  "name": "covenant",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Covenant: vault chips for IGNIX tokens, built on TapeOut (X Layer)",
+  "license": "MIT",
+  "packageManager": "pnpm@11.1.2"
+}

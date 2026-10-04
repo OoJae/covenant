@@ -1,0 +1,13 @@
+{
+  "contractName": "Circuits",
+  "compilerVersion": "v0.8.24+commit.e11b9ed9",
+  "optimization": "1",
+  "optimizationRuns": "200",
+  "evmVersion": "default",
+  "remappings": [
+    "@openzeppelin/contracts/=../../../lib/openzeppelin-contracts/",
+    "@openzeppelin/contracts-upgradeable/=../../../lib/openzeppelin-contracts-upgradeable/",
+    "openzeppelin-contracts-upgradeable/=../../../lib/openzeppelin-contracts-upgradeable/",
+    "openzeppelin-contracts/=../../../lib/openzeppelin-contracts/"
+  ]
+}

@@ -1,0 +1,36 @@
+# tooling
+.playwright-mcp/
+node_modules/
+.venv/
+.venv-*/
+__pycache__/
+*.pyc
+.DS_Store
+
+# foundry: only the dependency, build and cache folders at the root of each
+# project under contracts/. Source folders named lib/ (src/lib, vendor/**/lib)
+# and chips/out are tracked.
+/contracts/*/lib/
+/contracts/*/out/
+/contracts/*/cache/
+/contracts/*/broadcast/*/31337/
+/contracts/*/broadcast/**/dry-run/
+
+# secrets: never commit
+.env
+.env.*
+!.env.example
+*.keystore
+keystore/
+
+# build output
+dist/
+dist-*/
+chips/build/
+
+# internal planning notes: not part of the public repository
+buildplan.md
+docs/PLAN.md
+docs/RUNBOOK.md
+docs/design/
+docs/outreach/
