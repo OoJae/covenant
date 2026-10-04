@@ -34,3 +34,6 @@ docs/PLAN.md
 docs/RUNBOOK.md
 docs/design/
 docs/outreach/
+
+# third-party source text fetched during research: kept locally, not published
+/contracts/probes/vendor-cache/oklink-*.json

@@ -1,0 +1,30 @@
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+cache_path = "cache"
+libs = ["lib"]
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+# Fork tests only. No scripts, no broadcast, no keys.
+fs_permissions = [{ access = "read", path = "./vendor-cache" }]
+gas_limit = "18446744073709551615"
+memory_limit = 1073741824
+
+[profile.default.fuzz]
+runs = 48
+seed = "0xc0ffee"
+
+[rpc_endpoints]
+xlayer = "https://rpc.xlayer.tech"
+xlayer_fallback = "https://xlayerrpc.okx.com"
+
+[fmt]
+line_length = 110
+
+[lint]
+# forge's linter flags intentional masking casts and `return (false, x)` tuples in this probe code.
+lint_on_build = false
