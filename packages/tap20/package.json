@@ -1,0 +1,23 @@
+{
+  "name": "@covenant/tap20",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TAP-20 netlist parser, well-formedness check and one-beat simulator. Zero runtime dependencies.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:offline": "SKIP_LIVE=1 vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@covenant/chain": "workspace:*",
+    "@types/node": "^26.0.0",
+    "typescript": "^7.0.0",
+    "vitest": "^5.0.0"
+  }
+}

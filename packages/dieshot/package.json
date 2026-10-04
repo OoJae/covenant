@@ -1,0 +1,23 @@
+{
+  "name": "@covenant/dieshot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic die-shot layout and Canvas 2D renderer for TAP-20 netlists. Zero runtime dependencies.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:offline": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@covenant/tap20": "workspace:*",
+    "@types/node": "^26.0.0",
+    "typescript": "^7.0.0",
+    "vitest": "^5.0.0"
+  }
+}

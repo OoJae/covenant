@@ -1,0 +1,26 @@
+{
+  "name": "@covenant/chain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal JSON-RPC client and hand-written ABI codec for the TapeOut contracts on X Layer. Zero runtime dependencies.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./keccak": "./src/keccak.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:offline": "SKIP_LIVE=1 vitest run",
+    "typecheck": "tsc --noEmit",
+    "size": "node scripts/size.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^7.0.0",
+    "viem": "^2.57.0",
+    "vitest": "^5.0.0"
+  }
+}
