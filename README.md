@@ -4,6 +4,8 @@
 
 Covenant is an entry to the TapeOut Genesis Transistor Hackathon (organiser: IGNIX; chain: X Layer, id 196).
 
+Live site (no wallet needed): https://oojae.github.io/covenant/
+
 ## What it is
 
 An IGNIX token can send all of its trading tax to one address through the Directed vault. Covenant makes that address a small contract, the **kernel**, bound to one taped-out TapeOut circuit, the token's **chip**.
