@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tap-draft-circuit-pin-manifest/pin-manifest.schema.json",
+  "title": "TapeOut circuit pin manifest, format 0.1",
+  "description": "Structure of a pin manifest file (circuit manifest or profile) as specified in the TAP draft 'Circuit Pin Manifest', sections 3 to 6. The TAP text is normative; this schema is a convenience. It cannot express, and a validator must check separately: (a) the file rules of section 3.1 (UTF-8 without a byte order mark, at most 65,536 bytes, no repeated member name, no number written with a fraction or an exponent, no unpaired surrogate); (b) within each of inputs, outputs and state: field names are unique, fields are listed in increasing offset order, do not overlap, and offset + width does not exceed nIn, nOut or nState; (c) a flags field has exactly width entries in bits; (d) every key of values, and min and max, is a value the field can hold, and min is not above max; (e) shape.nStateMin is not above shape.nStateMax, and neither is used together with nState. Members that this schema does not name are allowed and ignored.",
+  "type": "object",
+  "required": ["tapepins", "nIn", "nOut", "inputs", "outputs"],
+  "propertyNames": { "$ref": "#/$defs/memberName" },
+  "properties": {
+    "tapepins": { "type": "string", "pattern": "^0\\.[1-9][0-9]*$" },
+    "name": { "type": "string", "maxLength": 64 },
+    "description": { "type": "string", "maxLength": 2048 },
+    "circuit": {
+      "type": "object",
+      "required": ["netlistHash"],
+      "propertyNames": { "$ref": "#/$defs/memberName" },
+      "properties": {
+        "netlistHash": { "$ref": "#/$defs/hash" },
+        "chainId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": ["name", "sha256"],
+      "propertyNames": { "$ref": "#/$defs/memberName" },
+      "properties": {
+        "name": { "type": "string", "maxLength": 64 },
+        "sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "nIn": { "type": "integer", "minimum": 0, "maximum": 65536 },
+    "nOut": { "type": "integer", "minimum": 1, "maximum": 65536 },
+    "nState": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+    "shape": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/memberName" },
+      "properties": {
+        "nStateMin": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+        "nStateMax": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+        "flat": { "type": "boolean" },
+        "latchesFirst": { "type": "boolean" },
+        "maxGates": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "maxNetlistBytes": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+      }
+    },
+    "inputs": { "$ref": "#/$defs/fields" },
+    "outputs": { "$ref": "#/$defs/fields" },
+    "state": { "$ref": "#/$defs/fields" }
+  },
+  "if": { "required": ["circuit"] },
+  "then": {
+    "required": ["nState", "state"],
+    "properties": { "shape": false }
+  },
+  "else": {
+    "dependentRequired": { "state": ["nState"] }
+  },
+  "$defs": {
+    "memberName": { "not": { "enum": ["__proto__", "constructor", "prototype"] } },
+    "hash": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+    "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
+    "field": {
+      "type": "object",
+      "required": ["name", "offset", "width", "encoding"],
+      "propertyNames": { "$ref": "#/$defs/memberName" },
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$",
+          "not": { "enum": ["__proto__", "constructor", "prototype"] }
+        },
+        "offset": { "type": "integer", "minimum": 0, "maximum": 16777215 },
+        "width": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "encoding": { "type": "string" },
+        "description": { "type": "string", "maxLength": 512 },
+        "unit": { "type": "string", "maxLength": 32 },
+        "min": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+        "max": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+        "scale": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+        },
+        "values": {
+          "type": "object",
+          "propertyNames": { "pattern": "^(0|[1-9][0-9]*)$" },
+          "additionalProperties": { "$ref": "#/$defs/label" }
+        },
+        "bits": {
+          "type": "array",
+          "items": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/label" }] }
+        },
+        "mantissaBits": { "type": "integer", "minimum": 0, "maximum": 16 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "encoding": { "const": "uint" } } },
+          "then": { "properties": { "bits": false, "mantissaBits": false } }
+        },
+        {
+          "if": { "properties": { "encoding": { "const": "int" } } },
+          "then": { "properties": { "values": false, "bits": false, "mantissaBits": false } }
+        },
+        {
+          "if": { "properties": { "encoding": { "const": "bool" } } },
+          "then": {
+            "properties": {
+              "width": { "const": 1 },
+              "min": false, "max": false, "scale": false, "values": false, "bits": false, "mantissaBits": false
+            }
+          }
+        },
+        {
+          "if": { "properties": { "encoding": { "const": "enum" } } },
+          "then": {
+            "required": ["values"],
+            "properties": {
+              "values": { "minProperties": 1 },
+              "min": false, "max": false, "scale": false, "bits": false, "mantissaBits": false
+            }
+          }
+        },
+        {
+          "if": { "properties": { "encoding": { "const": "flags" } } },
+          "then": {
+            "required": ["bits"],
+            "properties": { "min": false, "max": false, "scale": false, "values": false, "mantissaBits": false }
+          }
+        },
+        {
+          "if": { "properties": { "encoding": { "const": "log" } } },
+          "then": {
+            "required": ["mantissaBits"],
+            "properties": { "min": false, "max": false, "bits": false }
+          }
+        },
+        {
+          "if": { "properties": { "encoding": { "enum": ["zero", "bits"] } } },
+          "then": {
+            "properties": {
+              "min": false, "max": false, "scale": false, "values": false, "bits": false, "mantissaBits": false
+            }
+          }
+        }
+      ]
+    }
+  }
+}

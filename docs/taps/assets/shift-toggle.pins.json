@@ -1,0 +1,59 @@
+{
+  "tapepins": "0.1",
+  "name": "shift-toggle",
+  "description": "Example circuit of the TAP drafts: an 8-bit shift register and a toggle.",
+  "circuit": {
+    "netlistHash": "0x4d4d8bb44f524249174cb16ec625924cd96ba7c3f45c62be21901a440647fa00"
+  },
+  "nIn": 2,
+  "nOut": 2,
+  "nState": 9,
+  "inputs": [
+    {
+      "name": "d",
+      "offset": 0,
+      "width": 1,
+      "encoding": "bool",
+      "description": "Bit shifted into the history by this beat."
+    },
+    {
+      "name": "en",
+      "offset": 1,
+      "width": 1,
+      "encoding": "bool",
+      "description": "When true, this beat flips the phase."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "oldest_n",
+      "offset": 0,
+      "width": 1,
+      "encoding": "bool",
+      "description": "Inverse of the oldest history bit before this beat."
+    },
+    {
+      "name": "phase_next",
+      "offset": 1,
+      "width": 1,
+      "encoding": "bool",
+      "description": "The phase after this beat."
+    }
+  ],
+  "state": [
+    {
+      "name": "hist",
+      "offset": 0,
+      "width": 8,
+      "encoding": "bits",
+      "description": "The last eight values of d. Bit 0 is the newest."
+    },
+    {
+      "name": "phase",
+      "offset": 8,
+      "width": 1,
+      "encoding": "bool",
+      "description": "Flips on every beat that has en set."
+    }
+  ]
+}
