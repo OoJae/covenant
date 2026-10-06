@@ -22,6 +22,7 @@ export const known = (over: Partial<Known> = {}): Known => ({
   wokb: WOKB,
   deployer: null,
   keeper: null,
+  agentWallet: null,
   splitter: null,
   keeperTank: null,
   teamRegistry: null,
@@ -33,6 +34,8 @@ export const known = (over: Partial<Known> = {}): Known => ({
   lens: null,
   kernels: [],
   other: {},
+  smartWallets: {},
+  entryPoints: [],
   ...over,
 });
 
@@ -167,6 +170,31 @@ export class FakeChain {
       }
       case 'eth_getCode':
         return this.code.get((params[0] as string).toLowerCase()) ?? '0x';
+      case 'eth_getTransactionByHash': {
+        const t = this.byHash.get(params[0] as string);
+        return t ? { hash: t.hash, from: t.from, to: t.to, nonce: '0x' + t.nonce.toString(16), blockNumber: '0x' + t.blockNumber.toString(16), input: t.input, value: t.value, type: t.type } : null;
+      }
+      case 'eth_getLogs': {
+        // like the public X Layer endpoint: at most 100 blocks per query
+        const f = params[0] as { address?: string; topics?: (string | null)[]; fromBlock: string; toBlock: string };
+        const from = blockOf(f.fromBlock);
+        const to = Math.min(blockOf(f.toBlock), this.head);
+        if (to - from + 1 > 100) return new RpcError({ code: -32602, message: 'block range greater than 100 max' });
+        const out: unknown[] = [];
+        for (let b = from; b <= to; b++) {
+          let logIndex = 0;
+          for (const t of this.blocks.get(b) ?? []) {
+            if (t.reverted) continue;
+            for (const l of t.logs) {
+              const i = logIndex++;
+              if (f.address && l.address.toLowerCase() !== f.address.toLowerCase()) continue;
+              if ((f.topics ?? []).some((want, k) => want !== null && want !== undefined && l.topics[k]?.toLowerCase() !== want.toLowerCase())) continue;
+              out.push({ address: l.address, topics: l.topics, data: l.data, blockNumber: '0x' + b.toString(16), transactionHash: t.hash, logIndex: '0x' + i.toString(16), removed: false });
+            }
+          }
+        }
+        return out;
+      }
       case 'eth_call': {
         const { to, data } = params[0] as { to: string; data: string };
         const target = to.toLowerCase();

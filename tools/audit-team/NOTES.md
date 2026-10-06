@@ -17,8 +17,9 @@ Exit code 0: clean. 1: a rule was broken. 2: nothing flagged, but the audit coul
 Without `--wallet`: the union of
 - the table of `docs/WALLETS.md` (every row whose Address cell holds an address; rows without one are reported as
   roles still to be added);
-- the deployer (`covenant.deployer` of `addresses.json`, `0x84cE7bAe1b788C7aD985D57721cA428b401aE34D`) and the
-  keeper (`keeper` of `deployments/xlayer.json`), always;
+- the deployer (`covenant.deployer` of `addresses.json`, `0x84cE7bAe1b788C7aD985D57721cA428b401aE34D`), the
+  keeper (`keeper` of `deployments/xlayer.json`) and the Covenant Architect's OKX.AI agent wallet
+  (`architect.agentWallet`), always;
 - every wallet the on-chain `TeamRegistry` lists, read with `count()` and `at(i)` at the audit block, when
   its address is known (`issuance.teamRegistry` of `deployments/xlayer.json`, given with `--deployment`).
 
@@ -47,7 +48,7 @@ transaction or by an EIP-7702 authorisation the wallet signed. Then each transac
 | `ignix-activity` | an IGNIX `Trade` event, or a Transfer / Approval of an IGNIX token to or from the wallet, inside a transaction to any other contract (for example a sale through an aggregator) |
 | `kernel-value` | native value sent to a kernel (listed, or `KernelFactory.isKernel`) or to a kernel's vault |
 | `transistor-transfer` | `safeTransferFrom` / `safeBatchTransferFrom` on the Covenant Transistors, or a `TransferSingle` / `TransferBatch` of them to or from the wallet inside any transaction (mints and burns are not transfers) |
-| `delegation` | the wallet has code (a contract, or an EIP-7702 delegation), or one of its nonces was used by an authorisation |
+| `delegation` | the wallet has code other than an EIP-7702 designator to a known smart-wallet implementation (a contract, or a delegation to an implementation not listed in `smartWalletImplementations`), or one of its nonces was used by an authorisation to such an implementation |
 | `unexplained-nonce` | a nonce that neither a transaction nor an authorisation of the wallet explains |
 
 A target that is not in the known list is a `WARN` (listed, not a flag). A rule that cannot be decided because an
@@ -61,11 +62,40 @@ null there: `deployments/xlayer.json`, written from the chain by the signing ses
 `--deployment deployments/xlayer.json` fills them in (an address named in both places must be the same). Known
 Covenant contracts are named in the report, so calls to them are not unknown targets.
 
+## Smart wallets (EIP-7702 + ERC-4337)
+
+A wallet whose code is exactly `0xef0100` followed by an address listed in `smartWalletImplementations` of
+`addresses.json` is a smart wallet: listed as such, not flagged. Today the list holds one implementation,
+`0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4`, OKX's SmartWalletEntry (verified contract on OKLink), the delegate of
+OKX Agentic Wallets. Any other code, or an authorisation to an address not in the list, is still a FLAG.
+
+Such a wallet also acts without signing transactions: a bundler sends `handleOps` to an ERC-4337 EntryPoint and the
+EntryPoint calls the wallet. For every wallet that has or had code, the audit therefore scans the
+`UserOperationEvent(bytes32,address,address,uint256,bool,uint256,uint256)` logs with the wallet as `sender` on each
+EntryPoint of `addresses.json` that has code (v0.7 `0x0000000071727De22E5E9d8BAf0edAc6f37da032` and v0.6
+`0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789`, both live on X Layer), from the block of the wallet's first activity
+(its first nonce, found by the nonce walk; a delegation always uses a nonce) to the audit block, in 100-block
+`eth_getLogs` chunks (the public endpoint refuses 101), ten per HTTP request at the same pace as every other request.
+The part below the safe head is cached in `cache/chain-196.json`, so a rerun asks only for the new blocks.
+
+Each operation is listed like a transaction (`op <sequence>`, the bundle's hash, value "not visible") and audited
+from the bundle's receipt, restricted to its own logs: those between the previous `BeforeExecution` /
+`UserOperationEvent` of the same EntryPoint and its own `UserOperationEvent`. The rules that name the wallet (an IGNIX
+trade by it, an IGNIX token moved to or from it or approved by it, transistors moved to or from it) are also applied
+to the bundle's validation phase, which cannot be attributed to one operation. In the execution: any other IGNIX
+trade or token movement is `ignix-activity` (a kernel's own curve buy inside a settle is expected), any other
+IgnixManager event is `ignix-call`, `TokenCreated` with a trade is `first-buy`, a WOKB event or a Uniswap V2 `Swap`
+is `dex-call`; events of kernels and their vaults are named. The verdict shows a `COVERED` line per smart wallet
+(operations found, EntryPoints, blocks), or `NOT COVERED` with the reason (then the audit is INCOMPLETE).
+
 ## What it cannot see
 
-- Calls made by contracts on a wallet's behalf: a relayer, an ERC-4337 bundler, a contract the wallet controls, or
-  an EIP-7702 delegate can act in transactions other accounts send. Inside a wallet's own transactions, internal
-  calls are seen only through the events they emit (IGNIX `Trade`, token Transfer / Approval, ERC-1155 transfers).
+- Calls made on a wallet's behalf other than its user operations through the listed EntryPoints: a relayer, a
+  contract the wallet controls, an EntryPoint not listed, or the wallet's delegate code called directly by another
+  account (not through an EntryPoint: no `UserOperationEvent`). Inside a wallet's own transactions and user
+  operations, internal calls are seen only through the events they emit (IGNIX `Trade`, token Transfer / Approval,
+  ERC-1155 transfers); a call or a value transfer that emits nothing (for example OKB sent to a kernel's vault by a
+  user operation) is not seen: `debug_traceTransaction` is not available on the public RPC.
 - Wallets that were never declared, in the table or in the registry. The registry proves nothing about a wallet
   that is not listed.
 - Anything off-chain (a centralised exchange).
@@ -75,7 +105,8 @@ Covenant contracts are named in the report, so calls to them are not unknown tar
 
 | Fact | Verified by |
 |---|---|
-| **Live audit, 2026-10-06, block 72,521,612: VERDICT CLEAN.** The deployer has 9 transactions, all found: nonce 0 funds the keeper with 0.031 OKB (block 72,516,171); nonce 1 deploys the Splitter (Ignite, 0.0066 OKB, block 72,519,781); nonces 2 and 3 are `Transistors.mint` (0.00284 and 0.00084 OKB) and nonce 4 `Circuits.tapeout` of the probe (0.0013 OKB); nonces 5 to 8 deploy the SealedVM, the Fab, the KernelFactory and the Lens (signing session 2, blocks 72,521,302 to 72,521,377). The keeper `0x7444...C4Ff` has sent nothing. Nothing is flagged, no unknown target. One WARN: the keeper is declared in `docs/WALLETS.md` but not (yet) in the TeamRegistry, which lists only entry 0, the deployer (declared 2026-10-06 12:13:37 UTC). Output: `out/audit.md`, `out/audit.json`. | `node tools/audit-team/audit-team.ts --deployment deployments/xlayer.json` |
+| **Live audit, 2026-10-06, block 72,526,734: VERDICT CLEAN** (15 transactions and 1 user operation of 3 wallets). The deployer: 15 transactions, all found (the keeper's funding, Ignite, the probe's two mints and tape-out, the SealedVM, Fab, KernelFactory and Lens, the flagship's `tapeoutChip`, `KernelFactory.create` and chip handover, two more `tapeoutChip` (the demo chips 3 and 4), and `TeamRegistry.invite`). The keeper: none. The Architect's agent wallet `0xbe50...6da0`: a smart wallet (designator to OKX SmartWalletEntry); its one nonce is the 7702 authorisation, and its one user operation, the OKX.AI registration (bundle `0x61d9d945...`, block 72,525,583, EntryPoint v0.7, bundler `0xaf3d...e052`), emitted 4 events of the OKX.AI agent registry (the mint of agent 14683 to the wallet); nothing flagged. WARN: the keeper and the agent wallet are declared in `docs/WALLETS.md` but not yet in the TeamRegistry (entry 0 only; the deployer has sent one `invite`). | `node tools/audit-team/audit-team.ts --deployment deployments/xlayer.json` (output in `out/`) |
+| `eth_getLogs` on https://rpc.xlayer.tech accepts 100 blocks per query and refuses 101 (`block range greater than 100 max`); `debug_traceTransaction` is not whitelisted. Both EntryPoints (v0.7, v0.6) have code on X Layer. | `curl` of `eth_getLogs` / `debug_traceTransaction`, `cast code`, 2026-10-06 |
 | The deployer `0x84cE...E34D` had sent no transaction at block 72,378,000; on 2026-10-06 it had sent one: nonce 0, block 72,516,171, a plain transfer of 0.031 OKB to `0x7444eC2a06d3c1070203b76c2c3EeE998317C4Ff` (an address without code). Verdict CLEAN (one WARN: unknown target). | `node tools/audit-team/audit-team.ts --wallet 0x84cE7bAe1b788C7aD985D57721cA428b401aE34D --no-cache --out <dir>` (2026-10-06, block 72,516,637) and `test/live.test.ts` (pinned block) |
 | The creator of IGNIX's OB token has 11 transactions at block 72,378,480, all found; its first buy of 0.4 OKB, an `approve` on OB and a sale through an aggregator are flagged. | `test/live.test.ts`, `out/audit.md` |
 | A real wallet that signed an EIP-7702 authorisation has the nonce it used explained. | `test/live.test.ts` |

@@ -16,9 +16,11 @@ const cell = (s: string): string => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 function rowLine(r: Row): string {
   const target = r.target === null ? '(contract creation)' : `\`${show(r.target)}\` ${r.targetLabel}`;
-  const fn = r.kind === 'authorization' ? '(authorisation)' : r.selector === null ? '(none)' : `\`${r.selector}\`${r.selectorName ? ' ' + r.selectorName : ''}`;
+  const fn = r.kind === 'authorization' ? '(authorisation)' : r.kind === 'userOperation' ? '(user operation)' : r.selector === null ? '(none)' : `\`${r.selector}\`${r.selectorName ? ' ' + r.selectorName : ''}`;
   const marks = [...r.flags.map((f) => `FLAG ${f}`), ...(r.unknownTarget ? ['WARN unknown target'] : []), ...r.undecided.map((f) => `NOT CHECKED ${f}`)];
-  return `| ${r.block} | ${utc(r.timestamp)} | ${r.nonce} | ${cell(target)} | ${cell(fn)} | ${formatOkb(BigInt(r.valueWei))} | ${cell(r.classification)}${marks.length ? ' **[' + marks.join('; ') + ']**' : ''} | \`${r.hash}\` |`;
+  const nonce = r.kind === 'userOperation' ? `op ${r.nonce}` : String(r.nonce);
+  const value = r.valueWei === '' ? 'not visible' : formatOkb(BigInt(r.valueWei));
+  return `| ${r.block} | ${utc(r.timestamp)} | ${nonce} | ${cell(target)} | ${cell(fn)} | ${value} | ${cell(r.classification)}${marks.length ? ' **[' + marks.join('; ') + ']**' : ''} | \`${r.hash}\` |`;
 }
 
 /** One line per rule: its count and "expected 0". A rule that could not be decided never says PASS. */
@@ -54,16 +56,30 @@ export function verdictLines(result: AuditResult): string[] {
     out.push('NOTE              the TeamRegistry is not configured (covenant.teamRegistry is null): the wallets come from docs/WALLETS.md and the deployer only');
   }
   for (const w of result.wallets) {
-    const complete = w.found + w.rows.filter((r) => r.kind === 'authorization').length === w.audited && w.audited === w.transactionCount;
+    const auths = w.rows.filter((r) => r.kind === 'authorization').length;
+    const complete = w.found + auths === w.audited && w.audited === w.transactionCount;
     out.push(
-      `${complete ? 'COMPLETE  ' : 'INCOMPLETE'}   ${String(w.found).padStart(3)}  transaction(s) found for the ${w.transactionCount} nonce(s) of ${show(w.wallet.address)} (${w.wallet.role})` +
+      `${complete ? 'COMPLETE  ' : 'INCOMPLETE'}   ${String(w.found).padStart(3)}  transaction(s)${auths ? ` and ${auths} authorisation(s)` : ''} found for the ${w.transactionCount} nonce(s) of ${show(w.wallet.address)} (${w.wallet.role})` +
         (w.audited < w.transactionCount ? ` [only the first ${w.audited} nonces were audited]` : ''),
     );
+    const u = w.userOps;
+    if (u && u.scanned) {
+      const n = w.rows.filter((r) => r.kind === 'userOperation').length;
+      out.push(
+        `COVERED      ${String(n).padStart(3)}  user operation(s) of ${show(w.wallet.address)} found through ${u.entryPoints.join(' and ')} in blocks ${u.from}..${u.to} (UserOperationEvent logs)` +
+          (u.skipped.length ? `; ${u.skipped.join(', ')} has no code on X Layer, so no operation can go through it` : ''),
+      );
+    } else if (u) {
+      out.push(`NOT COVERED       user operations of ${show(w.wallet.address)}: ${u.why ?? 'not scanned'}`);
+    }
   }
   const total = result.wallets.reduce((s, w) => s + w.found, 0);
+  const ops = result.wallets.reduce((s, w) => s + w.rows.filter((r) => r.kind === 'userOperation').length, 0);
   out.push('');
   if (result.exitCode === 0) {
-    out.push(`VERDICT: CLEAN. ${total} transaction(s) of ${result.wallets.length} declared wallet(s) were examined at block ${result.block}; every rule was checked and none was broken.`);
+    out.push(
+      `VERDICT: CLEAN. ${total} transaction(s)${ops ? ` and ${ops} user operation(s)` : ''} of ${result.wallets.length} declared wallet(s) were examined at block ${result.block}; every rule was checked on every path the audit covers and none was broken (what it cannot see is listed below).`,
+    );
   } else if (result.exitCode === 1) {
     const broken = result.rules.filter((r) => r.count > 0);
     out.push(`VERDICT: FLAGGED. ${broken.length} rule(s) were broken by ${broken.reduce((s, r) => s + r.count, 0)} finding(s) (the FLAG lines above).`);
@@ -76,7 +92,7 @@ export function verdictLines(result: AuditResult): string[] {
 }
 
 export const LIMITS: readonly string[] = [
-  'Calls made by contracts on a wallet\'s behalf. Only the transactions a wallet itself signed and sent are listed. A contract the wallet controls, a relayer, an ERC-4337 bundler or an EIP-7702 delegate can act for it in transactions sent by other accounts; those are invisible here. Within a wallet\'s own transactions, internal calls are visible only through the events they emit (the IGNIX Trade event and token Transfer / Approval events are checked); an internal call that emits nothing is not seen.',
+  'Calls made by contracts on a wallet\'s behalf. Only the transactions a wallet itself signed and sent are listed, and, for a wallet that has code (an EIP-7702 delegation), its ERC-4337 user operations through the EntryPoints of addresses.json. A contract the wallet controls, a relayer, or the wallet\'s delegate code called directly by another account (not through an EntryPoint) can act for it in transactions sent by other accounts; those are invisible here. Within a wallet\'s own transactions and user operations, internal calls are visible only through the events they emit (the IGNIX Trade event and token Transfer / Approval events are checked); an internal call or a value transfer that emits nothing is not seen (debug_traceTransaction is not available on the public RPC).',
   'Wallets that were never declared. The audit covers the addresses it is given and nothing else. It cannot show that the team controls no other wallet.',
   'Anything off-chain (for example trades on a centralised exchange).',
 ];
@@ -108,7 +124,16 @@ export function renderMarkdown(result: AuditResult): string {
     out.push(`## \`${show(w.wallet.address)}\` (${w.wallet.role})`);
     out.push('');
     out.push(`Nonces used at block ${result.block}: **${w.transactionCount}**. Transactions found: **${w.found}**.` + (w.audited < w.transactionCount ? ` Only the first ${w.audited} nonces were audited.` : ''));
-    if (w.code !== '0x') out.push(`\nThis address has code at the audit block (${(w.code.length - 2) / 2} bytes): it is not a plain externally owned account.`);
+    if (w.smartWallet) {
+      out.push(`\nThis address is a smart wallet: its code is the EIP-7702 designator to \`${show(w.smartWallet.implementation)}\`, a known smart-wallet implementation: ${w.smartWallet.label}.`);
+    } else if (w.code !== '0x') {
+      out.push(`\nThis address has code at the audit block (${(w.code.length - 2) / 2} bytes): it is not a plain externally owned account, nor a known smart wallet.`);
+    }
+    if (w.userOps?.scanned) {
+      out.push(`\nUser operations: ${w.rows.filter((r) => r.kind === 'userOperation').length} found through ${w.userOps.entryPoints.join(' and ')}, in blocks ${w.userOps.from} (its first activity) to ${w.userOps.to}. They are listed below with the transactions; only their events are visible. A call to its delegate code made directly by another account, without an EntryPoint, is not visible here.`);
+    } else if (w.userOps) {
+      out.push(`\nUser operations were NOT scanned: ${w.userOps.why}.`);
+    }
     if (w.unexplained.length) out.push(`\nNonces that no transaction of this wallet explains: ${w.unexplained.join(', ')}.`);
     out.push('');
     if (w.rows.length) {
@@ -156,9 +181,12 @@ export function toJson(result: AuditResult): string {
         audited: w.audited,
         found: w.found,
         hasCode: w.code !== '0x',
+        smartWallet: w.smartWallet,
+        userOperations: w.userOps,
         unexplainedNonces: w.unexplained,
         transactions: w.rows.map((r) => ({
           kind: r.kind,
+          userOpHash: r.userOpHash ?? null,
           block: r.block,
           timeUtc: utc(r.timestamp),
           nonce: r.nonce,

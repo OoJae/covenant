@@ -272,14 +272,16 @@ test('a nonce used by an EIP-7702 authorisation is explained, and makes the wall
   const rows = rowsOf(r);
   assert.equal(rows.length, 3);
   assert.deepEqual(rows.map((x) => x.kind), ['transaction', 'authorization', 'transaction']);
-  assert.match(rows[1].classification, /EIP-7702 AUTHORISATION: the wallet delegated its code to 0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4 \(carried by a transaction from 0x857963fd/);
+  assert.match(rows[1].classification, /EIP-7702 AUTHORISATION: the wallet delegated its code to 0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4, an UNKNOWN implementation \(carried by a transaction from 0x857963fd/);
   assert.equal(r.wallets[0].transactionCount, 3);
   assert.equal(r.wallets[0].found, 2);
   assert.deepEqual(r.wallets[0].unexplained, []);
   assert.equal(count(r, 'delegation'), 2, 'the authorisation, and the code now at the address');
   assert.equal(count(r, 'unexplained-nonce'), 0);
   assert.equal(r.exitCode, 1);
-  assert.match(verdictLines(r).join('\n'), /has code at block 5000 \(EIP-7702 delegation to 0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4\)/);
+  assert.match(verdictLines(r).join('\n'), /has code at block 5000 \(EIP-7702 delegation to 0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4, not a known smart-wallet implementation\)/);
+  // with no EntryPoint configured, its user operations cannot be scanned: said, never silently clean
+  assert.match(verdictLines(r).join('\n'), /^NOT COVERED {7}user operations of .*: no EntryPoint is configured in addresses\.json$/m);
 });
 
 test('a nonce that nothing explains is a finding, never silently accepted', async () => {

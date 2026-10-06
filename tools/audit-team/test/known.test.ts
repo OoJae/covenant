@@ -21,7 +21,15 @@ test('addresses.json names the fixed contracts and the deployer, and leaves the 
   for (const c of COVENANT_CONTRACTS) assert.equal(k[c], null, `covenant.${c} is filled in after deployment`);
   assert.deepEqual([...COVENANT_CONTRACTS], ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits', 'sealedVM', 'fab', 'kernelFactory', 'lens']);
   assert.deepEqual(k.kernels, []);
-  assert.deepEqual(k.other, {});
+  assert.deepEqual(Object.values(k.other), ['0x8004a169fb4a3325136eb29fa0ceb6d2e539a432']);
+  // ERC-4337 EntryPoints and the known smart-wallet implementation (OKX Agentic Wallet)
+  assert.deepEqual(k.entryPoints, [
+    { address: '0x0000000071727de22e5e9d8baf0edac6f37da032', label: 'EntryPoint v0.7' },
+    { address: '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789', label: 'EntryPoint v0.6' },
+  ]);
+  assert.match(k.smartWallets['0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4'], /^OKX SmartWalletEntry \(.*OKLink/);
+  assert.equal(Object.keys(k.smartWallets).length, 1);
+  assert.equal(k.agentWallet, null, 'the agent wallet comes from docs/WALLETS.md and the deployment file');
   const raw = JSON.parse(text);
   assert.match(raw.covenant.comment, /deployments\/xlayer\.json/);
   assert.equal(k.keeper, null, 'the keeper comes from docs/WALLETS.md and the deployment file');
@@ -35,6 +43,7 @@ test('deployments/xlayer.json (nested, the live record) fills in the session-1 a
   assert.equal(m.keeper, '0x7444ec2a06d3c1070203b76c2c3eee998317c4ff');
   for (const c of ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits'] as const) assert.match(String(m[c]), /^0x[0-9a-f]{40}$/, c);
   assert.equal(m.deployer, '0x84ce7bae1b788c7ad985d57721ca428b401ae34d');
+  assert.equal(m.agentWallet, '0xbe5088307e15aaf8cf0c53bfcc4c612c9ead6da0', 'architect.agentWallet');
 });
 
 test('a deployment file fills in the null Covenant addresses; a disagreement is refused', () => {
@@ -73,7 +82,9 @@ test('a malformed addresses.json is refused', () => {
   assert.deepEqual(filled.kernels, ['0x00000000000000000000000000000000c0fe0001']);
   assert.equal(filled.transistors, '0x00000000000000000000000000000000c0fe0003');
   assert.equal(filled.teamRegistry, '0x00000000000000000000000000000000c0fe000a');
-  assert.deepEqual(filled.other, { 'Some other contract': '0x00000000000000000000000000000000c0fe000b' });
+  assert.equal(filled.other['Some other contract'], '0x00000000000000000000000000000000c0fe000b');
+  assert.throws(() => parseKnown(variant((o) => (o.smartWalletImplementations['0x00000000000000000000000000000000c0fe00cc'] = { name: 'x' }))), /must give a "name" and the "source"/);
+  assert.throws(() => parseKnown(variant((o) => (o.entryPoints['v0.8'] = '0x12'))), /not a 20-byte hex address/);
   assert.throws(() => parseKnown(variant((o) => (o.covenant.launchpadSocket = null))), /unknown key "covenant\.launchpadSocket"/);
   assert.throws(() => parseKnown(variant((o) => (o.covenant.comment = 5))), /covenant\.comment must be text/);
 });

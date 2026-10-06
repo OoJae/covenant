@@ -145,7 +145,13 @@ test('a real wallet that signed an EIP-7702 authorisation: the nonce it used is 
   assert.equal(auth.hash, '0xd930c6718fd35d2b8a249a62d475541d47cee91adfe1cb984557e73ae01e50d2', 'the transaction that carried it');
   assert.match(auth.classification, /carried by a transaction from 0x833290075c3196310f80fbcd96282d8ebe3ec6e8/);
   assert.match(w.code, /^0xef0100e40ccb2d94975c51bff0c004efdfd9b3a5796fa4$/, 'the wallet still carries the delegation');
-  assert.equal(r.rules.find((x) => x.id === 'delegation')?.count, 2);
+  // the delegate is OKX's SmartWalletEntry, a known smart-wallet implementation (addresses.json): not a finding
+  assert.match(auth.classification, /a known smart-wallet implementation: OKX SmartWalletEntry/);
+  assert.deepEqual(w.smartWallet?.implementation, '0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4');
+  assert.equal(r.rules.find((x) => x.id === 'delegation')?.count, 0);
+  // capped with --max-nonces: its user operations are not scanned, and the audit says so
+  assert.equal(w.userOps?.scanned, false);
+  assert.match(r.incomplete.join(' '), /user operations were NOT scanned \(--max-nonces\)/);
   // it trades IGNIX tokens through an aggregator: found in the logs
   assert.ok((r.rules.find((x) => x.id === 'ignix-activity')?.count ?? 0) >= 5);
   assert.ok((r.rules.find((x) => x.id === 'ignix-token-call')?.count ?? 0) >= 2);

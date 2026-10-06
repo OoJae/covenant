@@ -90,6 +90,7 @@ export function mergeWallets(
   registry: { address: string; entries: readonly RegistryEntry[] } | null,
   deployer: string | null,
   keeper: string | null = null,
+  agentWallet: string | null = null,
 ): { wallets: Wallet[]; view: RegistryView | null } {
   const wallets: Wallet[] = declared.map((w) => ({ ...w }));
   const add = (address: string, role: string): void => {
@@ -100,6 +101,7 @@ export function mergeWallets(
   };
   if (deployer !== null && !wallets.some((w) => w.address === deployer)) add(deployer, 'deployer (addresses / deployment file)');
   if (keeper !== null && !wallets.some((w) => w.address === keeper)) add(keeper, 'keeper (addresses / deployment file)');
+  if (agentWallet !== null && !wallets.some((w) => w.address === agentWallet)) add(agentWallet, 'Covenant Architect agent wallet (addresses / deployment file)');
   if (!registry) return { wallets, view: null };
   const inDoc = new Set(wallets.map((w) => w.address));
   for (const e of registry.entries) add(e.wallet, `TeamRegistry #${e.index}: ${e.role}`);
@@ -119,5 +121,5 @@ export function mergeWallets(
 /** The wallets to audit by default: docs/WALLETS.md, the deployer, the keeper, and the registry when its address is known. */
 export async function withRegistry(chain: Chain, known: Known, declared: readonly Wallet[]): Promise<{ wallets: Wallet[]; view: RegistryView | null }> {
   const entries = known.teamRegistry ? await readRegistry(chain, known.teamRegistry) : null;
-  return mergeWallets(declared, entries && known.teamRegistry ? { address: known.teamRegistry, entries } : null, known.deployer, known.keeper);
+  return mergeWallets(declared, entries && known.teamRegistry ? { address: known.teamRegistry, entries } : null, known.deployer, known.keeper, known.agentWallet);
 }

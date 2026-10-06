@@ -1,7 +1,7 @@
 // A Covenant deployment file, in either of the two formats the repository writes:
 //
 //   NESTED  deployments/xlayer.json, the record of the real mainnet signing sessions:
-//           { "chainId": 196, "deployer": "0x..", "keeper": "0x..",
+//           { "chainId": 196, "deployer": "0x..", "keeper": "0x..", "architect": { "agentWallet": "0x..", ... },
 //             "issuance":  { "splitter", "circuits", "transistors", "keeperTank", "teamRegistry", ... },   session 1
 //             "probe":     { "circuitId", ... },                                                           session 1
 //             "evaluator": { "sealedVM", "fab", "txs" },                                                   session 2
@@ -28,6 +28,8 @@ export interface Deployment {
   deployer: string | null;
   /** The keeper wallet (nested format only). */
   keeper: string | null;
+  /** The Covenant Architect's OKX.AI agent wallet (`architect.agentWallet`, nested format only). */
+  agentWallet: string | null;
   splitter: string | null;
   circuits: string | null;
   transistors: string | null;
@@ -50,13 +52,14 @@ export class DeploymentError extends Error {
   }
 }
 
-export const DEPLOYMENT_ADDRESS_KEYS = ['deployer', 'keeper', 'splitter', 'circuits', 'transistors', 'keeperTank', 'teamRegistry', 'sealedVM', 'fab', 'kernelFactory', 'kernelImpl', 'lens', 'kernel'] as const;
+export const DEPLOYMENT_ADDRESS_KEYS = ['deployer', 'keeper', 'agentWallet', 'splitter', 'circuits', 'transistors', 'keeperTank', 'teamRegistry', 'sealedVM', 'fab', 'kernelFactory', 'kernelImpl', 'lens', 'kernel'] as const;
 type AddressKey = (typeof DEPLOYMENT_ADDRESS_KEYS)[number];
 
 /** Where each address sits in the nested format. */
 const NESTED: Record<AddressKey, readonly [section: string | null, key: string]> = {
   deployer: [null, 'deployer'],
   keeper: [null, 'keeper'],
+  agentWallet: ['architect', 'agentWallet'],
   splitter: ['issuance', 'splitter'],
   circuits: ['issuance', 'circuits'],
   transistors: ['issuance', 'transistors'],
@@ -88,12 +91,13 @@ export function parseDeployment(text: string, where: string = 'deployment file')
   }
   if (!isObject(o)) throw new DeploymentError(`${where}: must be a JSON object`);
   if (o.chainId !== undefined && o.chainId !== 196) throw new DeploymentError(`${where}: chainId is ${JSON.stringify(o.chainId)}, not 196 (X Layer)`);
-  const nested = ['issuance', 'probe', 'evaluator', 'core', 'flagship'].some((k) => isObject(o[k]));
+  const nested = ['issuance', 'probe', 'evaluator', 'core', 'flagship', 'architect'].some((k) => isObject(o[k]));
   const out: Deployment = {
     source: where,
     format: nested ? 'nested' : 'flat',
     deployer: null,
     keeper: null,
+    agentWallet: null,
     splitter: null,
     circuits: null,
     transistors: null,

@@ -37,6 +37,8 @@ export interface Known {
   deployer: string | null;
   /** The keeper wallet (it only ever settles). Always audited. */
   keeper: string | null;
+  /** The Covenant Architect's OKX.AI agent wallet (an OKX Agentic Wallet). Always audited. */
+  agentWallet: string | null;
   /** null = not deployed yet / not filled in. */
   splitter: string | null;
   keeperTank: string | null;
@@ -51,6 +53,13 @@ export interface Known {
   kernels: string[];
   /** label -> address, for further contracts the team calls, so that they are not listed as unknown targets. */
   other: Record<string, string>;
+  /**
+   * EIP-7702 delegates that are known smart-wallet implementations: address -> "name (source)". A wallet whose code
+   * is exactly the designator 0xef0100 || one of these is a smart wallet, not a FLAG; its user operations are audited.
+   */
+  smartWallets: Record<string, string>;
+  /** ERC-4337 EntryPoints whose UserOperationEvent logs are scanned for smart wallets. */
+  entryPoints: { address: string; label: string }[];
 }
 
 export class ConfigError extends Error {
@@ -60,10 +69,10 @@ export class ConfigError extends Error {
   }
 }
 
-const TOP = new Set(['description', 'chainId', 'ignixManager', 'tapeoutFactory', 'uniswapV2Router', 'wokb', 'covenant', 'other']);
+const TOP = new Set(['description', 'chainId', 'ignixManager', 'tapeoutFactory', 'uniswapV2Router', 'wokb', 'covenant', 'other', 'entryPoints', 'smartWalletImplementations']);
 /** The Covenant contracts, in the order of the signing sessions (deploy/rehearse.sh). */
 export const COVENANT_CONTRACTS = ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits', 'sealedVM', 'fab', 'kernelFactory', 'lens'] as const;
-const COVENANT = new Set<string>(['comment', 'deployer', 'keeper', ...COVENANT_CONTRACTS, 'kernels']);
+const COVENANT = new Set<string>(['comment', 'deployer', 'keeper', 'agentWallet', ...COVENANT_CONTRACTS, 'kernels']);
 
 export function parseKnown(text: string, where: string = 'addresses.json'): Known {
   let o: Record<string, unknown>;
@@ -96,6 +105,27 @@ export function parseKnown(text: string, where: string = 'addresses.json'): Know
   }
   if (o.chainId !== 196) throw new ConfigError(`${where}: chainId must be 196 (X Layer)`);
   if (c.comment !== undefined && typeof c.comment !== 'string') throw new ConfigError(`${where}: covenant.comment must be text`);
+  // ERC-4337 EntryPoints: { "comment": "...", "<label>": "0x..." }
+  const entryPoints: { address: string; label: string }[] = [];
+  const rawEp = (o.entryPoints ?? {}) as Record<string, unknown>;
+  if (typeof rawEp !== 'object' || Array.isArray(rawEp)) throw new ConfigError(`${where}: entryPoints must be an object of label -> address`);
+  for (const [label, v] of Object.entries(rawEp)) {
+    if (label === 'comment') continue;
+    entryPoints.push({ address: addr(v, `entryPoints.${label}`), label: `EntryPoint ${label}` });
+  }
+  // known smart-wallet implementations: { "comment": "...", "0x...": { "name": "...", "source": "..." } }
+  const smartWallets: Record<string, string> = {};
+  const rawSw = (o.smartWalletImplementations ?? {}) as Record<string, unknown>;
+  if (typeof rawSw !== 'object' || Array.isArray(rawSw)) throw new ConfigError(`${where}: smartWalletImplementations must be an object`);
+  for (const [a, v] of Object.entries(rawSw)) {
+    if (a === 'comment') continue;
+    const impl = addr(a, `smartWalletImplementations key ${a}`);
+    const e = v as Record<string, unknown>;
+    if (!e || typeof e !== 'object' || typeof e.name !== 'string' || typeof e.source !== 'string' || !e.name || !e.source) {
+      throw new ConfigError(`${where}: smartWalletImplementations.${a} must give a "name" and the "source" that identifies it`);
+    }
+    smartWallets[impl] = `${e.name} (${e.source})`;
+  }
   return {
     chainId: 196,
     manager: addr(o.ignixManager, 'ignixManager'),
@@ -104,6 +134,7 @@ export function parseKnown(text: string, where: string = 'addresses.json'): Know
     wokb: addr(o.wokb, 'wokb'),
     deployer: orNull(c.deployer, 'covenant.deployer'),
     keeper: orNull(c.keeper, 'covenant.keeper'),
+    agentWallet: orNull(c.agentWallet, 'covenant.agentWallet'),
     splitter: orNull(c.splitter, 'covenant.splitter'),
     keeperTank: orNull(c.keeperTank, 'covenant.keeperTank'),
     teamRegistry: orNull(c.teamRegistry, 'covenant.teamRegistry'),
@@ -115,6 +146,8 @@ export function parseKnown(text: string, where: string = 'addresses.json'): Know
     lens: orNull(c.lens, 'covenant.lens'),
     kernels: kernels.map((k, i) => addr(k, `covenant.kernels[${i}]`)),
     other,
+    smartWallets,
+    entryPoints,
   };
 }
 
@@ -123,8 +156,8 @@ export function parseKnown(text: string, where: string = 'addresses.json'): Know
  * must be the same; a disagreement is a configuration error. The deployment's kernel joins the kernel list.
  */
 export function withDeployment(known: Known, d: Deployment): Known {
-  const out: Known = { ...known, kernels: [...known.kernels], other: { ...known.other } };
-  const merge = (key: 'deployer' | 'keeper' | (typeof COVENANT_CONTRACTS)[number]): void => {
+  const out: Known = { ...known, kernels: [...known.kernels], other: { ...known.other }, smartWallets: { ...known.smartWallets }, entryPoints: [...known.entryPoints] };
+  const merge = (key: 'deployer' | 'keeper' | 'agentWallet' | (typeof COVENANT_CONTRACTS)[number]): void => {
     const mine = known[key];
     const theirs = d[key];
     if (mine !== null && theirs !== null && !sameAddress(mine, theirs)) {
@@ -134,6 +167,7 @@ export function withDeployment(known: Known, d: Deployment): Known {
   };
   merge('deployer');
   merge('keeper');
+  merge('agentWallet');
   for (const k of COVENANT_CONTRACTS) merge(k);
   if (d.kernel !== null && !out.kernels.some((k) => sameAddress(k, d.kernel as string))) out.kernels.push(d.kernel);
   return out;

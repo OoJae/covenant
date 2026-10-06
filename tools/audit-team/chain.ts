@@ -54,6 +54,26 @@ export interface WalletBlock {
   authorizations: AuthorizationUse[];
 }
 
+/** A log found by `scanLogs`, with where it is. */
+export interface ScanLog {
+  blockNumber: number;
+  transactionHash: string;
+  logIndex: number;
+  address: string;
+  topics: string[];
+  data: string;
+}
+
+/** A log scan remembered by the cache: every matching log in blocks `from .. to`. */
+export interface StoredScan {
+  from: number;
+  to: number;
+  logs: ScanLog[];
+}
+
+/** eth_getLogs accepts at most this many blocks per query on the public X Layer endpoint (measured: 100 works, 101 is refused). */
+export const LOG_CHUNK = 100;
+
 /** What an earlier run learned about a wallet, up to a block that can no longer change. */
 export interface StoredWalk {
   /** The block the walk covers up to. */
@@ -72,6 +92,8 @@ interface CacheFile {
   blocks: Record<string, Record<string, WalletBlock>>;
   receipts: Record<string, Receipt>;
   walks: Record<string, StoredWalk>;
+  /** `${address}:${topics}` -> the part of a log scan that can no longer change. */
+  scans: Record<string, StoredScan>;
 }
 
 export interface ChainOptions {
@@ -109,7 +131,8 @@ export class Chain {
   private readonly confirmations: number;
   private readonly cachePath: string | null;
   private readonly pinned: number | undefined;
-  private cache: CacheFile = { version: 1, chainId: 0, counts: {}, blocks: {}, receipts: {}, walks: {} };
+  private cache: CacheFile = { version: 1, chainId: 0, counts: {}, blocks: {}, receipts: {}, walks: {}, scans: {} };
+  private readonly times = new Map<number, number>();
   private dirty = false;
   private last = 0;
 
@@ -135,7 +158,7 @@ export class Chain {
     if (this.cachePath && existsSync(this.cachePath)) {
       try {
         const c = JSON.parse(readFileSync(this.cachePath, 'utf8')) as CacheFile;
-        if (c.version === 1 && c.chainId === this.chainId) this.cache = { ...c, walks: c.walks ?? {} };
+        if (c.version === 1 && c.chainId === this.chainId) this.cache = { ...c, walks: c.walks ?? {}, scans: c.scans ?? {} };
       } catch {
         // an unreadable cache is ignored and rewritten
       }
@@ -302,6 +325,58 @@ export class Chain {
       });
     }
     return out;
+  }
+
+  /**
+   * Every log of `address` matching `topics` in blocks `from .. head`, by eth_getLogs in chunks of LOG_CHUNK blocks
+   * (ten queries per HTTP request, spaced like every other request). The part below the safe head is remembered,
+   * so that a later run with the same `from` only asks for the blocks after it.
+   */
+  async scanLogs(address: string, topics: readonly (string | null)[], from: number, onProgress?: (done: number, total: number) => void): Promise<ScanLog[]> {
+    const key = `${address.toLowerCase()}:${topics.map((t) => t ?? '*').join(',')}`;
+    const stored = this.cache.scans[key];
+    const base = stored && stored.from === from && stored.to <= this.safeHead() ? stored : null;
+    if (base) this.stats.cacheHits++;
+    const start = base ? base.to + 1 : from;
+    const chunks: [number, number][] = [];
+    for (let b = start; b <= this.head; b += LOG_CHUNK) chunks.push([b, Math.min(b + LOG_CHUNK - 1, this.head)]);
+    const found: ScanLog[] = base ? [...base.logs] : [];
+    for (let o = 0; o < chunks.length; o += 50) {
+      const part = chunks.slice(o, o + 50);
+      const replies = await this.batch(part.map(([a, b]) => ['eth_getLogs', [{ address, topics, fromBlock: hexBlock(a), toBlock: hexBlock(b) }]] as const));
+      part.forEach(([a, b], j) => {
+        const r = replies[j];
+        if (r instanceof Error || !Array.isArray(r)) throw new Error(`eth_getLogs(${address}, blocks ${a}..${b}) failed: ${r instanceof Error ? r.message : 'no answer'}`);
+        for (const l of r as { blockNumber: string; transactionHash: string; logIndex: string; address: string; topics: string[]; data: string; removed?: boolean }[]) {
+          if (l.removed) continue;
+          found.push({ blockNumber: Number(BigInt(l.blockNumber)), transactionHash: l.transactionHash, logIndex: Number(BigInt(l.logIndex)), address: l.address.toLowerCase(), topics: l.topics, data: l.data });
+        }
+      });
+      onProgress?.(Math.min(o + 50, chunks.length), chunks.length);
+    }
+    found.sort((x, y) => x.blockNumber - y.blockNumber || x.logIndex - y.logIndex);
+    if (this.cachePath) {
+      const safe = this.safeHead();
+      if (safe >= from) {
+        this.cache.scans[key] = { from, to: safe, logs: found.filter((l) => l.blockNumber <= safe) };
+        this.dirty = true;
+      }
+    }
+    return found;
+  }
+
+  /** Block timestamps (unix seconds). */
+  async blockTimes(blocks: readonly number[]): Promise<number[]> {
+    const ask = [...new Set(blocks.filter((b) => !this.times.has(b)))];
+    if (ask.length) {
+      const replies = await this.batch(ask.map((b) => ['eth_getBlockByNumber', [hexBlock(b), false]] as const), true);
+      ask.forEach((b, i) => {
+        const r = replies[i] as { timestamp?: string } | Error | null;
+        if (r instanceof Error || !r || !r.timestamp) throw new Error(`eth_getBlockByNumber(${b}) failed`);
+        this.times.set(b, Number(BigInt(r.timestamp)));
+      });
+    }
+    return blocks.map((b) => this.times.get(b) as number);
   }
 
   /** eth_call at the audit block. A revert is returned as the RpcError; a node failure throws. */

@@ -8,6 +8,7 @@ import type { AuthorizationUse, Chain, Receipt, Tx } from './chain.ts';
 import { classify, type Classified, type Context, type Flag, type Target } from './classify.ts';
 import { selectorOf, type Known, type Wallet } from './known.ts';
 import type { RegistryView } from './registry.ts';
+import { classifyUserOp, findUserOps, type UserOp } from './userops.ts';
 import { walkNonces, type NonceBlock, type WalkResult } from './walk.ts';
 
 export type RuleId = Flag | 'delegation' | 'unexplained-nonce';
@@ -20,20 +21,29 @@ export const RULES: readonly { id: RuleId; title: string }[] = [
   { id: 'ignix-activity', title: 'IGNIX trades or token movements inside transactions to other contracts (seen in logs)' },
   { id: 'kernel-value', title: 'native value sent to a kernel or to its vault' },
   { id: 'transistor-transfer', title: 'transfers of Covenant transistors (ERC-1155 safeTransferFrom / safeBatchTransferFrom)' },
-  { id: 'delegation', title: 'wallets that are not plain externally owned accounts (code or an EIP-7702 delegation)' },
+  { id: 'delegation', title: 'wallets that are neither plain accounts nor known smart wallets (contract code, or an EIP-7702 delegation to an unknown implementation)' },
   { id: 'unexplained-nonce', title: 'nonces that no transaction of the wallet explains' },
 ];
 
-/** One line of the report: a transaction, or a nonce used by an EIP-7702 authorisation. */
+/** One line of the report: a transaction, a nonce used by an EIP-7702 authorisation, or a user operation. */
 export interface Row extends Classified {
   wallet: string;
   role: string;
   block: number;
   timestamp: number;
+  /** The account nonce (transactions, authorisations), or the user operation's 4337 sequence number. */
   nonce: number;
+  /** The transaction: the wallet's own, the one that carried the authorisation, or the bundle. */
   hash: string;
+  /** Wei sent; '' for a user operation, whose value is not visible in its logs. */
   valueWei: string;
-  kind: 'transaction' | 'authorization';
+  kind: 'transaction' | 'authorization' | 'userOperation';
+  /** How a finding names this row: "nonce 3", "user op 0x1234abcd...". */
+  ref: string;
+  /** User operations only. */
+  userOpHash?: string;
+  /** Order inside the block (transaction index, or log index for a user operation). */
+  position: number;
 }
 
 export interface WalletReport {
@@ -50,6 +60,22 @@ export interface WalletReport {
   /** Nonces in the audited range that nothing explains. */
   unexplained: number[];
   walk: { rounds: number; probes: number };
+  /** Set when the code is exactly an EIP-7702 designator to a known smart-wallet implementation. */
+  smartWallet: { implementation: string; label: string } | null;
+  /** The user-operation scan of this wallet, or null when the wallet never had code (no scan is needed). */
+  userOps: UserOpScan | null;
+}
+
+export interface UserOpScan {
+  scanned: boolean;
+  /** Why it was not scanned, when it was not. */
+  why?: string;
+  /** EntryPoints scanned (with code at the audit block) and those skipped (no code there, so no operation). */
+  entryPoints: string[];
+  skipped: string[];
+  from: number;
+  to: number;
+  found: number;
 }
 
 export interface RuleResult {
@@ -148,8 +174,10 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
   const all: { wallet: Wallet; tx: Tx }[] = [];
   const auths: { wallet: Wallet; use: AuthorizationUse; block: number; timestamp: number }[] = [];
   const codes = await chain.codes(wallets.map((w) => w.address));
+  const walks: WalkResult[] = [];
   for (const [wi, wallet] of wallets.entries()) {
     const walk = await locate(chain, wallet.address, opts.maxNonces);
+    walks.push(walk);
     const [transactionCount] = await chain.counts(wallet.address, [chain.head]);
     log(`${wallet.address}: ${transactionCount} nonce(s) at block ${chain.head}; located ${walk.total} in ${walk.blocks.length} block(s) with ${walk.probes} count queries`);
     if (walk.atFloor !== 0) incomplete.push(`${wallet.address} already had nonce ${walk.atFloor} at block 0: those nonces cannot be located`);
@@ -174,8 +202,50 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
         else unexplained.push(n);
       }
     });
-    reports.push({ wallet, transactionCount, audited: walk.total, found, rows: [], code: codes[wi], unexplained, walk: { rounds: walk.rounds, probes: walk.probes } });
+    const designated = /^0xef0100[0-9a-f]{40}$/i.test(codes[wi]) ? '0x' + codes[wi].slice(8).toLowerCase() : null;
+    const smartWallet = designated && known.smartWallets[designated] ? { implementation: designated, label: known.smartWallets[designated] } : null;
+    reports.push({ wallet, transactionCount, audited: walk.total, found, rows: [], code: codes[wi], unexplained, walk: { rounds: walk.rounds, probes: walk.probes }, smartWallet, userOps: null });
   }
+
+  // ── 1b. user operations of every wallet that has, or had, code (an EIP-7702 delegation or a contract)
+  const ops: { wallet: Wallet; op: UserOp }[] = [];
+  const epCodes = await chain.codes(known.entryPoints.map((e) => e.address));
+  const liveEntryPoints = known.entryPoints.filter((_, i) => epCodes[i] !== '0x');
+  const deadEntryPoints = known.entryPoints.filter((_, i) => epCodes[i] === '0x');
+  for (const [wi, report] of reports.entries()) {
+    const hadCode = report.code !== '0x' || auths.some((a) => a.wallet.address === report.wallet.address);
+    if (!hadCode) continue;
+    const scan: UserOpScan = { scanned: false, entryPoints: liveEntryPoints.map((e) => e.label), skipped: deadEntryPoints.map((e) => e.label), from: 0, to: chain.head, found: 0 };
+    report.userOps = scan;
+    const first = walks[wi].blocks[0]?.block;
+    if (opts.maxNonces !== undefined) {
+      scan.why = 'only the first nonces were audited (--max-nonces)';
+      incomplete.push(`${report.wallet.address} has code, but its user operations were NOT scanned (--max-nonces)`);
+      continue;
+    }
+    if (!known.entryPoints.length) {
+      scan.why = 'no EntryPoint is configured in addresses.json';
+      incomplete.push(`${report.wallet.address} has code, but no EntryPoint is configured: its user operations were NOT scanned`);
+      continue;
+    }
+    if (first === undefined || walks[wi].atFloor !== 0) {
+      scan.why = 'the block of its first activity is unknown';
+      incomplete.push(`${report.wallet.address} has code, but the block of its first activity is unknown: its user operations were NOT scanned`);
+      continue;
+    }
+    scan.from = first;
+    const found = await findUserOps(chain, report.wallet.address, liveEntryPoints, first, log);
+    scan.scanned = true;
+    scan.found = found.length;
+    log(`${report.wallet.address}: ${found.length} user operation(s) through ${scan.entryPoints.join(', ')} in blocks ${first}..${chain.head}`);
+    for (const op of found) ops.push({ wallet: report.wallet, op });
+  }
+  const opHashes = [...new Set(ops.map((o) => o.op.log.transactionHash))];
+  const opReceiptList = await chain.receipts(opHashes);
+  const opReceipts = new Map(opHashes.map((h, i) => [h, opReceiptList[i]]));
+  const opCarriers = await chain.batch(opHashes.map((h) => ['eth_getTransactionByHash', [h]] as const), true);
+  const bundlerOf = new Map(opHashes.map((h, i) => [h, ((opCarriers[i] as { from?: string } | null)?.from ?? null)?.toLowerCase() ?? null]));
+  const opTimes = await chain.blockTimes(ops.map((o) => o.op.log.blockNumber));
 
   // ── 2. receipts
   const receipts = await chain.receipts(all.map((x) => x.tx.hash));
@@ -198,12 +268,13 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
   put(known.fab, 'fab', 'Covenant Fab');
   put(known.kernelFactory, 'kernelFactory', 'Covenant KernelFactory');
   put(known.lens, 'lens', 'Covenant Lens');
+  for (const ep of known.entryPoints) put(ep.address, 'other', `ERC-4337 ${ep.label}`);
   known.kernels.forEach((k, i) => put(k, 'kernel', `Covenant kernel #${i + 1}`));
   for (const [label, a] of Object.entries(known.other)) put(a, 'other', label);
   for (const w of wallets) put(w.address, 'wallet', `team wallet: ${w.role}`);
 
   const unknown = [...new Set(all.map((x) => x.tx.to).filter((t): t is string => t !== null && !targets.has(t)))];
-  const emitters = [...new Set(receipts.flatMap((r) => r.logs.map((l) => l.address)).filter((a) => !targets.has(a) && !unknown.includes(a)))];
+  const emitters = [...new Set([...receipts, ...opReceiptList].flatMap((r) => r.logs.map((l) => l.address)).filter((a) => !targets.has(a) && !unknown.includes(a)))];
   const candidates = [...unknown, ...emitters];
 
   // IgnixManager.creatorOf(x) != 0 means x is a token launched through IGNIX
@@ -276,11 +347,32 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
   all.forEach(({ wallet, tx }, i) => {
     const c = classify(tx, receipts[i], ctx);
     const report = reports.find((r) => r.wallet.address === wallet.address) as WalletReport;
-    report.rows.push({ ...c, wallet: wallet.address, role: wallet.role, block: tx.blockNumber, timestamp: tx.timestamp, nonce: tx.nonce, hash: tx.hash, valueWei: BigInt(tx.value).toString(), kind: 'transaction' });
+    report.rows.push({ ...c, wallet: wallet.address, role: wallet.role, block: tx.blockNumber, timestamp: tx.timestamp, nonce: tx.nonce, hash: tx.hash, valueWei: BigInt(tx.value).toString(), kind: 'transaction', ref: `nonce ${tx.nonce}`, position: tx.transactionIndex });
+  });
+  ops.forEach(({ wallet, op }, i) => {
+    const c = classifyUserOp(op, opReceipts.get(op.log.transactionHash) as Receipt, ctx, wallet.address, bundlerOf.get(op.log.transactionHash) ?? null);
+    const report = reports.find((r) => r.wallet.address === wallet.address) as WalletReport;
+    report.rows.push({
+      ...c,
+      wallet: wallet.address,
+      role: wallet.role,
+      block: op.log.blockNumber,
+      timestamp: opTimes[i],
+      nonce: Number(op.nonce & 0xffffffffffffffffn),
+      hash: op.log.transactionHash,
+      valueWei: '',
+      kind: 'userOperation',
+      ref: `user op ${op.userOpHash.slice(0, 10)}...`,
+      userOpHash: op.userOpHash,
+      position: op.log.logIndex,
+    });
   });
   for (const { wallet, use, block, timestamp } of auths) {
     const report = reports.find((r) => r.wallet.address === wallet.address) as WalletReport;
+    const knownImpl = known.smartWallets[use.delegate];
     report.rows.push({
+      ref: `nonce ${use.nonce}`,
+      position: -1,
       wallet: wallet.address,
       role: wallet.role,
       block,
@@ -294,15 +386,19 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
       selector: null,
       selectorName: null,
       classification:
-        (use.delegate === ZERO ? 'EIP-7702 AUTHORISATION that clears the wallet\'s delegation' : `EIP-7702 AUTHORISATION: the wallet delegated its code to ${use.delegate}`) +
-        ` (carried by a transaction from ${use.carrierFrom})`,
+        (use.delegate === ZERO
+          ? 'EIP-7702 AUTHORISATION that clears the wallet\'s delegation'
+          : knownImpl
+            ? `EIP-7702 authorisation: the wallet delegated its code to ${use.delegate}, a known smart-wallet implementation: ${knownImpl}`
+            : `EIP-7702 AUTHORISATION: the wallet delegated its code to ${use.delegate}, an UNKNOWN implementation`) + ` (carried by a transaction from ${use.carrierFrom})`,
       flags: [],
       unknownTarget: false,
       undecided: [],
       reverted: false,
     });
   }
-  for (const r of reports) r.rows.sort((a, b) => a.nonce - b.nonce);
+  // chronological: block, then the order inside the block (an authorisation is applied before its transaction runs)
+  for (const r of reports) r.rows.sort((a, b) => a.block - b.block || a.position - b.position || a.nonce - b.nonce);
 
   // ── 5. rules
   const rows = reports.flatMap((r) => r.rows);
@@ -311,11 +407,12 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
     let examples: string[] = [];
     let notChecked: string | null = null;
     if (id === 'delegation') {
-      const coded = reports.filter((r) => r.code !== '0x');
-      hits = rows.filter((r) => r.kind === 'authorization');
+      // code that is exactly a designator to a known smart-wallet implementation is a smart wallet, not a finding
+      const coded = reports.filter((r) => r.code !== '0x' && r.smartWallet === null);
+      hits = rows.filter((r) => r.kind === 'authorization' && r.target !== ZERO && !known.smartWallets[r.target as string]);
       examples = [
-        ...coded.map((r) => `${r.wallet.address} has code at block ${chain.head}${/^0xef0100[0-9a-f]{40}$/i.test(r.code) ? ` (EIP-7702 delegation to 0x${r.code.slice(8)})` : ' (it is a contract)'}`),
-        ...hits.map((r) => `${short(r.wallet)} nonce ${r.nonce}`),
+        ...coded.map((r) => `${r.wallet.address} has code at block ${chain.head}${/^0xef0100[0-9a-f]{40}$/i.test(r.code) ? ` (EIP-7702 delegation to 0x${r.code.slice(8)}, not a known smart-wallet implementation)` : ' (it is a contract)'}`),
+        ...hits.map((r) => `${short(r.wallet)} ${r.ref}`),
       ];
       return { id, title, count: coded.length + hits.length, reverted: 0, notChecked, examples };
     }
@@ -325,13 +422,13 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
       return { id, title, count: n, reverted: 0, notChecked, examples };
     }
     hits = rows.filter((r) => r.flags.includes(id));
-    examples = hits.slice(0, 8).map((r) => `${short(r.wallet)} nonce ${r.nonce}`);
+    examples = hits.slice(0, 8).map((r) => `${short(r.wallet)} ${r.ref}`);
     const undecided = rows.filter((r) => r.undecided.includes(id));
     if (undecided.length) {
       notChecked =
         id === 'kernel-value'
-          ? `no kernel and no KernelFactory is configured in addresses.json, and ${undecided.length} transaction(s) sent value to contracts that are not in the known list (${undecided.slice(0, 5).map((r) => `${short(r.wallet)} nonce ${r.nonce}`).join('; ')})`
-          : `covenant.transistors is not configured in addresses.json, and ${undecided.length} transaction(s) look like ERC-1155 transfers (${undecided.slice(0, 5).map((r) => `${short(r.wallet)} nonce ${r.nonce}`).join('; ')})`;
+          ? `no kernel and no KernelFactory is configured in addresses.json, and ${undecided.length} transaction(s) sent value to contracts that are not in the known list (${undecided.slice(0, 5).map((r) => `${short(r.wallet)} ${r.ref}`).join('; ')})`
+          : `covenant.transistors is not configured in addresses.json, and ${undecided.length} transaction(s) look like ERC-1155 transfers (${undecided.slice(0, 5).map((r) => `${short(r.wallet)} ${r.ref}`).join('; ')})`;
     }
     return { id, title, count: hits.length, reverted: hits.filter((r) => r.reverted).length, notChecked, examples };
   });

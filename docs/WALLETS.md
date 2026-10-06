@@ -1,6 +1,6 @@
 # Team wallets
 
-Every wallet the team controls is listed here and in the on-chain `TeamRegistry` before it acts. The deployer is entry 0 of the registry from the block that creates the processor; any other wallet is invited by a listed wallet and then declares itself.
+Every wallet the team controls is listed here, and in the on-chain `TeamRegistry`. The deployer is entry 0 of the registry from the block that creates the processor; any other wallet is invited by a listed wallet and then declares itself. The keeper is invited and declares itself before its first settle. The Architect wallet acted once before it was in the registry (its OKX.AI registration, a user operation that `tools/audit-team` lists); it is invited and declares itself with the keeper.
 None of them ever buys, sells or swaps any IGNIX token, sends funds into a kernel, or trades transistors.
 
 | Role | Address | Notes |

@@ -9,6 +9,7 @@
     "comment": "The Covenant contracts on X Layer mainnet. They are recorded in deployments/xlayer.json by the signing sessions; pass that file with --deployment deployments/xlayer.json and every null below is filled in from it (an address named in both places must be the same). They stay null here so that one file, written from the chain, is the only record. The deployer deploys every contract and is entry 0 of the TeamRegistry; the deployer and the keeper are always audited. transistors and circuits are the processor the Splitter created; kernels lists kernels beyond the deployment's flagship (the audit also asks the KernelFactory).",
     "deployer": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
     "keeper": null,
+    "agentWallet": null,
     "splitter": null,
     "keeperTank": null,
     "teamRegistry": null,
@@ -20,5 +21,19 @@
     "lens": null,
     "kernels": []
   },
-  "other": {}
+  "other": {
+    "OKX.AI agent registry (ERC-721; minted agent 14683, the Architect, to its agent wallet)": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432"
+  },
+  "entryPoints": {
+    "comment": "ERC-4337 EntryPoints (canonical deployments, both with code on X Layer). For a team wallet that is a smart wallet, the audit scans their UserOperationEvent logs (sender = the wallet) from the wallet's first activity to the audit block, and audits each user operation like a transaction.",
+    "v0.7": "0x0000000071727de22e5e9d8baf0edac6f37da032",
+    "v0.6": "0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789"
+  },
+  "smartWalletImplementations": {
+    "comment": "EIP-7702 delegates that are known smart-wallet implementations. A team wallet whose code is exactly 0xef0100 followed by one of these addresses is a smart wallet: listed, not flagged, and its user operations are audited. Any other code, or a delegation to an address not listed here, is flagged.",
+    "0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4": {
+      "name": "OKX SmartWalletEntry",
+      "source": "OKX Agentic Wallet implementation; verified contract SmartWalletEntry on OKLink (X Layer)"
+    }
+  }
 }
