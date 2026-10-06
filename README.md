@@ -58,7 +58,14 @@ TapeOut stores no state for sequential circuits; a consumer contract has to keep
 | Covenant Architect, paid compile endpoint (x402, 0.50 USD₮0, paid to the agent wallet) | `https://architect-production-ffbe.up.railway.app/v1/architect/chip`; OKX.AI agent #14683, submitted for review on 2026-10-06 |
 | Site mirror on TapeOut's DeWEB (`1.2.283.tape`, snapshot of commit `a97b90a`) | container `0x911350102b2D81a1E8A816638D429a16b80B8Ee2`, https://1-2-283.tapekit.org/ |
 
-No token has been launched on either kernel yet. Both kernels hold their chips and wait, unbound (`token()` is the zero address); their pages say so. The v1 kernel waits for the reference token, `CVREF` (Covenant Reference); the v2 kernel waits for a token quoted in USD₮0.
+Both tokens were launched on 2026-10-06 by the deployer with first buy 0, each checked with `tools/launch-check` and simulated on a fork from the exact transaction before it was signed, and bound to their kernels the same night:
+
+| Token | Address | Quote | Kernel |
+|---|---|---|---|
+| Covenant Reference, `CVREF` | `0xc562E9b465E0Fa8d403Ed603cb8783342347EEEE` | OKB | v1 `0xB722a4bDE4EfEe08Be938E2103d7a44C498dd356` (chip 2) |
+| Covenant Architect, `ARCH` | `0x7F53a5906F0C5Cd21C124f1Cc2a1A5BD9817EEEE` | USD₮0 | v2 `0xd50A7cb21f4ef91f795730Fe8c45EaA5E500dD75` (chip 5) |
+
+No team wallet holds or trades either token. Flows are whatever outside traders bring; at launch they were zero.
 
 The KeeperTank holds 0 OKB today: nobody has called `Splitter.pull()` yet. TapeOut owes the Splitter 0.085 OKB for the 4,250 transistors minted so far; a `pull()` would send 0.07225 OKB to the tank and 0.01275 OKB to the maintainer. Until then a settle through the tank runs but refunds nothing.
 
@@ -130,7 +137,7 @@ Nothing below is claimed until it is marked done. Adoption today is zero.
 | Site (`web/`, `packages/`): chip demo, vault, epoch audit, hostile chip, judge guide, trust model | Live on GitHub Pages, both kernels listed; the kernel pages fill in once a token is bound and settles. The DeWEB mirror is the snapshot of commit `a97b90a` (kernel v1 only) |
 | Covenant Architect (`services/architect`): compile endpoint, free route and x402 paid route | Live (Railway, commit `8678740`, live x402 mode, `PAY_TO` the agent wallet); 91 tests (3 of them opt-in against the real toolchain); OKX.AI agent 14683 submitted for review |
 | Launch check and team audit (`tools/`) | Done; the team audit was CLEAN at block 72,550,443, after the kernel v2 deployment |
-| Reference token `CVREF`, the v2 kernel's token, and the keeper (`services/keeper`, 109 tests) | Not launched; the keeper is not deployed and its wallet has sent no transaction |
+| Reference token `CVREF`, the Architect token `ARCH`, and the keeper (`services/keeper`, 109 tests) | Live: both launched and bound on 2026-10-06; the keeper runs on Railway and settles both kernels every 15-minute epoch, its gas refunded by the KeeperTank (0.07225 OKB after `Splitter.pull()`) |
 | Reproducible-build check (`deploy/verify-bytecode.sh`, [docs/VERIFY.md](docs/VERIFY.md)): each Covenant contract rebuilt at its recorded commit and compared with chain 196 | Done; what it covers and the latest result: [docs/VERIFY.md](docs/VERIFY.md). No source published on OKLink yet |
 | Kit for outside chip authors (`chips/kit`, [docs/BUILD_YOUR_CHIP.md](docs/BUILD_YOUR_CHIP.md)): template to proven netlist to the exact tape-out and kernel commands (kernel v1), with a 180-gate Starter chip | Done; tested end to end on a fork |
 
@@ -177,7 +184,7 @@ docs/         team wallets, checking the deployed code (VERIFY.md), building a c
 
 ## Team wallets and trading
 
-Every team wallet is listed in `docs/WALLETS.md`: the deployer, the keeper and the Covenant Architect's agent wallet. The on-chain TeamRegistry lists the deployer (entry 0); the keeper has been invited and has not declared itself yet, and the Architect wallet has not been invited yet. No team wallet buys, sells or swaps any IGNIX token, sends funds into a kernel, or trades transistors (the Architect wallet receives x402 payments and is the v2 kernel's allowance payee; both are payments to it). `tools/audit-team` lists every transaction those wallets have sent and checks it against those rules, with no explorer in between; on 2026-10-06 at block 72,550,443 it found 37 deployer transactions, 1 user operation of the Architect wallet, none from the keeper, and no rule broken.
+Every team wallet is listed in `docs/WALLETS.md`: the deployer, the keeper and the Covenant Architect's agent wallet. The on-chain TeamRegistry lists all three: the deployer (entry 0), the keeper (entry 1) and the Architect wallet (entry 2). No team wallet buys, sells or swaps any IGNIX token, sends funds into a kernel, or trades transistors (the Architect wallet receives x402 payments and is the v2 kernel's allowance payee; both are payments to it). `tools/audit-team` lists every transaction those wallets have sent and checks it against those rules, with no explorer in between; on 2026-10-06 at block 72,550,443 it found 37 deployer transactions, 1 user operation of the Architect wallet, none from the keeper, and no rule broken.
 
 ## Prior art and third-party code
 
