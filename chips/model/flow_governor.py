@@ -11,6 +11,10 @@ Constants come from chips/rtl/fg_params.json (the same file generates fg_params.
 
 Integers only. Every intermediate is written at its hardware width so that the RTL can mirror
 this file line by line. The plain-language description is chips/model/FLOW_GOVERNOR.md.
+
+`step` is kept to plain integer code on purpose: chips/props/model_equiv.py executes its source
+symbolically and proves the result equal to the netlist bytes for every (s, x). A construct that
+chips/props/symexec.py does not model makes that proof stop, not pass.
 """
 from __future__ import annotations
 
@@ -283,7 +287,7 @@ def fields_json() -> dict:
         "inputsIgnored": ["REV", "REVCUM", "ESC", "PROG", "LOCK", "ZERO"],
         "input": [{"name": n, "offset": o, "width": w} for n, o, w in km.INPUT_FIELDS],
         "output": [{"name": n, "offset": o, "width": w} for n, o, w in km.OUTPUT_FIELDS],
-        "params": P, "envelope": ENV,
+        "params": P, "envelope": ENV, "reference": PARAMS["reference"],
     }
 
 

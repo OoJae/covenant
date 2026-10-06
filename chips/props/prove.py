@@ -22,6 +22,9 @@ Everything is a statement about the netlist bytes (chips/out/fg.tap), for every 
   P7   reachability witness: two reachable states, one input word, two different routes; all modes reachable
 
 Results go to chips/out/fg.proofs.json.
+
+One more proof lives in its own script because it is about the Python model, not the RTL: model_equiv.py
+(model == bytes for every (s, x), results in chips/out/fg.model.json).
 """
 from __future__ import annotations
 

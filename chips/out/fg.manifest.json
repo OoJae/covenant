@@ -5,14 +5,14 @@
  "nIn": 96,
  "nOut": 112,
  "nState": 64,
- "nNand": 1889,
+ "nNand": 1888,
  "nLatch": 64,
  "nRef": 0,
- "gateCount": 1953,
- "signals": 2051,
- "depth": 154,
- "bytes": 13479,
- "keccak256": "0x2fd0e007398296a5845c8a7e3b99d5149d6c02ae670afe373abd191fb2591a89",
+ "gateCount": 1952,
+ "signals": 2050,
+ "depth": 163,
+ "bytes": 13472,
+ "keccak256": "0xe548768a1adafa7331faacfd029e1a829b00af3f7d769657f3b234ccdd7143b4",
  "latchesFirst": true,
  "layout": {
   "const0": 0,
@@ -20,7 +20,7 @@
   "firstInput": 2,
   "firstLatch": 98,
   "firstNand": 162,
-  "firstOutput": 1939,
+  "firstOutput": 1938,
   "outputDuplicates": 81,
   "outputBuffers": 0,
   "outputConstants": 65
@@ -511,562 +511,562 @@
   {
    "bit": 0,
    "name": "T_BUY[0]",
-   "signal": 1939
+   "signal": 1938
   },
   {
    "bit": 1,
    "name": "T_BUY[1]",
-   "signal": 1940
+   "signal": 1939
   },
   {
    "bit": 2,
    "name": "T_BUY[2]",
-   "signal": 1941
+   "signal": 1940
   },
   {
    "bit": 3,
    "name": "T_BUY[3]",
-   "signal": 1942
+   "signal": 1941
   },
   {
    "bit": 4,
    "name": "T_BUY[4]",
-   "signal": 1943
+   "signal": 1942
   },
   {
    "bit": 5,
    "name": "T_BUY[5]",
-   "signal": 1944
+   "signal": 1943
   },
   {
    "bit": 6,
    "name": "T_BUY[6]",
-   "signal": 1945
+   "signal": 1944
   },
   {
    "bit": 7,
    "name": "T_BUY[7]",
-   "signal": 1946
+   "signal": 1945
   },
   {
    "bit": 8,
    "name": "T_BUY[8]",
-   "signal": 1947
+   "signal": 1946
   },
   {
    "bit": 9,
    "name": "T_HOLD[0]",
-   "signal": 1948
+   "signal": 1947
   },
   {
    "bit": 10,
    "name": "T_HOLD[1]",
-   "signal": 1949
+   "signal": 1948
   },
   {
    "bit": 11,
    "name": "T_HOLD[2]",
-   "signal": 1950
+   "signal": 1949
   },
   {
    "bit": 12,
    "name": "T_HOLD[3]",
-   "signal": 1951
+   "signal": 1950
   },
   {
    "bit": 13,
    "name": "T_HOLD[4]",
-   "signal": 1952
+   "signal": 1951
   },
   {
    "bit": 14,
    "name": "T_HOLD[5]",
-   "signal": 1953
+   "signal": 1952
   },
   {
    "bit": 15,
    "name": "T_HOLD[6]",
-   "signal": 1954
+   "signal": 1953
   },
   {
    "bit": 16,
    "name": "T_HOLD[7]",
-   "signal": 1955
+   "signal": 1954
   },
   {
    "bit": 17,
    "name": "T_HOLD[8]",
-   "signal": 1956
+   "signal": 1955
   },
   {
    "bit": 18,
    "name": "T_ALLOW[0]",
-   "signal": 1957
+   "signal": 1956
   },
   {
    "bit": 19,
    "name": "T_ALLOW[1]",
-   "signal": 1958
+   "signal": 1957
   },
   {
    "bit": 20,
    "name": "T_ALLOW[2]",
-   "signal": 1959
+   "signal": 1958
   },
   {
    "bit": 21,
    "name": "T_ALLOW[3]",
-   "signal": 1960
+   "signal": 1959
   },
   {
    "bit": 22,
    "name": "T_ALLOW[4]",
-   "signal": 1961
+   "signal": 1960
   },
   {
    "bit": 23,
    "name": "T_ALLOW[5]",
-   "signal": 1962
+   "signal": 1961
   },
   {
    "bit": 24,
    "name": "T_ALLOW[6]",
-   "signal": 1963
+   "signal": 1962
   },
   {
    "bit": 25,
    "name": "T_ALLOW[7]",
-   "signal": 1964
+   "signal": 1963
   },
   {
    "bit": 26,
    "name": "T_ALLOW[8]",
-   "signal": 1965
+   "signal": 1964
   },
   {
    "bit": 27,
    "name": "T_RES[0]",
-   "signal": 1966
+   "signal": 1965
   },
   {
    "bit": 28,
    "name": "T_RES[1]",
-   "signal": 1967
+   "signal": 1966
   },
   {
    "bit": 29,
    "name": "T_RES[2]",
-   "signal": 1968
+   "signal": 1967
   },
   {
    "bit": 30,
    "name": "T_RES[3]",
-   "signal": 1969
+   "signal": 1968
   },
   {
    "bit": 31,
    "name": "T_RES[4]",
-   "signal": 1970
+   "signal": 1969
   },
   {
    "bit": 32,
    "name": "T_RES[5]",
-   "signal": 1971
+   "signal": 1970
   },
   {
    "bit": 33,
    "name": "T_RES[6]",
-   "signal": 1972
+   "signal": 1971
   },
   {
    "bit": 34,
    "name": "T_RES[7]",
-   "signal": 1973
+   "signal": 1972
   },
   {
    "bit": 35,
    "name": "T_RES[8]",
-   "signal": 1974
+   "signal": 1973
   },
   {
    "bit": 36,
    "name": "V_BUY[0]",
-   "signal": 1975
+   "signal": 1974
   },
   {
    "bit": 37,
    "name": "V_BUY[1]",
-   "signal": 1976
+   "signal": 1975
   },
   {
    "bit": 38,
    "name": "V_BUY[2]",
-   "signal": 1977
+   "signal": 1976
   },
   {
    "bit": 39,
    "name": "V_BUY[3]",
-   "signal": 1978
+   "signal": 1977
   },
   {
    "bit": 40,
    "name": "V_BUY[4]",
-   "signal": 1979
+   "signal": 1978
   },
   {
    "bit": 41,
    "name": "V_BUY[5]",
-   "signal": 1980
+   "signal": 1979
   },
   {
    "bit": 42,
    "name": "V_BUY[6]",
-   "signal": 1981
+   "signal": 1980
   },
   {
    "bit": 43,
    "name": "V_BUY[7]",
-   "signal": 1982
+   "signal": 1981
   },
   {
    "bit": 44,
    "name": "V_BUY[8]",
-   "signal": 1983
+   "signal": 1982
   },
   {
    "bit": 45,
    "name": "V_HOLD[0]",
-   "signal": 1984
+   "signal": 1983
   },
   {
    "bit": 46,
    "name": "V_HOLD[1]",
-   "signal": 1985
+   "signal": 1984
   },
   {
    "bit": 47,
    "name": "V_HOLD[2]",
-   "signal": 1986
+   "signal": 1985
   },
   {
    "bit": 48,
    "name": "V_HOLD[3]",
-   "signal": 1987
+   "signal": 1986
   },
   {
    "bit": 49,
    "name": "V_HOLD[4]",
-   "signal": 1988
+   "signal": 1987
   },
   {
    "bit": 50,
    "name": "V_HOLD[5]",
-   "signal": 1989
+   "signal": 1988
   },
   {
    "bit": 51,
    "name": "V_HOLD[6]",
-   "signal": 1990
+   "signal": 1989
   },
   {
    "bit": 52,
    "name": "V_HOLD[7]",
-   "signal": 1991
+   "signal": 1990
   },
   {
    "bit": 53,
    "name": "V_HOLD[8]",
-   "signal": 1992
+   "signal": 1991
   },
   {
    "bit": 54,
    "name": "V_ALLOW[0]",
-   "signal": 1993
+   "signal": 1992
   },
   {
    "bit": 55,
    "name": "V_ALLOW[1]",
-   "signal": 1994
+   "signal": 1993
   },
   {
    "bit": 56,
    "name": "V_ALLOW[2]",
-   "signal": 1995
+   "signal": 1994
   },
   {
    "bit": 57,
    "name": "V_ALLOW[3]",
-   "signal": 1996
+   "signal": 1995
   },
   {
    "bit": 58,
    "name": "V_ALLOW[4]",
-   "signal": 1997
+   "signal": 1996
   },
   {
    "bit": 59,
    "name": "V_ALLOW[5]",
-   "signal": 1998
+   "signal": 1997
   },
   {
    "bit": 60,
    "name": "V_ALLOW[6]",
-   "signal": 1999
+   "signal": 1998
   },
   {
    "bit": 61,
    "name": "V_ALLOW[7]",
-   "signal": 2000
+   "signal": 1999
   },
   {
    "bit": 62,
    "name": "V_ALLOW[8]",
-   "signal": 2001
+   "signal": 2000
   },
   {
    "bit": 63,
    "name": "V_RES[0]",
-   "signal": 2002
+   "signal": 2001
   },
   {
    "bit": 64,
    "name": "V_RES[1]",
-   "signal": 2003
+   "signal": 2002
   },
   {
    "bit": 65,
    "name": "V_RES[2]",
-   "signal": 2004
+   "signal": 2003
   },
   {
    "bit": 66,
    "name": "V_RES[3]",
-   "signal": 2005
+   "signal": 2004
   },
   {
    "bit": 67,
    "name": "V_RES[4]",
-   "signal": 2006
+   "signal": 2005
   },
   {
    "bit": 68,
    "name": "V_RES[5]",
-   "signal": 2007
+   "signal": 2006
   },
   {
    "bit": 69,
    "name": "V_RES[6]",
-   "signal": 2008
+   "signal": 2007
   },
   {
    "bit": 70,
    "name": "V_RES[7]",
-   "signal": 2009
+   "signal": 2008
   },
   {
    "bit": 71,
    "name": "V_RES[8]",
-   "signal": 2010
+   "signal": 2009
   },
   {
    "bit": 72,
    "name": "REL[0]",
-   "signal": 2011
+   "signal": 2010
   },
   {
    "bit": 73,
    "name": "REL[1]",
-   "signal": 2012
+   "signal": 2011
   },
   {
    "bit": 74,
    "name": "REL[2]",
-   "signal": 2013
+   "signal": 2012
   },
   {
    "bit": 75,
    "name": "REL[3]",
-   "signal": 2014
+   "signal": 2013
   },
   {
    "bit": 76,
    "name": "REL[4]",
-   "signal": 2015
+   "signal": 2014
   },
   {
    "bit": 77,
    "name": "REL[5]",
-   "signal": 2016
+   "signal": 2015
   },
   {
    "bit": 78,
    "name": "REL[6]",
-   "signal": 2017
+   "signal": 2016
   },
   {
    "bit": 79,
    "name": "REL[7]",
-   "signal": 2018
+   "signal": 2017
   },
   {
    "bit": 80,
    "name": "REL[8]",
-   "signal": 2019
+   "signal": 2018
   },
   {
    "bit": 81,
    "name": "CEIL[0]",
-   "signal": 2020
+   "signal": 2019
   },
   {
    "bit": 82,
    "name": "CEIL[1]",
-   "signal": 2021
+   "signal": 2020
   },
   {
    "bit": 83,
    "name": "CEIL[2]",
-   "signal": 2022
+   "signal": 2021
   },
   {
    "bit": 84,
    "name": "CEIL[3]",
-   "signal": 2023
+   "signal": 2022
   },
   {
    "bit": 85,
    "name": "CEIL[4]",
-   "signal": 2024
+   "signal": 2023
   },
   {
    "bit": 86,
    "name": "CEIL[5]",
-   "signal": 2025
+   "signal": 2024
   },
   {
    "bit": 87,
    "name": "CEIL[6]",
-   "signal": 2026
+   "signal": 2025
   },
   {
    "bit": 88,
    "name": "CEIL[7]",
-   "signal": 2027
+   "signal": 2026
   },
   {
    "bit": 89,
    "name": "CEIL[8]",
-   "signal": 2028
+   "signal": 2027
   },
   {
    "bit": 90,
    "name": "CEIL[9]",
-   "signal": 2029
+   "signal": 2028
   },
   {
    "bit": 91,
    "name": "MODE[0]",
-   "signal": 2030
+   "signal": 2029
   },
   {
    "bit": 92,
    "name": "MODE[1]",
-   "signal": 2031
+   "signal": 2030
   },
   {
    "bit": 93,
    "name": "MODE[2]",
-   "signal": 2032
+   "signal": 2031
   },
   {
    "bit": 94,
    "name": "TIER[0]",
-   "signal": 2033
+   "signal": 2032
   },
   {
    "bit": 95,
    "name": "TIER[1]",
-   "signal": 2034
+   "signal": 2033
   },
   {
    "bit": 96,
    "name": "FLAGS[0]",
-   "signal": 2035
+   "signal": 2034
   },
   {
    "bit": 97,
    "name": "FLAGS[1]",
-   "signal": 2036
+   "signal": 2035
   },
   {
    "bit": 98,
    "name": "FLAGS[2]",
-   "signal": 2037
+   "signal": 2036
   },
   {
    "bit": 99,
    "name": "FLAGS[3]",
-   "signal": 2038
+   "signal": 2037
   },
   {
    "bit": 100,
    "name": "FLAGS[4]",
-   "signal": 2039
+   "signal": 2038
   },
   {
    "bit": 101,
    "name": "FLAGS[5]",
-   "signal": 2040
+   "signal": 2039
   },
   {
    "bit": 102,
    "name": "FLAGS[6]",
-   "signal": 2041
+   "signal": 2040
   },
   {
    "bit": 103,
    "name": "FLAGS[7]",
-   "signal": 2042
+   "signal": 2041
   },
   {
    "bit": 104,
    "name": "AUX[0]",
-   "signal": 2043
+   "signal": 2042
   },
   {
    "bit": 105,
    "name": "AUX[1]",
-   "signal": 2044
+   "signal": 2043
   },
   {
    "bit": 106,
    "name": "AUX[2]",
-   "signal": 2045
+   "signal": 2044
   },
   {
    "bit": 107,
    "name": "AUX[3]",
-   "signal": 2046
+   "signal": 2045
   },
   {
    "bit": 108,
    "name": "AUX[4]",
-   "signal": 2047
+   "signal": 2046
   },
   {
    "bit": 109,
    "name": "AUX[5]",
-   "signal": 2048
+   "signal": 2047
   },
   {
    "bit": 110,
    "name": "AUX[6]",
-   "signal": 2049
+   "signal": 2048
   },
   {
    "bit": 111,
    "name": "AUX[7]",
-   "signal": 2050
+   "signal": 2049
   }
  ],
  "latches": [
@@ -1075,448 +1075,448 @@
    "name": "A[0]",
    "record": 0,
    "signal": 98,
-   "d": 606
+   "d": 609
   },
   {
    "bit": 1,
    "name": "A[1]",
    "record": 1,
    "signal": 99,
-   "d": 626
+   "d": 631
   },
   {
    "bit": 2,
    "name": "A[2]",
    "record": 2,
    "signal": 100,
-   "d": 645
+   "d": 650
   },
   {
    "bit": 3,
    "name": "A[3]",
    "record": 3,
    "signal": 101,
-   "d": 660
+   "d": 667
   },
   {
    "bit": 4,
    "name": "A[4]",
    "record": 4,
    "signal": 102,
-   "d": 677
+   "d": 684
   },
   {
    "bit": 5,
    "name": "A[5]",
    "record": 5,
    "signal": 103,
-   "d": 693
+   "d": 701
   },
   {
    "bit": 6,
    "name": "A[6]",
    "record": 6,
    "signal": 104,
-   "d": 710
+   "d": 718
   },
   {
    "bit": 7,
    "name": "A[7]",
    "record": 7,
    "signal": 105,
-   "d": 726
+   "d": 735
   },
   {
    "bit": 8,
    "name": "A[8]",
    "record": 8,
    "signal": 106,
-   "d": 742
+   "d": 751
   },
   {
    "bit": 9,
    "name": "A[9]",
    "record": 9,
    "signal": 107,
-   "d": 757
+   "d": 767
   },
   {
    "bit": 10,
    "name": "A[10]",
    "record": 10,
    "signal": 108,
-   "d": 770
+   "d": 782
   },
   {
    "bit": 11,
    "name": "A[11]",
    "record": 11,
    "signal": 109,
-   "d": 788
+   "d": 800
   },
   {
    "bit": 12,
    "name": "PK[0]",
    "record": 12,
    "signal": 110,
-   "d": 963
+   "d": 974
   },
   {
    "bit": 13,
    "name": "PK[1]",
    "record": 13,
    "signal": 111,
-   "d": 969
+   "d": 980
   },
   {
    "bit": 14,
    "name": "PK[2]",
    "record": 14,
    "signal": 112,
-   "d": 975
+   "d": 985
   },
   {
    "bit": 15,
    "name": "PK[3]",
    "record": 15,
    "signal": 113,
-   "d": 981
+   "d": 991
   },
   {
    "bit": 16,
    "name": "PK[4]",
    "record": 16,
    "signal": 114,
-   "d": 987
+   "d": 997
   },
   {
    "bit": 17,
    "name": "PK[5]",
    "record": 17,
    "signal": 115,
-   "d": 993
+   "d": 1003
   },
   {
    "bit": 18,
    "name": "PK[6]",
    "record": 18,
    "signal": 116,
-   "d": 999
+   "d": 1009
   },
   {
    "bit": 19,
    "name": "PK[7]",
    "record": 19,
    "signal": 117,
-   "d": 1005
+   "d": 1015
   },
   {
    "bit": 20,
    "name": "PK[8]",
    "record": 20,
    "signal": 118,
-   "d": 1011
+   "d": 1021
   },
   {
    "bit": 21,
    "name": "PK[9]",
    "record": 21,
    "signal": 119,
-   "d": 1014
+   "d": 1024
   },
   {
    "bit": 22,
    "name": "PKDIV[0]",
    "record": 22,
    "signal": 120,
-   "d": 1018
+   "d": 1027
   },
   {
    "bit": 23,
    "name": "PKDIV[1]",
    "record": 23,
    "signal": 121,
-   "d": 1021
+   "d": 1030
   },
   {
    "bit": 24,
    "name": "MODE[0]",
    "record": 24,
    "signal": 122,
-   "d": 2030
+   "d": 2029
   },
   {
    "bit": 25,
    "name": "MODE[1]",
    "record": 25,
    "signal": 123,
-   "d": 2031
+   "d": 2030
   },
   {
    "bit": 26,
    "name": "MODE[2]",
    "record": 26,
    "signal": 124,
-   "d": 1478
+   "d": 1477
   },
   {
    "bit": 27,
    "name": "TIER[0]",
    "record": 27,
    "signal": 125,
-   "d": 1530
+   "d": 1529
   },
   {
    "bit": 28,
    "name": "TIER[1]",
    "record": 28,
    "signal": 126,
-   "d": 1531
+   "d": 1530
   },
   {
    "bit": 29,
    "name": "GSEEN",
    "record": 29,
    "signal": 127,
-   "d": 1532
+   "d": 1531
   },
   {
    "bit": 30,
    "name": "WARM[0]",
    "record": 30,
    "signal": 128,
-   "d": 1544
+   "d": 1545
   },
   {
    "bit": 31,
    "name": "WARM[1]",
    "record": 31,
    "signal": 129,
-   "d": 1547
+   "d": 1548
   },
   {
    "bit": 32,
    "name": "LIVE[0]",
    "record": 32,
    "signal": 130,
-   "d": 1548
+   "d": 1549
   },
   {
    "bit": 33,
    "name": "LIVE[1]",
    "record": 33,
    "signal": 131,
-   "d": 1549
+   "d": 1550
   },
   {
    "bit": 34,
    "name": "LIVE[2]",
    "record": 34,
    "signal": 132,
-   "d": 1550
+   "d": 1551
   },
   {
    "bit": 35,
    "name": "LIVE[3]",
    "record": 35,
    "signal": 133,
-   "d": 1172
+   "d": 1190
   },
   {
    "bit": 36,
    "name": "SUR[0]",
    "record": 36,
    "signal": 134,
-   "d": 1551
+   "d": 1552
   },
   {
    "bit": 37,
    "name": "SUR[1]",
    "record": 37,
    "signal": 135,
-   "d": 1382
+   "d": 1417
   },
   {
    "bit": 38,
    "name": "TR[0]",
    "record": 38,
    "signal": 136,
-   "d": 1563
+   "d": 1564
   },
   {
    "bit": 39,
    "name": "TR[1]",
    "record": 39,
    "signal": 137,
-   "d": 1569
+   "d": 1571
   },
   {
    "bit": 40,
    "name": "CD[0]",
    "record": 40,
    "signal": 138,
-   "d": 1615
+   "d": 1620
   },
   {
    "bit": 41,
    "name": "CD[1]",
    "record": 41,
    "signal": 139,
-   "d": 1623
+   "d": 1628
   },
   {
    "bit": 42,
    "name": "CD[2]",
    "record": 42,
    "signal": 140,
-   "d": 1629
+   "d": 1632
   },
   {
    "bit": 43,
    "name": "NBANK[0]",
    "record": 43,
    "signal": 141,
-   "d": 1644
+   "d": 1646
   },
   {
    "bit": 44,
    "name": "NBANK[1]",
    "record": 44,
    "signal": 142,
-   "d": 1650
+   "d": 1652
   },
   {
    "bit": 45,
    "name": "NBANK[2]",
    "record": 45,
    "signal": 143,
-   "d": 1655
+   "d": 1657
   },
   {
    "bit": 46,
    "name": "NBANK[3]",
    "record": 46,
    "signal": 144,
-   "d": 1662
+   "d": 1663
   },
   {
    "bit": 47,
    "name": "NBANK[4]",
    "record": 47,
    "signal": 145,
-   "d": 1663
+   "d": 1666
   },
   {
    "bit": 48,
    "name": "NDEF[0]",
    "record": 48,
    "signal": 146,
-   "d": 1677
+   "d": 1679
   },
   {
    "bit": 49,
    "name": "NDEF[1]",
    "record": 49,
    "signal": 147,
-   "d": 1682
+   "d": 1686
   },
   {
    "bit": 50,
    "name": "NDEF[2]",
    "record": 50,
    "signal": 148,
-   "d": 1687
+   "d": 1691
   },
   {
    "bit": 51,
    "name": "NDEF[3]",
    "record": 51,
    "signal": 149,
-   "d": 1693
+   "d": 1697
   },
   {
    "bit": 52,
    "name": "NDEF[4]",
    "record": 52,
    "signal": 150,
-   "d": 1698
+   "d": 1702
   },
   {
    "bit": 53,
    "name": "NDEF[5]",
    "record": 53,
    "signal": 151,
-   "d": 1701
+   "d": 1705
   },
   {
    "bit": 54,
    "name": "CLOCK[0]",
    "record": 54,
    "signal": 152,
-   "d": 1705
+   "d": 1709
   },
   {
    "bit": 55,
    "name": "CLOCK[1]",
    "record": 55,
    "signal": 153,
-   "d": 1713
+   "d": 1717
   },
   {
    "bit": 56,
    "name": "CLOCK[2]",
    "record": 56,
    "signal": 154,
-   "d": 1725
+   "d": 1729
   },
   {
    "bit": 57,
    "name": "CLOCK[3]",
    "record": 57,
    "signal": 155,
-   "d": 1734
+   "d": 1738
   },
   {
    "bit": 58,
    "name": "CLOCK[4]",
    "record": 58,
    "signal": 156,
-   "d": 1739
+   "d": 1743
   },
   {
    "bit": 59,
    "name": "CLOCK[5]",
    "record": 59,
    "signal": 157,
-   "d": 1744
+   "d": 1748
   },
   {
    "bit": 60,
    "name": "CLOCK[6]",
    "record": 60,
    "signal": 158,
-   "d": 1749
+   "d": 1753
   },
   {
    "bit": 61,
    "name": "CLOCK[7]",
    "record": 61,
    "signal": 159,
-   "d": 1754
+   "d": 1758
   },
   {
    "bit": 62,
    "name": "CLOCK[8]",
    "record": 62,
    "signal": 160,
-   "d": 1760
+   "d": 1764
   },
   {
    "bit": 63,
    "name": "CLOCK[9]",
    "record": 63,
    "signal": 161,
-   "d": 1765
+   "d": 1769
   }
  ],
  "fields": {
@@ -1725,7 +1725,7 @@
  "tapeout": {
   "nIn": 96,
   "nOut": 112,
-  "burnNand": 1889,
+  "burnNand": 1888,
   "burnLatch": 64
  },
  "tool": {
@@ -1748,7 +1748,7 @@
   "sources": [
    {
     "file": "fg_params.vh",
-    "sha256": "6a46394342a95d5b36ccc2b31647b30d7fe52235bc9bc3bcd544b2fe2eb41378"
+    "sha256": "06455a4f8d15e326eb79c06d9fbdded80187c01c6355e60b15503509674a2202"
    },
    {
     "file": "fg_core.v",

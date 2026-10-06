@@ -40,7 +40,7 @@ Updated as each part lands. Nothing below is claimed until it is marked done.
 | Circuit reader (`packages/`, `web/`): reads any TapeOut circuit from X Layer, draws it, runs a beat in the browser and checks it against the chain | Working; no kernel pages yet |
 | Chip toolchain (`chips/tools/tapc`): Verilog to NAND and LATCH records, TAP-20 packer and simulator, proofs by Yosys SAT and z3, differential test against a chain | Done; 96 tests |
 | Probe circuit (`chips/probe`): 118 gates, proven on every state and input | Built; not taped out yet |
-| Flagship chip, the Flow Governor (`chips/rtl`, `chips/model`, `chips/props`): 1,889 NAND + 64 LATCH, 98 properties proven for every state and input | Built and proven; constants under review, will be rebuilt before tape-out |
+| Flagship chip, the Flow Governor (`chips/rtl`, `chips/model`, `chips/props`): 1,888 NAND + 64 LATCH; netlist proven equal to the RTL and to the Python model, and 96 property checks proven, for every state and input | Built, proven and independently reviewed; not taped out yet |
 | Keeper and paid compile endpoint (`services/`) | Built and tested; not deployed |
 | Issuance contracts (processor creator and payees) | In progress |
 | Kernel v1, sealed evaluator, Fab | In progress |

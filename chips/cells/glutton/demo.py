@@ -4,8 +4,9 @@
     chips/.venv-fg/bin/python chips/cells/glutton/demo.py -v         # per-epoch table
 
 The chip bytes (glutton.tap, glutton512.tap) are evaluated with the TAP-20 evaluator of chips/rtl/test_fg.py
-and routed by chips/golden/kernel_model.route_tax, exactly as the kernel would. The Flow Governor is run on
-the same inflows for comparison. This is a shadow-run: no chain, no wallet.
+inside the revision-2 kernel model of chips/model/scenarios.py (clamps by chips/golden/kernel_model.route_tax,
+buys sized on the simulated curve, the tax of the kernel's own buys returning as inflow). The Flow Governor is
+run on the same flows for comparison. This is a shadow-run: no chain, no wallet.
 """
 from __future__ import annotations
 
@@ -54,17 +55,10 @@ def unpack1(s: int):
 
 
 def run(name: str, flows, step) -> sc.Trace:
-    k = sc.Kernel(step, fg.envelope())
-    t = sc.Trace(name)
-    for e, f in enumerate(flows, 1):
-        k.accrue(f)
-        row = k.settle(e)
-        row.st = {}
-        t.rows.append(row)
-        t.total_in += row.inflow
-        t.total_allow += row.routed.allow
-        t.total_buy += row.buy_executed
-        t.max_clamp |= row.routed.clamp
+    """The revision-2 kernel model around a chip: echo and execution limits included."""
+    t = sc.run(name, flows, step=step, env=fg.envelope(), mode=sc.REV2)
+    for row in t.rows:
+        row.st = {}                       # the latch fields of the Flow Governor mean nothing for another chip
     return t
 
 
@@ -94,14 +88,17 @@ def main(argv=None) -> int:
     }
     for label, fl in flows.items():
         print(f"\n== {label}")
-        print(f"{'chip':<14} {'clamp bits seen':<16} {'allowance':>10} {'of inflow':>9} {'bought':>10} {'of inflow':>9} "
-              f"{'left in reserve':>15}")
+        print(f"{'chip':<14} {'clamp bits seen':<16} {'allowance':>10} {'of tax':>7} {'of inflow':>9} {'bought':>10} "
+              f"{'of tax':>7} {'left in reserve':>15} {'of tax':>7}")
         for name, step in chips:
             t = run(name, fl, step)
-            tin = max(1, t.total_in)
+            k = t.kernel
+            tax = max(1, k.market.outside_q)                 # what outside trading paid
+            net = k.q_exec - k.q_echo                        # bought, net of the tax the kernel's own buys paid back
             seen = sorted({clamp_str(r.routed.clamp) for r in t.rows})
-            print(f"{name:<14} {','.join(seen):<16} {sc.fmt_amt(t.total_allow):>10} {100 * t.total_allow / tin:>8.2f}% "
-                  f"{sc.fmt_amt(t.total_buy):>10} {100 * t.total_buy / tin:>8.2f}% {sc.fmt_amt(t.rows[-1].reserve_after):>15}")
+            print(f"{name:<14} {','.join(seen):<16} {sc.fmt_amt(t.total_allow):>10} {100 * t.total_allow / tax:>6.2f}% "
+                  f"{100 * t.total_allow / max(1, t.total_in):>8.2f}% {sc.fmt_amt(net):>10} {100 * net / tax:>6.2f}% "
+                  f"{sc.fmt_amt(t.rows[-1].reserve_after):>15} {100 * (tax - t.total_allow - net) / tax:>6.2f}%")
             if verbose and name != "flow-governor":
                 print(table(t))
             # what the envelope promises, checked on every row
@@ -110,6 +107,8 @@ def main(argv=None) -> int:
                 assert r.routed.allow <= km.exp8(env.ceilMax), "allowance above the envelope ceiling"
                 assert r.routed.rel <= env.relMax and (r.reserve_before == 0 or r.routed.rel >= env.floorRel)
                 assert r.routed.allow + r.routed.buy_share + r.routed.to_reserve == r.inflow
+            assert not sc.check_books(t), "books"
+            assert t.total_allow * 10000 <= t.total_in * env.allowCumBps, "lifetime cap"
             if name == "glutton":
                 assert all(r.routed.clamp & km.K2 and r.routed.clamp & km.K3 for r in t.rows)
                 assert not any(r.routed.clamp & (km.K1T | km.K5 | km.K2L) for r in t.rows)
@@ -119,7 +118,9 @@ def main(argv=None) -> int:
             if name == "flow-governor":
                 assert t.max_clamp == 0
     print("\nGlutton demands the whole tax as allowance and the whole reserve every beat. Under the reference envelope:")
-    print("  K2  clips its allowance share from 256 to capT = 48 (18.75%); the rest stays in the reserve;")
+    print("  K2  clips its allowance share from 256 to capT = 48 (18.75% of inflow); the rest stays in the reserve;")
+    print("      inflow includes the 3% buy tax of the kernel's own buys, which comes round again, so against the tax")
+    print("      that outside trading paid the allowance can reach 18.75 / (1 - 0.03 * 0.8125) = 19.2%, never more;")
     print("  K2C clips the allowance amount to exp8(ceilMax) = 0.0338 OKB per settle when the inflow is large;")
     print("  K3  clips its release from 256 to relMax = 128 (half the reserve per settle), and a release can only buy and lock;")
     print("  K2L never fires (allowCumBps = 1875 is exactly capT / 256);  K5 never fires (it asks for more than the floor).")

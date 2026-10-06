@@ -741,9 +741,10 @@
   "nOut": 112,
   "nState": 64,
   "FLOOR_Q": 346,
-  "FLOOR_T": 530,
+  "FLOOR_T": 515,
   "RESMIN_Q": 389,
-  "RESMIN_T": 573,
+  "RESMIN_T": 558,
+  "TOKEN_SHIFT": 169,
   "M1": 425,
   "M2": 452,
   "M3": 479,
@@ -803,5 +804,16 @@
   "fallbackEpochs": 16,
   "fbAllow": 8,
   "buyEnabled": true
+ },
+ "reference": {
+  "_comment": "The reference token on IGNIX (X Layer, chain 196): quote native OKB, tax 3% per side, the platform's 1% curve fee per side, and the IGNIX curve every launch gets (1,000,000,000 tokens, 800,000,000 sold on the curve, the rest paired with the 85 OKB the curve raises). Amounts are base units (18 decimals) as decimal strings. TOKEN_SHIFT, FLOOR_T and RESMIN_T are derived from pairSupply and graduationQuote by gen_params.py; the scenario runner simulates this curve.",
+  "taxBuyBps": 300,
+  "taxSellBps": 300,
+  "curveBuyFeeBps": 100,
+  "curveSellFeeBps": 100,
+  "totalSupply": "1000000000000000000000000000",
+  "curveSupply": "800000000000000000000000000",
+  "pairSupply": "200000000000000000000000000",
+  "graduationQuote": "85000000000000000000"
  }
 }

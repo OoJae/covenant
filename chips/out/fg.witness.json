@@ -2,44 +2,49 @@
  "format": "covenant-witness/1",
  "chip": "flow-governor",
  "claim": "two reachable states answer one input word with different routes",
- "x": "0x00a406000099010000100000",
+ "how": "every word is the one the revision-2 kernel model assembles when 0.01 OKB of tax arrives in the first epoch and nothing is traded afterwards; the later words carry only the tax of the kernel's own buys",
+ "x": "0x39a906000099010000100000",
  "xFields": {
-  "TAXCUM": 425,
+  "TAX": 313,
+  "TAXCUM": 426,
   "RES": 409,
   "DT": 1
  },
  "reachA": {
   "inputs": [
-   "0xa9a506000000000000100000"
+   "0xa9a506000000000000100000",
+   "0x7ba906000099010000100000",
+   "0x4fa906000099010000100000",
+   "0x3aa906000099010000100000"
   ],
-  "state": "0x3cf144c908004000",
+  "state": "0x18e1040906000001",
   "stateFields": {
-   "A": 316,
-   "PK": 79,
-   "PKDIV": 1,
+   "A": 280,
+   "PK": 78,
+   "PKDIV": 0,
    "MODE": 1,
    "TIER": 1,
    "GSEEN": 0,
-   "WARM": 3,
-   "LIVE": 8,
+   "WARM": 0,
+   "LIVE": 6,
    "SUR": 0,
    "TR": 0,
    "CD": 0,
    "NBANK": 0,
    "NDEF": 0,
-   "CLOCK": 1
+   "CLOCK": 4
   }
  },
  "reachB": {
   "inputs": [
    "0xa9a506000000000000100000",
-   "0x00a406000099010000100000",
-   "0x00a406000099010000100000",
-   "0x00a406000099010000100000",
-   "0x00a406000099010000100000",
-   "0x00a406000099010000100000"
+   "0x7ba906000099010000100000",
+   "0x4fa906000099010000100000",
+   "0x3aa906000099010000100000",
+   "0x39a906000099010000100000",
+   "0x39a906000099010000100000"
   ],
-  "state": "0x00e1840903008001",
+  "state": "0x00e1840904008001",
   "stateFields": {
    "A": 256,
    "PK": 78,
@@ -48,7 +53,7 @@
    "TIER": 1,
    "GSEEN": 0,
    "WARM": 0,
-   "LIVE": 3,
+   "LIVE": 4,
    "SUR": 0,
    "TR": 0,
    "CD": 0,
@@ -58,8 +63,8 @@
   }
  },
  "outA": {
-  "y": "0xa0008000020000008002604b8603",
-  "newState": "0x30f1848907008000",
+  "y": "0xa0008000020000008002604b060b",
+  "newState": "0x0ce1440905004001",
   "route": {
    "T_BUY": 160,
    "T_HOLD": 0,
@@ -70,12 +75,12 @@
    "MODE": 1,
    "TIER": 1,
    "modeName": "CRUISE",
-   "flags": "dip,quiet,warm"
+   "flags": "dip,quiet"
   }
  },
  "outB": {
   "y": "0x00010000000000008022605b0e11",
-  "newState": "0xf4e0c40bc200c101",
+  "newState": "0xf4e0c40bc300c101",
   "route": {
    "T_BUY": 256,
    "T_HOLD": 0,
@@ -102,20 +107,20 @@
    "0x8f5d0600007f010000100000",
    "0x8f6d06000087010000100000",
    "0x8f7d0600008b010000100000",
-   "0x8f850600008f010000100000",
-   "0xb9e906000091010000100000",
-   "0x00e8060000b6010000100000",
-   "0x00e8060000b6010000100000",
-   "0x00e8060000b5010000100000",
-   "0x00e8060000b3010000100000",
-   "0x00e8060000b2010000100000",
-   "0x00e8060000b1010000100000",
-   "0x00e8060000b1010000100000",
-   "0x00e8060000b0010000100000",
-   "0x00e8060000b0010000100000",
-   "0x00e8060000b0010000100000",
-   "0x00e8060000b0010000100000",
-   "0x00e8060000b0010000100000"
+   "0x8f890600008f010000100000",
+   "0xb9ed06000091010000100000",
+   "0x7ded060000b6010000100000",
+   "0x5aed060000b6010000100000",
+   "0x76ed060000b5010000100000",
+   "0x75ed060000b3010000100000",
+   "0x73ed060000b2010000100000",
+   "0x72ed060000b1010000100000",
+   "0x53ed060000b1010000100000",
+   "0x50ed060000b0010000100000",
+   "0x50ed060000b0010000100000",
+   "0x50ed060000b0010000100000",
+   "0x50ed060000b0010000100000",
+   "0x50ed060000b0010000100000"
   ],
   "modes": [
    "IDLE",
@@ -145,11 +150,11 @@
    "DEFEND": 9,
    "REST": 13
   },
-  "finalState": "0x6ec0c30bc008c204"
+  "finalState": "0x6ec0c30bc208c204"
  },
  "cast": [
   "# free read calls on the taped chip; CPU = processor (Circuits) address, ID = circuit id",
-  "cast call $CPU 'step(uint256,bytes,bytes)(bytes,bytes)' $ID 0x3cf144c908004000 0x00a406000099010000100000",
-  "cast call $CPU 'step(uint256,bytes,bytes)(bytes,bytes)' $ID 0x00e1840903008001 0x00a406000099010000100000"
+  "cast call $CPU 'step(uint256,bytes,bytes)(bytes,bytes)' $ID 0x18e1040906000001 0x39a906000099010000100000",
+  "cast call $CPU 'step(uint256,bytes,bytes)(bytes,bytes)' $ID 0x00e1840904008001 0x39a906000099010000100000"
  ]
 }

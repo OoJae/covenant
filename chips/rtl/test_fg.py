@@ -9,7 +9,8 @@ What is compared, bit for bit (64 next-state bits and 112 output bits per vector
   1. uniform random (s, x)                                   --n vectors
   2. boundary-biased (s, x): fields drawn near every threshold of the control law   --n vectors
   3. random walks from reset: reachable states, kernel-shaped inputs               --n vectors
-  4. every settle of every scenario in chips/model/scenarios.py, plus the cadence variants
+  4. every settle of every scenario in chips/model/scenarios.py (revision-2 kernel and idealised kernel),
+     plus the cadence variants
 
 The netlist is evaluated twice: by the small evaluator in this file (written from the vendored contract
 source contracts/vendor/tapeout-xlayer/src/lib/NetlistVM.sol, independent of tapc) and, on a sample,
@@ -159,7 +160,7 @@ def walks(rng, n):
             if not grad and rng.random() < 0.004:
                 grad = 1
                 cum = 0
-                tax_base = rng.choice([0, 540, 585, 620])
+                tax_base = rng.choice([0, fg.P["FLOOR_T"] + 5, 540, 585, 620])
             r = rng.random()
             if r < 0.35:
                 tax = 0
@@ -180,15 +181,19 @@ def walks(rng, n):
 
 
 def scenario_vectors():
+    """Every settle of every scenario, under the revision-2 kernel and under the idealised one, at the scenario's
+    own cadence and at six slower ones."""
     vec = []
     S = sc.scenarios()
-    for name, sdef in S.items():
-        t = sc.run(name, sdef["flows"], sdef.get("settle_at"), sdef.get("grad_epoch"), exec_frac=sdef.get("exec_frac"))
-        vec += [(r.s_before, r.x) for r in t.rows]
-        if "settle_at" not in sdef:
-            for k in (2, 3, 4, 6, 8, 12):
-                t = sc.run(name, sdef["flows"], lambda e, k=k: e % k == 0, sdef.get("grad_epoch"))
-                vec += [(r.s_before, r.x) for r in t.rows]
+    for mode in (sc.REV2, sc.IDEAL):
+        for name, sdef in S.items():
+            kw = {k: sdef[k] for k in sc.RUN_KEYS if k in sdef}
+            t = sc.run(name, sdef["flows"], mode=mode, **kw)
+            vec += [(r.s_before, r.x) for r in t.rows]
+            if "settle_at" not in sdef:
+                for k in (2, 3, 4, 6, 8, 12):
+                    t = sc.run(name, sdef["flows"], mode=mode, **dict(kw, settle_at=lambda e, k=k: e % k == 0))
+                    vec += [(r.s_before, r.x) for r in t.rows]
     return vec
 
 

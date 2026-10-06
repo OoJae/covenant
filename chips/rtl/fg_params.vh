@@ -4,9 +4,9 @@
 // re-run every proof.
 
 localparam [9:0] FG_FLOOR_Q = 10'd346;
-localparam [9:0] FG_FLOOR_T = 10'd530;
+localparam [9:0] FG_FLOOR_T = 10'd515;
 localparam [9:0] FG_RESMIN_Q = 10'd389;
-localparam [9:0] FG_RESMIN_T = 10'd573;
+localparam [9:0] FG_RESMIN_T = 10'd558;
 localparam [9:0] FG_M1 = 10'd425;
 localparam [9:0] FG_M2 = 10'd452;
 localparam [9:0] FG_M3 = 10'd479;

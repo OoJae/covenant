@@ -6,12 +6,16 @@
 The witness is check 1 of the judge guide: two states that the chip reaches from reset, and one input word
 that the two states answer with different routes. No function of the inputs can do that; a constant even less.
 
-  trace A:  step(0, X1)                         -> state SA
-  trace B:  step(0, X1), then 5 x step(., X2)   -> state SB
-  then      step(SA, X2) and step(SB, X2) give different shares and a different release.
+The words are not chosen by hand. The scenario runner drives the chip with the revision-2 kernel model on the
+shortest flow that shows it: one epoch in which 0.01 OKB of tax arrives, then no outside trading at all. Every
+word after the first is what the kernel would assemble by itself: the only inflow is the buy tax of the
+kernel's own previous buy (the echo), a few times 1e11 wei, far below the chip's floor. From the fifth settle
+on the kernel assembles the same word X several epochs running, and the chip answers it differently:
 
-X1 is "0.01 OKB of tax arrived" and X2 is "nothing arrived, the reserve holds what the first settle left".
-Both are exactly the words the kernel would assemble (the kernel model is run to produce them).
+  trace A:  the first 4 words                   -> state SA      step(SA, X) routes as CRUISE
+  trace B:  the same 4 words, then X twice      -> state SB      step(SB, X) routes as DEFEND
+
+(`build()` finds the pair in the trace, so the counts above are read from its result, not assumed.)
 
 The second part is a tour: one input sequence from reset that visits all five modes.
 """
@@ -75,6 +79,9 @@ def build() -> dict:
         "format": "covenant-witness/1",
         "chip": fg.P["name"],
         "claim": "two reachable states answer one input word with different routes",
+        "how": "every word is the one the revision-2 kernel model assembles when 0.01 OKB of tax arrives in the "
+               "first epoch and nothing is traded afterwards; the later words carry only the tax of the kernel's "
+               "own buys",
         "x": hx(ra.x, 96), "xFields": {k: v for k, v in km.unpack_fields(km.INPUT_FIELDS, ra.x).items() if v},
         "reachA": {"inputs": [hx(x, 96) for x in inputs[: ra.epoch - 1]], "state": hx(sa, 64),
                    "stateFields": fg.unpack_state(sa)},

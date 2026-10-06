@@ -1,0 +1,1861 @@
+{
+ "format": "covenant-model-equivalence/1",
+ "chip": "flow-governor",
+ "keccak256": "0xe548768a1adafa7331faacfd029e1a829b00af3f7d769657f3b234ccdd7143b4",
+ "bytes": 13472,
+ "nNand": 1888,
+ "nLatch": 64,
+ "ok": true,
+ "claim": "the behavioural model chips/model/flow_governor.py and the netlist bytes compute the same (next state, output word) for every 64-bit state and every 96-bit input word, and the model never raises",
+ "how": [
+  "route A: chips/props/symexec.py executes the source of flow_governor.step (with _satsub and kernel_model.pack_output / pack_fields) on z3 terms; z3 proves that formula equal to the netlist, one query per field, and proves every condition under which Python would raise impossible",
+  "route B: chips/props/model_equiv.py:twin, the same law written by hand as 16-bit z3 terms, proven equal to the netlist the same way",
+  "the netlist terms are built straight from the bytes (one Bool per NAND record)",
+  "both formulas are also compiled back to Python and compared with the real step on the vectors under `tested`; for route A that tests the symbolic executor, the proof does not rely on it",
+  "non-vacuity: single-point needles and wrong constants under `canFail` are all refuted"
+ ],
+ "tools": {
+  "z3": "5.1.0"
+ },
+ "routes": {
+  "source": {
+   "what": "A, the model's own source executed symbolically",
+   "fields": 28,
+   "fieldsProved": 28,
+   "bits": 176,
+   "bitsProved": 176,
+   "raiseConditions": 16,
+   "raiseConditionsProvedImpossible": 16,
+   "needlesFound": 28,
+   "needles": 28,
+   "wrongConstantsRefuted": 8,
+   "wrongConstants": 8,
+   "solverSeconds": 424.2
+  },
+  "twin": {
+   "what": "B, the hand-written twin",
+   "fields": 28,
+   "fieldsProved": 28,
+   "bits": 176,
+   "bitsProved": 176,
+   "raiseConditions": 29,
+   "raiseConditionsProvedImpossible": 29,
+   "needlesFound": 28,
+   "needles": 28,
+   "wrongConstantsRefuted": 8,
+   "wrongConstants": 8,
+   "solverSeconds": 173.7
+  }
+ },
+ "tested": {
+  "seed": 1,
+  "vectors": 630942,
+  "mismatches": 0,
+  "z3Mismatches": 0,
+  "source": {
+   "what": "the model's source, executed symbolically",
+   "sets": [
+    {
+     "set": "uniform random (s, x)",
+     "vectors": 200000,
+     "mismatches": 0,
+     "seconds": 4.3
+    },
+    {
+     "set": "boundary-biased (s, x)",
+     "vectors": 200000,
+     "mismatches": 0,
+     "seconds": 4.3
+    },
+    {
+     "set": "random walks from reset",
+     "vectors": 200000,
+     "mismatches": 0,
+     "seconds": 4.0
+    },
+    {
+     "set": "scenario traces",
+     "vectors": 30942,
+     "mismatches": 0,
+     "seconds": 0.5
+    }
+   ],
+   "mismatches": 0,
+   "z3Evaluated": 600,
+   "z3Mismatches": 0,
+   "subterms": 473
+  },
+  "twin": {
+   "what": "the hand-written twin",
+   "sets": [
+    {
+     "set": "uniform random (s, x)",
+     "vectors": 200000,
+     "mismatches": 0,
+     "seconds": 4.1
+    },
+    {
+     "set": "boundary-biased (s, x)",
+     "vectors": 200000,
+     "mismatches": 0,
+     "seconds": 4.1
+    },
+    {
+     "set": "random walks from reset",
+     "vectors": 200000,
+     "mismatches": 0,
+     "seconds": 3.7
+    },
+    {
+     "set": "scenario traces",
+     "vectors": 30942,
+     "mismatches": 0,
+     "seconds": 0.5
+    }
+   ],
+   "mismatches": 0,
+   "z3Evaluated": 600,
+   "z3Mismatches": 0,
+   "subterms": 454
+  }
+ },
+ "wallSeconds": 85.7,
+ "proofs": [
+  {
+   "name": "source 1: a table index is in range",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 1: a table index is in range",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "source 2: a shift count is not negative",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 2: a shift count is not negative",
+   "status": "proved",
+   "seconds": 0.014
+  },
+  {
+   "name": "source 3: step: assert 0 <= A1 <= 4095",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 3: step: assert 0 <= A1 <= 4095",
+   "status": "proved",
+   "seconds": 0.612
+  },
+  {
+   "name": "source 4: a table index is in range",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 4: a table index is in range",
+   "status": "proved",
+   "seconds": 0.002
+  },
+  {
+   "name": "source 5: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 5: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.579
+  },
+  {
+   "name": "source 6: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 6: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.439
+  },
+  {
+   "name": "source 7: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 7: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.549
+  },
+  {
+   "name": "source 8: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 8: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.603
+  },
+  {
+   "name": "source 9: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 9: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.016
+  },
+  {
+   "name": "source 10: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 10: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.453
+  },
+  {
+   "name": "source 11: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 11: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.002
+  },
+  {
+   "name": "source 12: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 12: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.437
+  },
+  {
+   "name": "source 13: pack_fields: line 6 (raise) is never reached",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 13: pack_fields: line 6 (raise) is never reached",
+   "status": "proved",
+   "seconds": 0.668
+  },
+  {
+   "name": "source 14: pack_fields: assert word < 1 << nbits",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 14: pack_fields: assert word < 1 << nbits",
+   "status": "proved",
+   "seconds": 1.056
+  },
+  {
+   "name": "source 15: step returns a state word of 64 bits",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 15: step returns a state word of 64 bits",
+   "status": "proved",
+   "seconds": 0.919
+  },
+  {
+   "name": "source 16: step returns an output word of 112 bits",
+   "route": "source",
+   "engine": "z3",
+   "claim": "for every (s, x): source 16: step returns an output word of 112 bits",
+   "status": "proved",
+   "seconds": 1.072
+  },
+  {
+   "name": "ns.A",
+   "route": "source",
+   "engine": "z3",
+   "bits": 12,
+   "offset": 0,
+   "claim": "for every (s, x): bits 0..11 of the netlist's next state equal the model's A",
+   "status": "proved",
+   "seconds": 4.925
+  },
+  {
+   "name": "ns.PK",
+   "route": "source",
+   "engine": "z3",
+   "bits": 10,
+   "offset": 12,
+   "claim": "for every (s, x): bits 12..21 of the netlist's next state equal the model's PK",
+   "status": "proved",
+   "seconds": 14.875
+  },
+  {
+   "name": "ns.CLOCK",
+   "route": "source",
+   "engine": "z3",
+   "bits": 10,
+   "offset": 54,
+   "claim": "for every (s, x): bits 54..63 of the netlist's next state equal the model's CLOCK",
+   "status": "proved",
+   "seconds": 0.81
+  },
+  {
+   "name": "y.CEIL",
+   "route": "source",
+   "engine": "z3",
+   "bits": 10,
+   "offset": 81,
+   "claim": "for every (s, x): bits 81..90 of the netlist's output word equal the model's CEIL",
+   "status": "proved",
+   "seconds": 0.68
+  },
+  {
+   "name": "y.T_BUY",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 0,
+   "claim": "for every (s, x): bits 0..8 of the netlist's output word equal the model's T_BUY",
+   "status": "proved",
+   "seconds": 35.498
+  },
+  {
+   "name": "y.T_HOLD",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 9,
+   "claim": "for every (s, x): bits 9..17 of the netlist's output word equal the model's T_HOLD",
+   "status": "proved",
+   "seconds": 0.646
+  },
+  {
+   "name": "y.T_ALLOW",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 18,
+   "claim": "for every (s, x): bits 18..26 of the netlist's output word equal the model's T_ALLOW",
+   "status": "proved",
+   "seconds": 23.279
+  },
+  {
+   "name": "y.T_RES",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 27,
+   "claim": "for every (s, x): bits 27..35 of the netlist's output word equal the model's T_RES",
+   "status": "proved",
+   "seconds": 41.694
+  },
+  {
+   "name": "y.V_BUY",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 36,
+   "claim": "for every (s, x): bits 36..44 of the netlist's output word equal the model's V_BUY",
+   "status": "proved",
+   "seconds": 0.669
+  },
+  {
+   "name": "y.V_HOLD",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 45,
+   "claim": "for every (s, x): bits 45..53 of the netlist's output word equal the model's V_HOLD",
+   "status": "proved",
+   "seconds": 0.679
+  },
+  {
+   "name": "y.V_ALLOW",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 54,
+   "claim": "for every (s, x): bits 54..62 of the netlist's output word equal the model's V_ALLOW",
+   "status": "proved",
+   "seconds": 0.682
+  },
+  {
+   "name": "y.V_RES",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 63,
+   "claim": "for every (s, x): bits 63..71 of the netlist's output word equal the model's V_RES",
+   "status": "proved",
+   "seconds": 0.733
+  },
+  {
+   "name": "y.REL",
+   "route": "source",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 72,
+   "claim": "for every (s, x): bits 72..80 of the netlist's output word equal the model's REL",
+   "status": "proved",
+   "seconds": 62.925
+  },
+  {
+   "name": "y.FLAGS",
+   "route": "source",
+   "engine": "z3",
+   "bits": 8,
+   "offset": 96,
+   "claim": "for every (s, x): bits 96..103 of the netlist's output word equal the model's FLAGS",
+   "status": "proved",
+   "seconds": 28.634
+  },
+  {
+   "name": "y.AUX",
+   "route": "source",
+   "engine": "z3",
+   "bits": 8,
+   "offset": 104,
+   "claim": "for every (s, x): bits 104..111 of the netlist's output word equal the model's AUX",
+   "status": "proved",
+   "seconds": 74.355
+  },
+  {
+   "name": "ns.NDEF",
+   "route": "source",
+   "engine": "z3",
+   "bits": 6,
+   "offset": 48,
+   "claim": "for every (s, x): bits 48..53 of the netlist's next state equal the model's NDEF",
+   "status": "proved",
+   "seconds": 24.428
+  },
+  {
+   "name": "ns.NBANK",
+   "route": "source",
+   "engine": "z3",
+   "bits": 5,
+   "offset": 43,
+   "claim": "for every (s, x): bits 43..47 of the netlist's next state equal the model's NBANK",
+   "status": "proved",
+   "seconds": 1.668
+  },
+  {
+   "name": "ns.LIVE",
+   "route": "source",
+   "engine": "z3",
+   "bits": 4,
+   "offset": 32,
+   "claim": "for every (s, x): bits 32..35 of the netlist's next state equal the model's LIVE",
+   "status": "proved",
+   "seconds": 0.747
+  },
+  {
+   "name": "ns.MODE",
+   "route": "source",
+   "engine": "z3",
+   "bits": 3,
+   "offset": 24,
+   "claim": "for every (s, x): bits 24..26 of the netlist's next state equal the model's MODE",
+   "status": "proved",
+   "seconds": 36.674
+  },
+  {
+   "name": "ns.CD",
+   "route": "source",
+   "engine": "z3",
+   "bits": 3,
+   "offset": 40,
+   "claim": "for every (s, x): bits 40..42 of the netlist's next state equal the model's CD",
+   "status": "proved",
+   "seconds": 0.759
+  },
+  {
+   "name": "y.MODE",
+   "route": "source",
+   "engine": "z3",
+   "bits": 3,
+   "offset": 91,
+   "claim": "for every (s, x): bits 91..93 of the netlist's output word equal the model's MODE",
+   "status": "proved",
+   "seconds": 32.71
+  },
+  {
+   "name": "ns.PKDIV",
+   "route": "source",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 22,
+   "claim": "for every (s, x): bits 22..23 of the netlist's next state equal the model's PKDIV",
+   "status": "proved",
+   "seconds": 0.41
+  },
+  {
+   "name": "ns.TIER",
+   "route": "source",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 27,
+   "claim": "for every (s, x): bits 27..28 of the netlist's next state equal the model's TIER",
+   "status": "proved",
+   "seconds": 0.41
+  },
+  {
+   "name": "ns.WARM",
+   "route": "source",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 30,
+   "claim": "for every (s, x): bits 30..31 of the netlist's next state equal the model's WARM",
+   "status": "proved",
+   "seconds": 0.417
+  },
+  {
+   "name": "ns.SUR",
+   "route": "source",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 36,
+   "claim": "for every (s, x): bits 36..37 of the netlist's next state equal the model's SUR",
+   "status": "proved",
+   "seconds": 0.785
+  },
+  {
+   "name": "ns.TR",
+   "route": "source",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 38,
+   "claim": "for every (s, x): bits 38..39 of the netlist's next state equal the model's TR",
+   "status": "proved",
+   "seconds": 25.855
+  },
+  {
+   "name": "y.TIER",
+   "route": "source",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 94,
+   "claim": "for every (s, x): bits 94..95 of the netlist's output word equal the model's TIER",
+   "status": "proved",
+   "seconds": 0.411
+  },
+  {
+   "name": "ns.GSEEN",
+   "route": "source",
+   "engine": "z3",
+   "bits": 1,
+   "offset": 29,
+   "claim": "for every (s, x): bits 29..29 of the netlist's next state equal the model's GSEEN",
+   "status": "proved",
+   "seconds": 0.377
+  },
+  {
+   "name": "the model's assert 0 <= A1 <= 4095",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): the model's assert 0 <= A1 <= 4095",
+   "status": "proved",
+   "seconds": 0.014
+  },
+  {
+   "name": "ns.A fits 12 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.A fits 12 bits",
+   "status": "proved",
+   "seconds": 0.012
+  },
+  {
+   "name": "ns.PK fits 10 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.PK fits 10 bits",
+   "status": "proved",
+   "seconds": 0.016
+  },
+  {
+   "name": "ns.PKDIV fits 2 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.PKDIV fits 2 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "ns.MODE fits 3 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.MODE fits 3 bits",
+   "status": "proved",
+   "seconds": 0.002
+  },
+  {
+   "name": "ns.TIER fits 2 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.TIER fits 2 bits",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "ns.GSEEN fits 1 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.GSEEN fits 1 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "ns.WARM fits 2 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.WARM fits 2 bits",
+   "status": "proved",
+   "seconds": 0.003
+  },
+  {
+   "name": "ns.LIVE fits 4 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.LIVE fits 4 bits",
+   "status": "proved",
+   "seconds": 0.003
+  },
+  {
+   "name": "ns.SUR fits 2 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.SUR fits 2 bits",
+   "status": "proved",
+   "seconds": 0.004
+  },
+  {
+   "name": "ns.TR fits 2 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.TR fits 2 bits",
+   "status": "proved",
+   "seconds": 0.009
+  },
+  {
+   "name": "ns.CD fits 3 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.CD fits 3 bits",
+   "status": "proved",
+   "seconds": 0.009
+  },
+  {
+   "name": "ns.NBANK fits 5 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.NBANK fits 5 bits",
+   "status": "proved",
+   "seconds": 0.005
+  },
+  {
+   "name": "ns.NDEF fits 6 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.NDEF fits 6 bits",
+   "status": "proved",
+   "seconds": 0.005
+  },
+  {
+   "name": "ns.CLOCK fits 10 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): ns.CLOCK fits 10 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.T_BUY fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.T_BUY fits 9 bits",
+   "status": "proved",
+   "seconds": 0.009
+  },
+  {
+   "name": "y.T_HOLD fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.T_HOLD fits 9 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.T_ALLOW fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.T_ALLOW fits 9 bits",
+   "status": "proved",
+   "seconds": 0.002
+  },
+  {
+   "name": "y.T_RES fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.T_RES fits 9 bits",
+   "status": "proved",
+   "seconds": 0.007
+  },
+  {
+   "name": "y.V_BUY fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.V_BUY fits 9 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.V_HOLD fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.V_HOLD fits 9 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.V_ALLOW fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.V_ALLOW fits 9 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.V_RES fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.V_RES fits 9 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.REL fits 9 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.REL fits 9 bits",
+   "status": "proved",
+   "seconds": 0.008
+  },
+  {
+   "name": "y.CEIL fits 10 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.CEIL fits 10 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.MODE fits 3 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.MODE fits 3 bits",
+   "status": "proved",
+   "seconds": 0.002
+  },
+  {
+   "name": "y.TIER fits 2 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.TIER fits 2 bits",
+   "status": "proved",
+   "seconds": 0.0
+  },
+  {
+   "name": "y.FLAGS fits 8 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.FLAGS fits 8 bits",
+   "status": "proved",
+   "seconds": 0.002
+  },
+  {
+   "name": "y.AUX fits 8 bits",
+   "route": "twin",
+   "engine": "z3",
+   "claim": "for every (s, x): y.AUX fits 8 bits",
+   "status": "proved",
+   "seconds": 0.008
+  },
+  {
+   "name": "ns.A",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 12,
+   "offset": 0,
+   "claim": "for every (s, x): bits 0..11 of the netlist's next state equal the model's A",
+   "status": "proved",
+   "seconds": 2.817
+  },
+  {
+   "name": "ns.PK",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 10,
+   "offset": 12,
+   "claim": "for every (s, x): bits 12..21 of the netlist's next state equal the model's PK",
+   "status": "proved",
+   "seconds": 6.678
+  },
+  {
+   "name": "ns.CLOCK",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 10,
+   "offset": 54,
+   "claim": "for every (s, x): bits 54..63 of the netlist's next state equal the model's CLOCK",
+   "status": "proved",
+   "seconds": 0.007
+  },
+  {
+   "name": "y.CEIL",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 10,
+   "offset": 81,
+   "claim": "for every (s, x): bits 81..90 of the netlist's output word equal the model's CEIL",
+   "status": "proved",
+   "seconds": 0.008
+  },
+  {
+   "name": "y.T_BUY",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 0,
+   "claim": "for every (s, x): bits 0..8 of the netlist's output word equal the model's T_BUY",
+   "status": "proved",
+   "seconds": 14.491
+  },
+  {
+   "name": "y.T_HOLD",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 9,
+   "claim": "for every (s, x): bits 9..17 of the netlist's output word equal the model's T_HOLD",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "y.T_ALLOW",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 18,
+   "claim": "for every (s, x): bits 18..26 of the netlist's output word equal the model's T_ALLOW",
+   "status": "proved",
+   "seconds": 5.567
+  },
+  {
+   "name": "y.T_RES",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 27,
+   "claim": "for every (s, x): bits 27..35 of the netlist's output word equal the model's T_RES",
+   "status": "proved",
+   "seconds": 16.58
+  },
+  {
+   "name": "y.V_BUY",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 36,
+   "claim": "for every (s, x): bits 36..44 of the netlist's output word equal the model's V_BUY",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "y.V_HOLD",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 45,
+   "claim": "for every (s, x): bits 45..53 of the netlist's output word equal the model's V_HOLD",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "y.V_ALLOW",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 54,
+   "claim": "for every (s, x): bits 54..62 of the netlist's output word equal the model's V_ALLOW",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "y.V_RES",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 63,
+   "claim": "for every (s, x): bits 63..71 of the netlist's output word equal the model's V_RES",
+   "status": "proved",
+   "seconds": 0.001
+  },
+  {
+   "name": "y.REL",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 9,
+   "offset": 72,
+   "claim": "for every (s, x): bits 72..80 of the netlist's output word equal the model's REL",
+   "status": "proved",
+   "seconds": 26.26
+  },
+  {
+   "name": "y.FLAGS",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 8,
+   "offset": 96,
+   "claim": "for every (s, x): bits 96..103 of the netlist's output word equal the model's FLAGS",
+   "status": "proved",
+   "seconds": 11.316
+  },
+  {
+   "name": "y.AUX",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 8,
+   "offset": 104,
+   "claim": "for every (s, x): bits 104..111 of the netlist's output word equal the model's AUX",
+   "status": "proved",
+   "seconds": 30.363
+  },
+  {
+   "name": "ns.NDEF",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 6,
+   "offset": 48,
+   "claim": "for every (s, x): bits 48..53 of the netlist's next state equal the model's NDEF",
+   "status": "proved",
+   "seconds": 11.909
+  },
+  {
+   "name": "ns.NBANK",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 5,
+   "offset": 43,
+   "claim": "for every (s, x): bits 43..47 of the netlist's next state equal the model's NBANK",
+   "status": "proved",
+   "seconds": 0.124
+  },
+  {
+   "name": "ns.LIVE",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 4,
+   "offset": 32,
+   "claim": "for every (s, x): bits 32..35 of the netlist's next state equal the model's LIVE",
+   "status": "proved",
+   "seconds": 0.013
+  },
+  {
+   "name": "ns.MODE",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 3,
+   "offset": 24,
+   "claim": "for every (s, x): bits 24..26 of the netlist's next state equal the model's MODE",
+   "status": "proved",
+   "seconds": 12.855
+  },
+  {
+   "name": "ns.CD",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 3,
+   "offset": 40,
+   "claim": "for every (s, x): bits 40..42 of the netlist's next state equal the model's CD",
+   "status": "proved",
+   "seconds": 0.127
+  },
+  {
+   "name": "y.MODE",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 3,
+   "offset": 91,
+   "claim": "for every (s, x): bits 91..93 of the netlist's output word equal the model's MODE",
+   "status": "proved",
+   "seconds": 15.201
+  },
+  {
+   "name": "ns.PKDIV",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 22,
+   "claim": "for every (s, x): bits 22..23 of the netlist's next state equal the model's PKDIV",
+   "status": "proved",
+   "seconds": 0.007
+  },
+  {
+   "name": "ns.TIER",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 27,
+   "claim": "for every (s, x): bits 27..28 of the netlist's next state equal the model's TIER",
+   "status": "proved",
+   "seconds": 0.017
+  },
+  {
+   "name": "ns.WARM",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 30,
+   "claim": "for every (s, x): bits 30..31 of the netlist's next state equal the model's WARM",
+   "status": "proved",
+   "seconds": 0.02
+  },
+  {
+   "name": "ns.SUR",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 36,
+   "claim": "for every (s, x): bits 36..37 of the netlist's next state equal the model's SUR",
+   "status": "proved",
+   "seconds": 0.138
+  },
+  {
+   "name": "ns.TR",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 38,
+   "claim": "for every (s, x): bits 38..39 of the netlist's next state equal the model's TR",
+   "status": "proved",
+   "seconds": 19.043
+  },
+  {
+   "name": "y.TIER",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 2,
+   "offset": 94,
+   "claim": "for every (s, x): bits 94..95 of the netlist's output word equal the model's TIER",
+   "status": "proved",
+   "seconds": 0.037
+  },
+  {
+   "name": "ns.GSEEN",
+   "route": "twin",
+   "engine": "z3",
+   "bits": 1,
+   "offset": 29,
+   "claim": "for every (s, x): bits 29..29 of the netlist's next state equal the model's GSEEN",
+   "status": "proved",
+   "seconds": 0.02
+  }
+ ],
+ "canFail": {
+  "what": "the same queries against deliberately wrong formulas: each must be refuted",
+  "wallSeconds": 51.9,
+  "needles": [
+   {
+    "name": "ns.A",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.38,
+    "point": [
+     "0xdcf4bb99f4bea973",
+     "0xe7a269fd95bafc8f2a4d27b"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.PK",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.442,
+    "point": [
+     "0x15ba2bdd177219d3",
+     "0x2b491044d5e341245c6e4337"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.CLOCK",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.537,
+    "point": [
+     "0xcf1822ffbc688778",
+     "0x4ee207f8da94e3e8ab73738f"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.CEIL",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.441,
+    "point": [
+     "0x9b1f282e4067c358",
+     "0x925e4749b575bd13653f8dd"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_BUY",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.497,
+    "point": [
+     "0xae66267594c9c950",
+     "0x6e405d93ffed9235288bc781"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_HOLD",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.406,
+    "point": [
+     "0x64be8049a372db8f",
+     "0xdc38f519b91751dacdbd47d3"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_ALLOW",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.508,
+    "point": [
+     "0x82523e86feac7eb7",
+     "0x8b4f2fc15f3f57ebf30b94fa"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_RES",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 26.606,
+    "point": [
+     "0x71e1f6d2ef8acd12",
+     "0xe6b58de744ab6cce80877b6f"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_BUY",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.494,
+    "point": [
+     "0xdefc044a09325626",
+     "0x770348a05d300cb90706a045"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_HOLD",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.46,
+    "point": [
+     "0x5186ee32ee8d7ee9",
+     "0x6c71c4a66148a86fe8624fab"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_ALLOW",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.512,
+    "point": [
+     "0xe2520e33e44c5055",
+     "0x8f7d9b782a1be9cd8697bbd0"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_RES",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.514,
+    "point": [
+     "0x3c7295782d6c797f",
+     "0x2d3d854e061b90303b08c6e3"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.REL",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.722,
+    "point": [
+     "0x2c70501e533c9135",
+     "0x829e07b0829a48d422fe99a2"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.FLAGS",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.945,
+    "point": [
+     "0xffa9b9f15c14bc4a",
+     "0x8f54f8ceacaab39e83844b40"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.AUX",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.978,
+    "point": [
+     "0xfec3f6b32e8d4b8a",
+     "0xcbf8754472154e76e4c11ab2"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.NDEF",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 3.984,
+    "point": [
+     "0xbc01bfce6a27e0df",
+     "0xe89204e2e8168561867e5e15"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.NBANK",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 2.006,
+    "point": [
+     "0x5d3fd983c34c769f",
+     "0x5a91c89b97eeab64ca2ce6bc"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.LIVE",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.932,
+    "point": [
+     "0xfb2147df5ca495fa",
+     "0x721dea3bf63f23d0dbe53fca"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.MODE",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 40.704,
+    "point": [
+     "0xf4767f26294365b2",
+     "0xb714210c665d7435c1066932"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.CD",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 2.045,
+    "point": [
+     "0x761ebfd2bd143fa9",
+     "0x3ff98ff387c56473a7a83ee0"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.MODE",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 1.109,
+    "point": [
+     "0x47733e847d718d73",
+     "0x80371eb97f81375eecc1cb63"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.PKDIV",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.751,
+    "point": [
+     "0xd4dec9ef83f0be4e",
+     "0xa9643a295a9ac6decbd4d3e2"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.TIER",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.975,
+    "point": [
+     "0x74667bffe202849d",
+     "0x7604e4b4e73695c3e652c71a"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.WARM",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 1.42,
+    "point": [
+     "0x91551e8259cc60b1",
+     "0x8ebdbfe3eb9ac688b9d39cca"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.SUR",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 1.104,
+    "point": [
+     "0x74e088a9b9492f25",
+     "0x38c89b38a8acb5137c9260dc"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.TR",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 27.28,
+    "point": [
+     "0x531d6460f0caeef0",
+     "0xd5c44a4eb3172062d08f1bb2"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.TIER",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 1.058,
+    "point": [
+     "0xe06f291b2a838af8",
+     "0x44a4a8f69dc8db48e86ec9c6"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.GSEEN",
+    "route": "source",
+    "engine": "z3",
+    "seconds": 0.71,
+    "point": [
+     "0xe9500ec9c5e2486c",
+     "0x4da4daeb4f3f87777ad1f45a"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.A",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.985,
+    "point": [
+     "0xcc9c3adcf515a823",
+     "0x81167346d4c0dca8b4c9e755"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.PK",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.045,
+    "point": [
+     "0x848b1df78feb994a",
+     "0x9da59b74a6c3181c81e220df"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.CLOCK",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.021,
+    "point": [
+     "0x681b8f5896838b76",
+     "0x35339774bb1e386c4fd5079e"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.CEIL",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.014,
+    "point": [
+     "0x830b54fa7d28f934",
+     "0xaf29d115ef24bd625dd961e6"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_BUY",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.057,
+    "point": [
+     "0xe1cf4f589f8e4ce0",
+     "0xd205bbfcc8c69069134bccd3"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_HOLD",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.003,
+    "point": [
+     "0xb9d7d01f5769da05",
+     "0xd0a7bd04e85bfcdd0227eeb7"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_ALLOW",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.373,
+    "point": [
+     "0xff3fe32a30ffc4ee",
+     "0xf0ad2a81b2d19a2beaa14a7"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.T_RES",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 5.768,
+    "point": [
+     "0xa7251af0930cdbd3",
+     "0x9779ac1f45e9dd320c855fdf"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_BUY",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.011,
+    "point": [
+     "0xaeb6db2c3a038a70",
+     "0x1b343f52ea748db9e020307a"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_HOLD",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.004,
+    "point": [
+     "0x85b98f5fc11e60de",
+     "0x440e2b4fda9c025a22f1a831"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_ALLOW",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.002,
+    "point": [
+     "0xd322a7353ead4efe",
+     "0xe16dce72f18e859835e1f291"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.V_RES",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.002,
+    "point": [
+     "0x6c4454b90f756132",
+     "0xc268a20eb78ac332e5e138e2"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.REL",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.058,
+    "point": [
+     "0xe8a35b10828d569",
+     "0x2c0064975c3747465cc36c27"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.FLAGS",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 3.058,
+    "point": [
+     "0xac3a5b263fdf57cd",
+     "0x1d7f4275153924800600571f"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.AUX",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.035,
+    "point": [
+     "0x11457d9cf45e2fa0",
+     "0xbabb7fbb0a76c196067cfdcb"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.NDEF",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.043,
+    "point": [
+     "0x569c018eb2b5693",
+     "0x20b6a8464174e75a5f834da7"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.NBANK",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.03,
+    "point": [
+     "0xef9b6bf2d037fe2e",
+     "0x2f0981aebc1b00d92838e766"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.LIVE",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.02,
+    "point": [
+     "0xb105d83e85e95186",
+     "0x96e6bc4d62b47204007ee4fa"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.MODE",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 11.529,
+    "point": [
+     "0xcb4deeec0b0c995e",
+     "0x26c377c13f719726fd70bdda"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.CD",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.073,
+    "point": [
+     "0x948eccaf8877acf",
+     "0xf03f2d71581d8e830112ff0f"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.MODE",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.048,
+    "point": [
+     "0xa0b4a2969d8055a9",
+     "0x1cf5192bbf67da14be11d56b"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.PKDIV",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.009,
+    "point": [
+     "0x5653a45c49390aa5",
+     "0x4ef25c0707e338687d1f7157"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.TIER",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.007,
+    "point": [
+     "0x8d2f527e72daf0a5",
+     "0xbd6d25009aeb7fa0c4169b14"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.WARM",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.015,
+    "point": [
+     "0xe6eacb0f0bb7be72",
+     "0x66dfe717c17313394391b6e2"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.SUR",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.031,
+    "point": [
+     "0x9f20dbb0dcc93f0e",
+     "0x790813e32748dd1db4917fc0"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.TR",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.033,
+    "point": [
+     "0x39bc2ccdf572df00",
+     "0xaff9261aa92c0e6f17ec9406"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "y.TIER",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.005,
+    "point": [
+     "0xd6a179fa50f96cd4",
+     "0x72a47403063238da1a1fe3f9"
+    ],
+    "status": "refuted at the needle"
+   },
+   {
+    "name": "ns.GSEEN",
+    "route": "twin",
+    "engine": "z3",
+    "seconds": 0.006,
+    "point": [
+     "0xdff07870c9d531ae",
+     "0x84ae65e920a63ac1f2b64df6"
+    ],
+    "status": "refuted at the needle"
+   }
+  ],
+  "wrongConstants": [
+   {
+    "name": "FLOOR_T +1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x34672760ac600040",
+     "x": "0x170000003260000060227"
+    },
+    "seconds": 0.823,
+    "constant": "FLOOR_T 515 -> 516",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "RESMIN_Q -1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x7fa302dcf2500903",
+     "x": "0x8000000184000007a13a"
+    },
+    "seconds": 2.842,
+    "constant": "RESMIN_Q 389 -> 388",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "M2 +1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x20e00c023edb3e4",
+     "x": "0xd0000002800000071250"
+    },
+    "seconds": 1.022,
+    "constant": "M2 452 -> 453",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "DD_TH +1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0xbfff3cff38a6094c",
+     "x": "0x10000003800000071af2"
+    },
+    "seconds": 1.389,
+    "constant": "DD_TH 16 -> 17",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "XSURGE_TH -1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0xf43d2d882b9c067e",
+     "x": "0x120000003ae0000066bea"
+    },
+    "seconds": 43.412,
+    "constant": "XSURGE_TH 32 -> 31",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "CDN -1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0xa6bf091643076200",
+     "x": "0x100000000000000705e0"
+    },
+    "seconds": 1.673,
+    "constant": "CDN 6 -> 5",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "TR_MAX +1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x384077f9bdd9000",
+     "x": "0x20000002840000070123"
+    },
+    "seconds": 0.819,
+    "constant": "TR_MAX 64 -> 65",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "RC +1",
+    "route": "source",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0xc9f22883aed0bfc",
+     "x": "0xd00000000000000f7fe8"
+    },
+    "seconds": 1.288,
+    "constant": "RC 64 -> 65",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "FLOOR_T +1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0xfc422d63a3c61080",
+     "x": "0x150000002bf0000067e46"
+    },
+    "seconds": 0.279,
+    "constant": "FLOOR_T 515 -> 516",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "RESMIN_Q -1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x7d5c3b224afff325",
+     "x": "0x30000001840000016936"
+    },
+    "seconds": 0.067,
+    "constant": "RESMIN_Q 389 -> 388",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "M2 +1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0xfa5fbb094c404997",
+     "x": "0xd0000001b80000071214"
+    },
+    "seconds": 1.057,
+    "constant": "M2 452 -> 453",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "DD_TH +1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x96c00cf1f70e036c",
+     "x": "0x140000003660000060240"
+    },
+    "seconds": 0.043,
+    "constant": "DD_TH 16 -> 17",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "XSURGE_TH -1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x3dc1d50100cef824",
+     "x": "0x1c000006d268"
+    },
+    "seconds": 4.81,
+    "constant": "XSURGE_TH 32 -> 31",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "CDN -1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0xfedf3f2083e31018",
+     "x": "0x20000001b80000075328"
+    },
+    "seconds": 0.125,
+    "constant": "CDN 6 -> 5",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "TR_MAX +1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x7e400757a9e97220",
+     "x": "0x1600000033f0000070a8e"
+    },
+    "seconds": 0.176,
+    "constant": "TR_MAX 64 -> 65",
+    "status": "refuted, counterexample replayed"
+   },
+   {
+    "name": "RC +1",
+    "route": "twin",
+    "engine": "z3",
+    "counterexample": {
+     "s": "0x7d5f072c04afd408",
+     "x": "0xb0000000000000060b79"
+    },
+    "seconds": 0.257,
+    "constant": "RC 64 -> 65",
+    "status": "refuted, counterexample replayed"
+   }
+  ]
+ }
+}

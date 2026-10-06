@@ -13,7 +13,9 @@ What it does, on a LOCAL anvil fork of X Layer pinned at --block:
   5. runs `tapc difftest` (on-chain step versus the tapc simulator) on --n generated vectors plus the witness,
      the mode tour and the scenario traces, then compares every on-chain answer with the Python MODEL
      (chips/model/flow_governor.py) as well;
-  6. replays the witness (check 1 of the judge guide) with two plain eth_calls.
+  6. replays the witness (check 1 of the judge guide) with two plain eth_calls;
+  7. reads netlist(id) and circuitInfo(id) back from the fork and checks that the pin manifest
+     chips/out/fg.pins.json describes exactly that circuit (keccak256 of the bytes, nIn, nOut, nState).
 
 Results: chips/out/fg.fork.json, evidence chips/out/fg.difftest.jsonl.
 The test account is a key-less address funded and impersonated on the fork; no key exists, is read or is printed.
@@ -29,16 +31,19 @@ import sys
 import time
 import urllib.request
 
+sys.dont_write_bytecode = True      # this script imports from directories it does not own
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHIPS = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(CHIPS, "model"))
 sys.path.insert(0, os.path.join(CHIPS, "tools"))
 sys.path.insert(0, os.path.join(CHIPS, "props"))
+sys.path.insert(0, os.path.join(os.path.dirname(CHIPS), "docs", "taps", "assets"))
 
 import flow_governor as fg  # noqa: E402
 import scenarios as sc  # noqa: E402
 from flow_governor import km  # noqa: E402
 from tapc import difftest, netlist as tnl  # noqa: E402
+import pins_reference as pins  # noqa: E402  (reference implementation of the pin-manifest draft)
 
 FACTORY = "0x1f09daefa827f02cbb40967cc91b259763760761"
 UPSTREAM = "https://rpc.xlayer.tech"
@@ -181,10 +186,16 @@ def main(argv=None) -> int:
                   [(rng.getrandbits(64), rng.getrandbits(96)) for _ in range(6)] + [((1 << 64) - 1, (1 << 96) - 1)]
         gas = [step_gas(url, cpu, cid, s, x, 64) for s, x in samples]
         data_len = len(sh("cast", "calldata", "step(uint256,bytes,bytes)", str(cid), hx(0, 64), hx(0, 96))) // 2 - 1
+        n_nand, n_latch = chips["fg"]["nNand"], chips["fg"]["nLatch"]
         result["stepGas"] = {"method": "eth_estimateGas of step(id, state, inputs) from an EOA (includes the 21,000 "
                                        "base and calldata)", "samples": len(gas), "min": min(gas), "max": max(gas),
                              "mean": round(sum(gas) / len(gas)), "calldataBytes": data_len,
-                             "perGate": round(sum(gas) / len(gas) / chips["fg"]["gateCount"], 1)}
+                             "perGate": round(sum(gas) / len(gas) / chips["fg"]["gateCount"], 1),
+                             "allOnesStateAndInputs": gas[-1],
+                             # chips/INTERFACE.md section 2: what the kernel gives TapeOut's evaluator for one beat,
+                             # and the stated upper bound of what `step` needs
+                             "kernelBudget": 200_000 + 2_600 * (n_nand + n_latch) + 800 * n_latch,
+                             "interfaceNeedBound": 101_730 + 2_293 * n_nand + 3_059 * n_latch}
         gg = step_gas(url, cpu, chips["glutton"]["id"], 0, 0, 1)
         result["gluttonStepGas"] = gg
         print(f"step gas (Flow Governor, {len(gas)} samples): min {min(gas):,} max {max(gas):,} mean {sum(gas) // len(gas):,} "
@@ -246,6 +257,20 @@ def main(argv=None) -> int:
         print(f"witness on chain: {'OK' if wit_ok else 'FAILED'}: one input word, routes "
               f"{w['outA']['route']['modeName']} vs {w['outB']['route']['modeName']}")
 
+        # 7. the pin manifest against the circuit as the chain holds it
+        with open(os.path.join(out_dir, "fg.pins.json"), "rb") as f:
+            pm_bytes = f.read()
+        pm = pins.parse(pm_bytes)
+        chain_nl = bytes.fromhex(sh("cast", "call", cpu, "netlist(uint256)(bytes)", str(cid), "--rpc-url", url)[2:])
+        info = sh("cast", "call", cpu, "circuitInfo(uint256)(uint32,uint32,uint32,uint32)", str(cid), "--rpc-url", url).split("\n")
+        c_in, c_out, c_state, _ = (int(v.split()[0]) for v in info)
+        pm_problems = pins.validate(pm) + pins.check_binding(pm, chain_nl, c_in, c_out, c_state, chain_id=196)
+        result["pinManifest"] = {"file": "chips/out/fg.pins.json", "sha256": pins.sha256(pm_bytes),
+                                 "netlistHash": pm["circuit"]["netlistHash"], "profile": pm["profile"],
+                                 "describesTheForkCircuit": not pm_problems, "problems": pm_problems}
+        print(f"pin manifest {pins.sha256(pm_bytes)}: "
+              f"{'describes the taped-out circuit' if not pm_problems else 'DOES NOT describe it: ' + '; '.join(pm_problems)}")
+
         # Glutton: a short differential test and its constant demands
         for name in ("glutton", "glutton512"):
             c = chips[name]
@@ -259,7 +284,7 @@ def main(argv=None) -> int:
         for c in chips.values():
             c.pop("tap")
         result["chips"] = chips
-        ok = (r.ok and model_bad == 0 and wit_ok and all(c.get("difftest", {"mismatched": 0, "errors": 0})["mismatched"] == 0
+        ok = (r.ok and model_bad == 0 and wit_ok and not pm_problems and all(c.get("difftest", {"mismatched": 0, "errors": 0})["mismatched"] == 0
                                                          and c.get("difftest", {"errors": 0})["errors"] == 0
                                                          for c in chips.values()))
         result["ok"] = ok

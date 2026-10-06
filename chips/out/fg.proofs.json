@@ -1,9 +1,9 @@
 {
  "format": "covenant-proofs/1",
  "chip": "flow-governor",
- "keccak256": "0x2fd0e007398296a5845c8a7e3b99d5149d6c02ae670afe373abd191fb2591a89",
- "bytes": 13479,
- "nNand": 1889,
+ "keccak256": "0xe548768a1adafa7331faacfd029e1a829b00af3f7d769657f3b234ccdd7143b4",
+ "bytes": 13472,
+ "nNand": 1888,
  "nLatch": 64,
  "ok": true,
  "space": "every 64-bit state and every 96-bit input word (2^160 pairs), except P7 which is a witness",
@@ -24,7 +24,7 @@
   "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
   "z3": "5.1.0"
  },
- "wallSeconds": 112.7,
+ "wallSeconds": 33.1,
  "groups": [
   {
    "id": "P1",
@@ -72,445 +72,445 @@
    "name": "EQ fg_core == netlist bytes",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 90.853
+   "seconds": 3.912
   },
   {
    "name": "EQ fg_core == netlist bytes",
    "engine": "z3",
    "status": "proved",
-   "seconds": 112.483
+   "seconds": 32.962
   },
   {
    "name": "fg_props.p1_t_sum",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.477
+   "seconds": 0.151
   },
   {
    "name": "fg_props.p1_t_sum",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.257
+   "seconds": 0.717
   },
   {
    "name": "fg_props.p1_t_each",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.442
+   "seconds": 0.152
   },
   {
    "name": "fg_props.p1_t_each",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.309
+   "seconds": 0.748
   },
   {
    "name": "fg_props.p1_v_sum",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.27
+   "seconds": 0.093
   },
   {
    "name": "fg_props.p1_v_sum",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.475
+   "seconds": 0.48
   },
   {
    "name": "fg_props.p1_v_each",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.332
+   "seconds": 0.087
   },
   {
    "name": "fg_props.p1_v_each",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.56
+   "seconds": 0.466
   },
   {
    "name": "fg_props.p1_hold_zero",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.278
+   "seconds": 0.076
   },
   {
    "name": "fg_props.p1_hold_zero",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.48
+   "seconds": 0.473
   },
   {
    "name": "fg_props.p2_allow_cap",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.304
+   "seconds": 0.094
   },
   {
    "name": "fg_props.p2_allow_cap",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.144
+   "seconds": 0.758
   },
   {
    "name": "fg_props.p2_vallow_cap",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.292
+   "seconds": 0.101
   },
   {
    "name": "fg_props.p2_vallow_cap",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.014
+   "seconds": 0.451
   },
   {
    "name": "fg_props.p2_rel_cap",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.407
+   "seconds": 0.135
   },
   {
    "name": "fg_props.p2_rel_cap",
    "engine": "z3",
    "status": "proved",
-   "seconds": 3.603
+   "seconds": 0.76
   },
   {
    "name": "fg_props.p2_floor",
    "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.136
+  },
+  {
+   "name": "fg_props.p2_floor",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.819
+  },
+  {
+   "name": "fg_props.p2_floor_always",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.14
+  },
+  {
+   "name": "fg_props.p2_floor_always",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 1.622
+  },
+  {
+   "name": "fg_props.p2_ceil",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.081
+  },
+  {
+   "name": "fg_props.p2_ceil",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.589
+  },
+  {
+   "name": "fg_props.p2_ceil_finite",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.092
+  },
+  {
+   "name": "fg_props.p2_ceil_finite",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.464
+  },
+  {
+   "name": "fg_props.p3_tier_up",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.123
+  },
+  {
+   "name": "fg_props.p3_tier_up",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.599
+  },
+  {
+   "name": "fg_props.p3_tier_out",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.126
+  },
+  {
+   "name": "fg_props.p3_tier_out",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.467
+  },
+  {
+   "name": "fg_props.p3_allow_bound",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.129
+  },
+  {
+   "name": "fg_props.p3_allow_bound",
+   "engine": "z3",
+   "status": "proved",
+   "seconds": 0.69
+  },
+  {
+   "name": "fg_props.p3_ceil_exact",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "seconds": 0.116
+  },
+  {
+   "name": "fg_props.p3_ceil_exact",
+   "engine": "z3",
    "status": "proved",
    "seconds": 0.602
   },
   {
-   "name": "fg_props.p2_floor",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 8.254
-  },
-  {
-   "name": "fg_props.p2_floor_always",
-   "engine": "yosys-sat",
-   "status": "proved",
-   "seconds": 0.676
-  },
-  {
-   "name": "fg_props.p2_floor_always",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 7.339
-  },
-  {
-   "name": "fg_props.p2_ceil",
-   "engine": "yosys-sat",
-   "status": "proved",
-   "seconds": 0.405
-  },
-  {
-   "name": "fg_props.p2_ceil",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 2.845
-  },
-  {
-   "name": "fg_props.p2_ceil_finite",
-   "engine": "yosys-sat",
-   "status": "proved",
-   "seconds": 0.476
-  },
-  {
-   "name": "fg_props.p2_ceil_finite",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 2.088
-  },
-  {
-   "name": "fg_props.p3_tier_up",
-   "engine": "yosys-sat",
-   "status": "proved",
-   "seconds": 0.665
-  },
-  {
-   "name": "fg_props.p3_tier_up",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 2.81
-  },
-  {
-   "name": "fg_props.p3_tier_out",
-   "engine": "yosys-sat",
-   "status": "proved",
-   "seconds": 0.66
-  },
-  {
-   "name": "fg_props.p3_tier_out",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 1.248
-  },
-  {
-   "name": "fg_props.p3_allow_bound",
-   "engine": "yosys-sat",
-   "status": "proved",
-   "seconds": 0.511
-  },
-  {
-   "name": "fg_props.p3_allow_bound",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 1.72
-  },
-  {
-   "name": "fg_props.p3_ceil_exact",
-   "engine": "yosys-sat",
-   "status": "proved",
-   "seconds": 0.392
-  },
-  {
-   "name": "fg_props.p3_ceil_exact",
-   "engine": "z3",
-   "status": "proved",
-   "seconds": 1.378
-  },
-  {
    "name": "fg_props.p3_tier_frozen_grad",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.321
+   "seconds": 0.13
   },
   {
    "name": "fg_props.p3_tier_frozen_grad",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.449
+   "seconds": 0.609
   },
   {
    "name": "fg_props.p3_mono_allow",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 6.875
+   "seconds": 1.468
   },
   {
    "name": "fg_props.p3_mono_allow",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.912
+   "seconds": 0.711
   },
   {
    "name": "fg_props.p3_mono_ceil",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.337
+   "seconds": 0.135
   },
   {
    "name": "fg_props.p3_mono_ceil",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.855
+   "seconds": 0.6
   },
   {
    "name": "fg_props.p3_no_allow_grad",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.29
+   "seconds": 0.082
   },
   {
    "name": "fg_props.p3_no_allow_grad",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.022
+   "seconds": 0.805
   },
   {
    "name": "fg_props.p4_init",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.252
+   "seconds": 0.099
   },
   {
    "name": "fg_props.p4_init",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.225
+   "seconds": 0.508
   },
   {
    "name": "fg_props.p4_step",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.386
+   "seconds": 0.195
   },
   {
    "name": "fg_props.p4_step",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.977
+   "seconds": 0.797
   },
   {
    "name": "fg_props.p4_mode_out",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.324
+   "seconds": 0.121
   },
   {
    "name": "fg_props.p4_mode_out",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.131
+   "seconds": 0.482
   },
   {
    "name": "fg_props.p5_ignored",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 10.911
+   "seconds": 4.215
   },
   {
    "name": "fg_props.p5_ignored",
    "engine": "z3",
    "status": "proved",
-   "seconds": 1.251
+   "seconds": 0.49
   },
   {
    "name": "fg_props.p6_no_release",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.34
+   "seconds": 0.144
   },
   {
    "name": "fg_props.p6_no_release",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.85
+   "seconds": 0.739
   },
   {
    "name": "fg_props.p6_counts_down",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.295
+   "seconds": 0.158
   },
   {
    "name": "fg_props.p6_counts_down",
    "engine": "z3",
    "status": "proved",
-   "seconds": 3.133
+   "seconds": 0.621
   },
   {
    "name": "fg_props.p6_stays",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.728
+   "seconds": 0.141
   },
   {
    "name": "fg_props.p6_stays",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.974
+   "seconds": 0.798
   },
   {
    "name": "fg_props.p6_tranche_flag",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.689
+   "seconds": 0.139
   },
   {
    "name": "fg_props.p6_tranche_flag",
    "engine": "z3",
    "status": "proved",
-   "seconds": 33.143
+   "seconds": 10.15
   },
   {
    "name": "fg_props.p6_defend_shares",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.379
+   "seconds": 0.159
   },
   {
    "name": "fg_props.p6_defend_shares",
    "engine": "z3",
    "status": "proved",
-   "seconds": 3.096
+   "seconds": 0.871
   },
   {
    "name": "fg_props.px_dt0",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 2.677
+   "seconds": 1.258
   },
   {
    "name": "fg_props.px_dt0",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.173
+   "seconds": 0.578
   },
   {
    "name": "fg_props.px_gseen",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.591
+   "seconds": 0.159
   },
   {
    "name": "fg_props.px_gseen",
    "engine": "z3",
    "status": "proved",
-   "seconds": 2.305
+   "seconds": 0.506
   },
   {
    "name": "fg_props.px_grad_step",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 0.665
+   "seconds": 0.178
   },
   {
    "name": "fg_props.px_grad_step",
    "engine": "z3",
    "status": "proved",
-   "seconds": 3.413
+   "seconds": 0.818
   },
   {
    "name": "fg_witness.w_reach_a",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 2.531
+   "seconds": 0.529
   },
   {
    "name": "fg_witness.w_reach_b",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 3.322
+   "seconds": 0.962
   },
   {
    "name": "fg_witness.w_same_x_different_route",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 3.322
+   "seconds": 0.962
   },
   {
    "name": "fg_witness.w_out_a",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 3.322
+   "seconds": 0.962
   },
   {
    "name": "fg_witness.w_out_b",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 3.322
+   "seconds": 0.962
   },
   {
    "name": "fg_witness.w_tour_modes",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 3.322
+   "seconds": 0.962
   },
   {
    "name": "fg_witness.w_tour_end",
    "engine": "yosys-sat",
    "status": "proved",
-   "seconds": 3.322
+   "seconds": 0.962
   },
   {
    "name": "bytes: P7 witness chains and mode tour (26 concrete steps)",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.037
+   "seconds": 0.02
   },
   {
    "name": "bytes: p1_no_holder_share",
@@ -522,139 +522,139 @@
    "name": "bytes: p1_t_group_sums_to_256",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.47
+   "seconds": 0.212
   },
   {
    "name": "bytes: p1_v_group_sums_to_256",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.001
+   "seconds": 0.0
   },
   {
    "name": "bytes: p2_k2_allowance_cap",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.929
+   "seconds": 0.214
   },
   {
    "name": "bytes: p2_k2c_ceiling",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.507
+   "seconds": 0.1
   },
   {
    "name": "bytes: p2_k2v_revenue_allowance_cap",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.001
+   "seconds": 0.0
   },
   {
    "name": "bytes: p2_k3_release_cap",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.987
+   "seconds": 0.193
   },
   {
    "name": "bytes: p2_k5_floor_for_every_reserve",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.879
+   "seconds": 0.213
   },
   {
    "name": "bytes: p2_k5_reserve_floor",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.887
+   "seconds": 0.193
   },
   {
    "name": "bytes: p3_allowance_bounded_by_tier",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.841
+   "seconds": 0.177
   },
   {
    "name": "bytes: p3_graduated_tier_frozen_and_no_allowance",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.006
+   "seconds": 0.001
   },
   {
    "name": "bytes: p3_higher_tier_never_loosens",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.894
+   "seconds": 0.19
   },
   {
    "name": "bytes: p3_tier_never_decreases",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.823
+   "seconds": 0.185
   },
   {
    "name": "bytes: p4_invariant_holds_at_reset",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.002
+   "seconds": 0.001
   },
   {
    "name": "bytes: p4_invariant_is_inductive",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.922
+   "seconds": 0.217
   },
   {
    "name": "bytes: p4_mode_output_is_mode_latch",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.011
+   "seconds": 0.001
   },
   {
    "name": "bytes: p5_unused_inputs_ignored",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.001
+   "seconds": 0.0
   },
   {
    "name": "bytes: p6_cooldown",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.866
+   "seconds": 0.208
   },
   {
    "name": "bytes: p6_release_above_leak_is_a_flagged_tranche",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.844
+   "seconds": 0.236
   },
   {
    "name": "bytes: px_dt_zero_reads_as_one",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.017
+   "seconds": 0.005
   },
   {
    "name": "bytes: px_graduation_seen_once",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.425
+   "seconds": 0.125
   },
   {
    "name": "bytes: px_graduation_step_only_reseeds",
    "engine": "z3",
    "status": "proved",
-   "seconds": 0.932
+   "seconds": 0.298
   },
   {
    "name": "P7 witness and tour replayed on the bytes",
    "engine": "tapc.sim",
    "status": "proved",
-   "seconds": 0.006
+   "seconds": 0.003
   },
   {
    "name": "K2L never binds (lifetime cap)",
    "engine": "argument + randomized test",
    "status": "proved",
-   "seconds": 1.159,
+   "seconds": 0.572,
    "detail": "200000 random settles with the allowance share at capT: 0 K2L hits"
   }
  ]

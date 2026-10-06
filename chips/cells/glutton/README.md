@@ -20,31 +20,36 @@ The single latch is a heartbeat: it toggles every beat and is shown in `AUX` bit
 
 ## What the kernel does with it
 
-Run `demo.py`. It evaluates the bytes, routes them with `chips/golden/kernel_model.route_tax` under the reference envelope (`capT 48`, `allowCumBps 1875`, `ceilMax 440`, `relMax 128`, `floorRel 2`, `floorMin 1`) and prints the clamp bits and the amounts.
+Run `demo.py`. It evaluates the bytes inside the revision-2 kernel model of `chips/model/scenarios.py` (clamps by `chips/golden/kernel_model.route_tax`, buys sized on the simulated curve, the tax of the kernel's own buys returning as inflow) under the reference envelope (`capT 48`, `allowCumBps 1875`, `ceilMax 440`, `relMax 128`, `floorRel 2`, `floorMin 1`) and prints the clamp bits and the amounts.
 
 **`glutton`: clampBits = `K2 | K3` = 36 on every settle, `K2 | K2C | K3` = 44 on a very large one.**
 
 | Clamp | What it does here |
 |---|---|
 | `K1T` | Does not fire: the share group is well formed |
-| `K2` | Clips the allowance share from 256 to `capT` = 48 (18.75%). The other 81.25% stays in the reserve |
+| `K2` | Clips the allowance share from 256 to `capT` = 48 (18.75% of inflow). The other 81.25% stays in the reserve |
 | `K2C` | Fires only when 18.75% of the inflow exceeds `exp8(440)` = 0.0338 OKB: the allowance is cut to that amount |
 | `K2L` | Never fires: 1875/10000 equals 48/256, so the lifetime cap cannot bind once `K2` has acted |
 | `K3` | Clips the release from 256 to `relMax` = 128: half the reserve per settle, and a release can only buy and lock |
 | `K5` | Does not fire: Glutton asks for more than the floor |
 
-What is actually routed, from `demo.py`:
+What is actually routed, from `demo.py`. Percentages are of the tax that outside trading paid; "bought" is net of the 3% buy tax that the kernel's own buys send round again; "left" is the reserve at the end plus what still waits in the vault:
 
-| Flow | Chip | Clamp bits | Allowance | Bought and locked | Left in reserve |
+| Flow | Chip | Clamp bits | Allowance | Bought and locked | Left |
 |---|---|---|---|---|---|
-| Steady, 0.005 OKB per epoch, 60 epochs | glutton | `K2+K3` | 18.75% | 78.54% | 2.7% (half of it leaves every settle) |
-| | glutton512 | `K1T+K3` | 0% | 96.67% | 3.3% |
-| | flow-governor | none | 8.33% | 71.65% | 20.0% |
-| One epoch with 3 OKB of tax among ordinary ones | glutton | `K2+K2C+K3` once, else `K2+K3` | 3.64% | 96.12% | 0.2% |
-| | glutton512 | `K1T+K3` | 0% | 99.71% | 0.3% |
-| | flow-governor | none | 0.90% | 72.26% | 26.8% |
+| Steady, 0.005 OKB per epoch, 60 epochs | glutton | `K2+K3` | 19.19% | 77.99% | 2.8% (half of the reserve leaves every settle) |
+| | glutton512 | `K1T+K3` | 0% | 96.51% | 3.5% |
+| | flow-governor | none | 8.50% | 71.00% | 20.5% |
+| One epoch with 3 OKB of tax among ordinary ones | glutton | `K2+K2C+K3` once, else `K2+K3` | 4.20% | 95.56% | 0.2% |
+| | glutton512 | `K1T+K3` | 0% | 99.70% | 0.3% |
+| | flow-governor | none | 0.95% | 69.64% | 29.4% |
+| Sparse dollar-sized buys, 300 epochs | glutton | `K2+K3` | 19.21% | 79.78% | 1.0% |
+| | glutton512 | `K1T+K3` | 0% | 98.74% | 1.3% |
+| | flow-governor | none | 10.33% | 84.73% | 4.9% |
 
 So Glutton gets exactly the cap and nothing more, and it cannot keep the rest: the reserve it is forced to leave behind is bought and locked at half per settle.
+
+**Why 19.2% and not 18.75%.** The cap is 48/256 of inflow, and it holds on every settle (`demo.py` asserts it). But inflow is not only the tax traders paid: every OKB the kernel spends on the curve pays the 3% buy tax into the kernel's own vault, and that comes back as inflow one settle later. Glutton takes 18.75% of that too. Against the tax outside trading paid, a chip that always takes the cap therefore ends at 18.75 / (1 - 0.03 x 0.8125) = 19.2%. That is the most any chip can take under this envelope with a 3% buy tax; the lifetime cap `K2L` counts the same inflow and never fires.
 
 **`glutton512`: clampBits = `K1T | K3` = 33 on every settle.** A share group that does not sum to 256 is treated as 100% reserve. The allowance is zero. The kernel does not revert, the state still advances, and the reserve still leaves through the clipped release. (The revenue group is malformed the same way and would set `K1V` on kernel v2.)
 
@@ -74,4 +79,4 @@ On the local fork (block 72373000, `chips/out/fg.fork.json`): tape-out of Glutto
 
 ## Shadow-running Glutton on the reference token
 
-`step` is a free read call and the kernel records every settle, so anyone can ask "what would Glutton have done with this token's real flows?" without a wallet. `RES` and `TAXCUM` depend on the chip's own past decisions, so a shadow-run replays amounts, not recorded input words: start from the recorded inflows, rebuild each input word with the kernel arithmetic, step the Glutton bytes and route the answer (`demo.py` does exactly this with `scenarios.Kernel`).
+`step` is a free read call and the kernel records every settle, so anyone can ask "what would Glutton have done with this token's real flows?" without a wallet. `RES`, `TAXCUM` and even `TAX` depend on the chip's own past decisions (what it bought comes back as tax), so a shadow-run replays the tax of outside trading, not recorded input words: rebuild each input word with the kernel arithmetic, step the Glutton bytes, route the answer and move the simulated curve (`demo.py` does exactly this with `scenarios.run`).

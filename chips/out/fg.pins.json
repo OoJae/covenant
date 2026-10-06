@@ -1,0 +1,438 @@
+{
+  "tapepins": "0.1",
+  "name": "flow-governor",
+  "description": "Flow Governor, a Covenant vault chip (interface v1). Once per epoch a kernel contract builds the 96 input bits from chain state and runs one beat. The chip keeps a moving average of tax per epoch and the recent peak of that average in its 64 latches, and answers with the shares that route this epoch's tax: an immediate buy-and-lock, an allowance that steps down for good as cumulative tax passes three milestones, and a reserve. It banks more when the rate jumps to twice the recent peak, releases the reserve in tranches after a drawdown or a drought and pays no allowance while doing so. The reset state is all zeros. The four telemetry outputs are proven to follow the latches and the routing; the kernel does not act on them.",
+  "circuit": {
+    "netlistHash": "0xe548768a1adafa7331faacfd029e1a829b00af3f7d769657f3b234ccdd7143b4"
+  },
+  "profile": {
+    "name": "covenant-v1",
+    "sha256": "0x77a721cda1c499ae4ffcad1a02a9bbb75bfce2a5773e587adbc77bd660756eb5"
+  },
+  "nIn": 96,
+  "nOut": 112,
+  "nState": 64,
+  "inputs": [
+    {
+      "name": "TAX",
+      "offset": 0,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Fresh inflow of the regime asset recognised by this settle. The Flow Governor turns it into a rate per epoch with DT and measures it above a floor (code 346 on the curve, code 515 after graduation)."
+    },
+    {
+      "name": "TAXCUM",
+      "offset": 10,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Cumulative inflow in the current regime, this settle included. Restarts at graduation. The allowance tier steps up at codes 425, 452 and 479 (curve regime only)."
+    },
+    {
+      "name": "REV",
+      "offset": 20,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Revenue since the last step. Kernel v1 always writes 0. The Flow Governor ignores this field."
+    },
+    {
+      "name": "REVCUM",
+      "offset": 30,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Cumulative revenue. Kernel v1 always writes 0. The Flow Governor ignores this field."
+    },
+    {
+      "name": "RES",
+      "offset": 40,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Reserve of the regime asset before this settle's routing. A DEFEND window opens only at or above code 389 (code 558 after graduation)."
+    },
+    {
+      "name": "ESC",
+      "offset": 50,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Holder escrow. Kernel v1 always writes 0. The Flow Governor ignores this field."
+    },
+    {
+      "name": "PROG",
+      "offset": 60,
+      "width": 8,
+      "encoding": "uint",
+      "scale": [
+        1,
+        255
+      ],
+      "values": {
+        "255": "graduated"
+      },
+      "unit": "of the sellable supply",
+      "description": "Curve progress: tokens sold times 255 divided by the sellable supply, rounded down, at most 254 while on the curve; 255 once graduated. The Flow Governor ignores this field."
+    },
+    {
+      "name": "LOCK",
+      "offset": 68,
+      "width": 8,
+      "encoding": "uint",
+      "scale": [
+        1,
+        255
+      ],
+      "unit": "of the total supply",
+      "description": "Tokens locked or burned by the kernel times 255 divided by the total supply, rounded down. The Flow Governor ignores this field."
+    },
+    {
+      "name": "DT",
+      "offset": 76,
+      "width": 4,
+      "encoding": "uint",
+      "min": 1,
+      "max": 15,
+      "values": {
+        "15": "15 or more"
+      },
+      "unit": "epochs",
+      "description": "Epochs since the last persisted step. The Flow Governor reads 0 as 1 and advances every timer by this number."
+    },
+    {
+      "name": "GRAD",
+      "offset": 80,
+      "width": 1,
+      "encoding": "bool",
+      "description": "True once the token has graduated from the curve. On the first beat that sees it the Flow Governor drops its averages and timers and seeds them again in token units; from then on it asks for no allowance."
+    },
+    {
+      "name": "ZERO",
+      "offset": 81,
+      "width": 15,
+      "encoding": "zero",
+      "description": "Always 0. A chip must ignore these bits."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "T_BUY",
+      "offset": 0,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Share of fresh tax to buy-and-lock."
+    },
+    {
+      "name": "T_HOLD",
+      "offset": 9,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Holder share of fresh tax. Kernel v1 adds it to the reserve. Always 0 in the Flow Governor."
+    },
+    {
+      "name": "T_ALLOW",
+      "offset": 18,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Allowance share of fresh tax. At most 48, by tier; 0 while defending and after graduation."
+    },
+    {
+      "name": "T_RES",
+      "offset": 27,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Reserve share of fresh tax."
+    },
+    {
+      "name": "V_BUY",
+      "offset": 36,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Share of fresh revenue to buy-and-lock. Kernel v1 ignores it. Always 0 in the Flow Governor."
+    },
+    {
+      "name": "V_HOLD",
+      "offset": 45,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Holder share of fresh revenue. Kernel v1 ignores it. Always 0 in the Flow Governor."
+    },
+    {
+      "name": "V_ALLOW",
+      "offset": 54,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Allowance share of fresh revenue. Kernel v1 ignores it. Always 0 in the Flow Governor."
+    },
+    {
+      "name": "V_RES",
+      "offset": 63,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Reserve share of fresh revenue. Kernel v1 ignores it. Always 256 in the Flow Governor."
+    },
+    {
+      "name": "REL",
+      "offset": 72,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the pre-settle reserve",
+      "description": "Share of the pre-settle reserve released into buy-and-lock. 2 per elapsed epoch in every mode; a tranche of 32 to 128 while defending."
+    },
+    {
+      "name": "CEIL",
+      "offset": 81,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "values": {
+        "1023": "none"
+      },
+      "unit": "base units of the regime asset",
+      "description": "Ceiling on this settle's allowance amount. Code 440 less 8 per tier; never 1023."
+    },
+    {
+      "name": "MODE",
+      "offset": 91,
+      "width": 3,
+      "encoding": "enum",
+      "values": {
+        "0": "IDLE",
+        "1": "CRUISE",
+        "2": "BANK",
+        "3": "DEFEND",
+        "4": "REST"
+      },
+      "description": "Mode after this beat; equal to the MODE latch. With a settle every epoch it names the routing of this settle."
+    },
+    {
+      "name": "TIER",
+      "offset": 94,
+      "width": 2,
+      "encoding": "uint",
+      "min": 0,
+      "max": 3,
+      "description": "Allowance tier after this beat; equal to the TIER latch. It never decreases."
+    },
+    {
+      "name": "FLAGS",
+      "offset": 96,
+      "width": 8,
+      "encoding": "flags",
+      "bits": [
+        "surge",
+        "dip",
+        "quiet",
+        "release",
+        "regime",
+        "tierup",
+        "cooldown",
+        "warm"
+      ],
+      "description": "surge: the reading is at least twice the recent peak. dip: it is at most half the average. quiet: it is at or below the floor. release: this beat routes as DEFEND and releases a tranche. regime: graduation is seen in this beat. tierup: the tier stepped up. cooldown: the chip is in REST after this beat. warm: cold start or warm-up."
+    },
+    {
+      "name": "AUX",
+      "offset": 104,
+      "width": 8,
+      "encoding": "uint",
+      "unit": "codes",
+      "description": "Drawdown depth: codes by which the average sits below its decaying peak, at most 255."
+    }
+  ],
+  "state": [
+    {
+      "name": "A",
+      "offset": 0,
+      "width": 12,
+      "encoding": "uint",
+      "max": 2708,
+      "scale": [
+        1,
+        4
+      ],
+      "unit": "codes above the floor",
+      "description": "Average tax rate per epoch, in quarter-codes above the regime floor (0 = at the floor)."
+    },
+    {
+      "name": "PK",
+      "offset": 12,
+      "width": 10,
+      "encoding": "uint",
+      "max": 677,
+      "unit": "codes above the floor",
+      "description": "Decaying peak of the average, in codes above the regime floor."
+    },
+    {
+      "name": "PKDIV",
+      "offset": 22,
+      "width": 2,
+      "encoding": "uint",
+      "unit": "epochs",
+      "description": "Peak-decay prescaler: the peak loses one code every 4 elapsed epochs."
+    },
+    {
+      "name": "MODE",
+      "offset": 24,
+      "width": 3,
+      "encoding": "enum",
+      "values": {
+        "0": "IDLE",
+        "1": "CRUISE",
+        "2": "BANK",
+        "3": "DEFEND",
+        "4": "REST"
+      },
+      "description": "0 IDLE, 1 CRUISE, 2 BANK, 3 DEFEND, 4 REST."
+    },
+    {
+      "name": "TIER",
+      "offset": 27,
+      "width": 2,
+      "encoding": "uint",
+      "min": 0,
+      "max": 3,
+      "description": "Allowance ratchet tier 0..3; never decreases."
+    },
+    {
+      "name": "GSEEN",
+      "offset": 29,
+      "width": 1,
+      "encoding": "bool",
+      "description": "Graduation already seen (the re-seed happens once)."
+    },
+    {
+      "name": "WARM",
+      "offset": 30,
+      "width": 2,
+      "encoding": "uint",
+      "unit": "epochs",
+      "description": "Warm-up epochs left after a cold start (no surge classification, average jumps up)."
+    },
+    {
+      "name": "LIVE",
+      "offset": 32,
+      "width": 4,
+      "encoding": "uint",
+      "max": 8,
+      "unit": "epochs",
+      "description": "Epochs of patience left before a drought is declared; 0 = cold (average is stale)."
+    },
+    {
+      "name": "SUR",
+      "offset": 36,
+      "width": 2,
+      "encoding": "uint",
+      "description": "Surge meter 0..3: +1 per surge epoch, -1 per other epoch; BANK starts at 2, ends at 0."
+    },
+    {
+      "name": "TR",
+      "offset": 38,
+      "width": 2,
+      "encoding": "uint",
+      "unit": "epochs",
+      "description": "Tranche epochs left in the open DEFEND window."
+    },
+    {
+      "name": "CD",
+      "offset": 40,
+      "width": 3,
+      "encoding": "uint",
+      "max": 5,
+      "unit": "epochs",
+      "description": "Cooldown epochs left in REST."
+    },
+    {
+      "name": "NBANK",
+      "offset": 43,
+      "width": 5,
+      "encoding": "uint",
+      "description": "Lifetime count of BANK episodes (saturates at 31); telemetry only."
+    },
+    {
+      "name": "NDEF",
+      "offset": 48,
+      "width": 6,
+      "encoding": "uint",
+      "description": "Lifetime count of DEFEND windows opened (saturates at 63); telemetry only."
+    },
+    {
+      "name": "CLOCK",
+      "offset": 54,
+      "width": 10,
+      "encoding": "uint",
+      "unit": "epochs",
+      "description": "Elapsed epochs modulo 1024 (advances by DT on every step); telemetry only."
+    }
+  ]
+}

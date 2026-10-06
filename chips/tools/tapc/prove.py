@@ -179,7 +179,10 @@ def equiv_yosys(sources: Sequence[str], top: str, tap, n_in: Optional[int] = Non
         f.write(to_verilog(nl, module=gate))
     script = "\n".join(_elaborate(local, top) + [
         "read_verilog gate.v",
-        f"miter -equiv -flatten -make_outputs -ignore_gold_x {top} {gate} tapc_miter",
+        # Two-sided: every output bit of the gate netlist must equal the RTL's. (-ignore_gold_x would let
+        # an undriven RTL bit read as 0 and turn the check into "netlist >= RTL" wherever the RTL is not
+        # constant; the RTL has no x, so the flag is not needed.)
+        f"miter -equiv -flatten -make_outputs {top} {gate} tapc_miter",
         "hierarchy -top tapc_miter",
         "log TAPC-BEGIN equiv",
         f"sat -prove trigger 0 -show-inputs -show-outputs -timeout {int(timeout)} tapc_miter",
