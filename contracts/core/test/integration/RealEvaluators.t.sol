@@ -77,7 +77,7 @@ contract RealEvaluatorsTest is Test {
             address(impl),
             address(impl).codehash
         );
-        lens = new Lens();
+        lens = new Lens(address(factory));
         vm.deal(alice, 10_000 ether);
         KernelMath.OutputFields memory o;
         o.tBuy = 128;

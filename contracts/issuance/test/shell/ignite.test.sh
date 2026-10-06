@@ -74,9 +74,12 @@ new_repo() {
     echo "library Story {}" >contracts/issuance/script/lib/Story.sol
     echo "contract T {}" >contracts/issuance/test/T.t.sol
     printf '/out/\n/cache/\n/lib/\n' >contracts/issuance/.gitignore
+    printf '.env\n' >.gitignore   # as in the real repository: a .env file never shows in git status
     echo "readme" >README.md
     cp "$WRAPPER" contracts/issuance/script/ignite.sh
     chmod +x contracts/issuance/script/ignite.sh
+    mkdir -p contracts/issuance/lib/openzeppelin-contracts
+    printf '{\n  "name": "openzeppelin-solidity",\n  "version": "5.4.0"\n}\n' >contracts/issuance/lib/openzeppelin-contracts/package.json
     git add -A
     git commit -q -m "issuance"
     git init -q --bare -b main "$origin"
@@ -110,7 +113,7 @@ expect_has "$(call 1)" "$SIM" "the simulation command"
 expect_has "$(call 1)" "COMMIT=[$head]" "COMMIT is git rev-parse HEAD"
 expect_eq "${#head}" 40 "a full 40 character commit"
 expect_has "$(call 1)" "MAINTAINER=[$DEPLOYER]" "MAINTAINER is the deployer"
-expect_has "$(call 1)" "REHEARSAL=[unset]" "no rehearsal flag"
+expect_has "$(call 1)" "REHEARSAL=[false]" "no rehearsal flag"
 expect_has "$(call 1)" "cwd=[$(cd "$repo/contracts/issuance" && pwd -P)]" "forge runs in contracts/issuance"
 expect_hasnt "$(cat "$FORGE_LOG")" "--broadcast" "nothing is broadcast without --broadcast"
 expect_hasnt "$(cat "$FORGE_LOG")" "--account" "no keystore without --broadcast"
@@ -148,8 +151,8 @@ expect_has "$(call 2)" "--rpc-url https://xlayerrpc.okx.com --account" "the broa
 new_repo rehearsal_flag_is_dropped
 REHEARSAL=true run --broadcast
 expect_eq "$status" 0 "exit status"
-expect_has "$(call 1)" "REHEARSAL=[unset]" "REHEARSAL does not reach the simulation"
-expect_has "$(call 2)" "REHEARSAL=[unset]" "REHEARSAL does not reach the broadcast"
+expect_has "$(call 1)" "REHEARSAL=[false]" "REHEARSAL does not reach the simulation"
+expect_has "$(call 2)" "REHEARSAL=[false]" "REHEARSAL does not reach the broadcast"
 
 new_repo environment_cannot_choose_commit_or_maintainer
 head=$(git -C "$repo" rev-parse HEAD)
@@ -299,6 +302,41 @@ run --broadcast --broadcast
 refused "too many arguments"
 run --broadcast now
 refused "too many arguments"
+
+# ------------------------------------------------------------------ nothing outside the commit steers forge
+
+new_repo dotenv_in_project
+echo "REHEARSAL=true" >"$repo/contracts/issuance/.env"
+run
+refused "a .env file is present"
+expect_eq "$(calls)" 0 "forge calls with a .env in the project"
+
+new_repo dotenv_at_root
+echo "FOUNDRY_OPTIMIZER_RUNS=1" >"$repo/.env"
+run
+refused "a .env file is present"
+expect_eq "$(calls)" 0 "forge calls with a .env at the repository root"
+
+new_repo foundry_variable
+FOUNDRY_EVM_VERSION=shanghai run
+refused "FOUNDRY_* or DAPP_* variables are set"
+DAPP_SOLC_VERSION=0.8.20 run
+refused "FOUNDRY_* or DAPP_* variables are set"
+expect_eq "$(calls)" 0 "forge calls with FOUNDRY_* or DAPP_* set"
+
+new_repo openzeppelin_version
+printf '{\n  "version": "5.7.0"\n}\n' >"$repo/contracts/issuance/lib/openzeppelin-contracts/package.json"
+run
+refused "expected 5.4.0"
+rm -rf "$repo/contracts/issuance/lib/openzeppelin-contracts"
+run
+refused "expected 5.4.0"
+expect_eq "$(calls)" 0 "forge calls with the wrong or no OpenZeppelin"
+
+new_repo rehearsal_from_the_shell
+REHEARSAL=true run
+expect_eq "$status" 0 "exit status"
+expect_has "$(call 1)" "REHEARSAL=[false]" "an exported REHEARSAL=true is overridden to false"
 
 # ------------------------------------------------------------------ result
 

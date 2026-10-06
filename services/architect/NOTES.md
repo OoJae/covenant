@@ -1,19 +1,26 @@
 # Architect: notes
 
 Decisions, what was verified, where OKX's SDK differs from the design document, and what is still open.
-Written 2026-10-04.
+Written 2026-10-04; the real toolchain was wired in on 2026-10-06 (section "The real toolchain").
 
 ## How to run
 
 ```sh
 pnpm install                              # repository root
 cd services/architect
-pnpm test                                 # 86 tests, about 4 s; contacts neither OKX nor X Layer
+pnpm test                                 # 89 tests (3 skipped: the opt-in real-toolchain ones), about 3 s
 pnpm typecheck
 X402_MODE=mock node src/index.ts          # local server with mock payments and the stub toolchain
 node scripts/selfcheck.ts http://localhost:8787 --run --mock-pay
 node scripts/okx-listing.ts https://<public-host>
 docker build -f services/architect/Dockerfile -t covenant-architect .    # from the repository root
+docker run --rm -p 8080:8080 -e X402_MODE=mock covenant-architect       # real toolchain, mock payments
+
+# the adapter and the HTTP app against the real toolchain (about 35 s)
+TAPC_E2E_CMD="$PWD/../../chips/.venv/bin/python -m tapc.architect" TAPC_E2E_CWD="$PWD/../../chips/tools" \
+  node --test test/toolchain-real.test.ts
+# the toolchain's own tests, this one included (about 2.5 minutes)
+cd ../../chips/tools && ../.venv/bin/python -m pytest tests/test_architect.py
 ```
 
 ## Versions used
@@ -133,12 +140,71 @@ Differences from our earlier design notes are marked **differs**.
 - The real server over real HTTP (not only `app.request`): rate limit by socket address (ten 200s, then 429),
   413 on an oversized body, graceful stop on SIGTERM.
 
+## The real toolchain (2026-10-06)
+
+`chips/tools/tapc/architect.py` speaks the contract of `src/toolchain.ts`; README.md, "The real toolchain", says what
+it takes and returns. The image sets `TAPC_CMD="/opt/venv/bin/python -m tapc.architect"`. Nothing in `src/` changed:
+the contract did not need to.
+
+Decisions:
+
+- **`-m tapc.architect`, not `tapc architect`.** The subcommand needs a registration in `chips/tools/tapc/cli.py`,
+  outside this work's files. The program is the same; the README says so.
+- **One fixed synthesis recipe** (`rich-dc2-compress`, recorded in `chips/out/fg.manifest.json`): 1.5 s instead of
+  the 5 to 7 s of the twelve-recipe portfolio, and the stock request reproduces the committed bytes. The same recipe
+  reproduces `glutton.tap` too.
+- **Parameters are checked twice**: restated with a path and a hint for every relation of
+  `chips/rtl/gen_params.py`, then `gen_params.py`'s own `check_constraints`, `check_envelope`, `check_reference` and
+  `render` run on the merged document. A test drives 3,000 random parameter sets and asserts that the second pass
+  never finds anything the first missed. Constants that `gen_params.py` pins (among them `SURGE_TH`, `DD_TH`,
+  `DRYN`, `CDN`, `TR_MIN`, `TR_MAX`) and those wired into the RTL's structure (`TRN`, `LEAK`) are refused with code
+  `fixed` unless sent at their current value: changing them needs a change of the RTL, of `gen_params.py` or of
+  the inductive invariant P4, not a parameter.
+- **Proofs**: the property wrappers of `chips/props/fg_props.v` are read with the request's `fg_params.vh`, so P2
+  is proven against the requested envelope; the byte-level z3 predicates (`chips/props/fg_props.py`) and the pin
+  manifest generator (`chips/synth/gen_pins.py`) read the constants from the model's dictionaries, which a worker
+  process updates in place for its one request. P7 (witness) is reported as `skipped`.
+- **Workers are processes, one per job, each leading its own process group**, so a job past the budget is stopped
+  together with its Yosys. Each worker watches its parent and stops itself if the parent disappears: the service
+  kills only the toolchain's own process group after `TAPC_TIMEOUT_MS`. The image runs `tini` as PID 1, which reaps
+  whatever is left.
+- **A toolchain fault exits 70 with nothing on stdout** (502, not charged) instead of a rejection: a crashed solver
+  or a broken installation is not the buyer's fault.
+
+Measured on this machine (macOS 27, arm64, 10 cores; load average 3 to 5 from other work), the stock Flow Governor
+request, whole command (`--budget 100`):
+
+| Where | Workers | Wall time (runs) | P1 to P4 all proved after | EQ Yosys | EQ z3 |
+|---|---|---|---|---|---|
+| host | 4 | 31.1, 29.6, 29.7 s | 6.2 to 6.3 s | 3.3 to 3.7 s | 27.3 to 28.5 s |
+| host | 8 | 29.9, 37.1, 30.4 s | 6.3 to 9.7 s | 3.8 to 6.5 s | 28.2 to 35.5 s |
+| host, custom params (13 overrides) | 4 / 8 | 30.3, 29.9, 30.5 / 31.1, 31.8, 30.4 s | 7.2 to 8.4 s | 3.7 to 4.6 s | 27.5 to 30.1 s |
+| container `--cpus 4` | 4 / 8 | 30.3, 36.3 / 30.5, 29.9 s | 5.0 to 6.5 s | 3.2 to 4.3 s | 28.5 to 34.1 s |
+| container `--cpus 2` | 2 / 4 | 32.7 / 34.6 s | 4.8 / 9.5 s | 3.1 / 6.9 s | 27.8 / 31.9 s |
+| container `--cpus 4`, through HTTP (`/v1/architect/compile`) | 4 | 30.8 s (a repeat is a cache hit, 5 ms) | | | |
+
+Synthesis takes 1.5 to 1.6 s, the pin manifest 0.6 s, P5, P6 and the extras about 6 s. EQ by z3 is the critical
+path; 8 workers do not beat 4, because the six other jobs are done within 10 s. Eleven extreme but valid parameter
+sets (no allowance at all, the largest allowance, no ceiling, the lowest ceiling, `RC` 0 and 208, the extreme
+floors and milestones, `floorRel` 1 with the longest epoch) all proved 57 of 57, except `RC` 0, where z3's EQ had no
+verdict in 115 s (reported as `timeout`; EQ by Yosys proved it in seconds). Glutton: 1.8 s, 10 of 10 proved.
+
+The image: `docker image ls` 1.04 GB (226 MB compressed), arm64, build 3.5 minutes; the build context gained
+`docs/taps/assets` (the pin-manifest draft's reference implementation, which `gen_pins.py` needs). A container
+uses 60 MiB idle and peaked at about 550 MiB during a compile with 4 workers (sampled every second). In the
+container the stock compile gives byte for byte the committed `fg.tap`, `fg.manifest.json` and `fg.pins.json`:
+Linux and macOS agree. `node scripts/selfcheck.ts http://localhost:18080 --run --mock-pay` against the container
+(`X402_MODE=mock`, `--cpus 4`, nothing else set): 16 of 16 checks passed, the mock-paid call included a real
+compile (31.5 s for the whole self-check).
+
 ## Not verified (needs credentials or money, so a person)
 
 - A real settlement through OKX's facilitator. Everything from "OKX verifies" on is tested against a scripted
   facilitator only.
 - That `web3.okx.com/api/v6/pay/x402/*` accepts the developer key that will be issued, and from which Railway region.
-- The image on x86-64, which is what Railway builds. Only arm64 was built here.
+- The image on x86-64, which is what Railway builds. Only arm64 was built here. Whether the netlist bytes are the
+  same on x86-64 is likely (Yosys and ABC run as one WebAssembly module) but not established.
+- Compile time on Railway's vCPUs. Here: 30 to 35 s with 2 or 4 CPUs.
 - That the SDK's behaviour "status 400 or more is not settled" also holds for OKX's own accounting (it must:
   no settle request is sent at all).
 
@@ -153,18 +219,20 @@ Differences from our earlier design notes are marked **differs**.
    identities (only User and Evaluator are limited to one). `onchainos agent pre-check --role asp` decides.
 4. **Do OKX's reviewers make a real paid call?** If so the endpoint must be live with a real toolchain throughout
    the review (up to 48 hours).
-5. **How long does a real compile with proofs take on Railway?** The budget is `TAPC_TIMEOUT_MS` (120 s default,
-   280 s at most). If the Flow Governor with all proofs needs more, the paid route must become a job with polling,
-   or the presets must be precompiled.
-6. **Which presets exist and what are their parameters?** The service forwards whatever it is given. The listing
-   text names `flow-governor` as the default.
+5. **How long does a real compile with proofs take on Railway?** Here 30 to 35 s on 2 or 4 CPUs, inside the 100 s
+   proof budget and the 120 s `TAPC_TIMEOUT_MS`. To be measured on the deployed machine (runbook step 2).
+6. **Should the listing describe the parameters?** Presets are `flow-governor` (parameters in README.md, "The real
+   toolchain") and `glutton`. The listing text names `flow-governor` as the default and says `params` is an object;
+   it does not list the parameter names.
 7. The avatar image for the agent.
 
 ## Depends on other teams
 
-- **Chips:** an entry point that speaks the contract at the top of `src/toolchain.ts` (`tapc architect`, or a
-  wrapper). Until then `TAPC_CMD` stays unset. The Dockerfile copies `chips/` and installs
-  `chips/tools/requirements.txt`; if that file moves, the Dockerfile must follow.
+- **Chips:** the entry point exists (`chips/tools/tapc/architect.py`). Registering it as `tapc architect` in
+  `chips/tools/tapc/cli.py` is theirs. The Dockerfile copies `chips/` and `docs/taps/assets` and installs
+  `chips/tools/requirements.txt`; if those move, the Dockerfile must follow. A change of the synthesis recipes,
+  the RTL, `fg_params.json` or the property files changes what the service sells: rerun
+  `chips/tools/tests/test_architect.py`.
 - **Coordinator:** `railway.json` cannot be used by a new Railway service. Either set the service settings by hand
   (runbook) or run `railway config migrate` to produce `.railway/railway.ts`, which lives outside this directory.
 

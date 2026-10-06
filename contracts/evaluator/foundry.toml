@@ -60,7 +60,7 @@ seed = "0xc0ffee"
 runs = 1024
 
 [rpc_endpoints]
-xlayer = "${XLAYER_RPC_URL:-https://rpc.xlayer.tech}"
+xlayer = "https://rpc.xlayer.tech" # tests read XLAYER_RPC_URL themselves; Foundry has no ${VAR:-default}
 xlayer_fallback = "https://xlayerrpc.okx.com"
 
 [fmt]

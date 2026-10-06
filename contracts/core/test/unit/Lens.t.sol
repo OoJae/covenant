@@ -8,6 +8,26 @@ import {KernelMath} from "../../src/KernelMath.sol";
 import {Record, Envelope, RecordFlags} from "../../src/interfaces/IKernelV1.sol";
 import {ChipModel, MockImplV2} from "../mocks/MockTapeOut.sol";
 
+/// @dev Looks like a kernel to anyone who only calls it: it forwards every call to a real kernel and returns
+///      the answer. It could just as well lie in any answer; the Lens must not read it at all.
+contract ForwardingKernel {
+    address internal immutable REAL;
+
+    constructor(address real) {
+        REAL = real;
+    }
+
+    fallback(bytes calldata data) external returns (bytes memory) {
+        (bool ok, bytes memory ret) = REAL.staticcall(data);
+        if (!ok) {
+            assembly {
+                revert(add(ret, 0x20), mload(ret))
+            }
+        }
+        return ret;
+    }
+}
+
 /// @notice The Lens: replay, counterfactual totals, shadow runs, state-matters and preflight.
 contract LensTest is Base {
     bytes14 internal A = _word(256, 0, 0, 0, 0, 1023); // everything to buy-and-lock
@@ -439,6 +459,84 @@ contract LensTest is Base {
         assertTrue(lens.replayOn(address(kernel), 2, true).ok, "the sealed evaluator still reproduces it");
         circuits.setStepMode(4); // an answer of the wrong size
         assertFalse(lens.replayOn(address(kernel), 2, false).ran);
+    }
+
+    /// An evaluator's answer is decoded by hand, as the kernel decodes it: whatever comes back (a revert,
+    /// burnt gas, wrong lengths, a return bomb, offsets pointing outside the data, nothing at all, lengths
+    /// that promise more bytes than were sent), every Lens function returns and reports `ran = false`.
+    function test_a_malformed_answer_is_reported_and_never_reverts() public {
+        _history();
+        Lens.ShadowCursor memory cur;
+        // 1 revert, 2 burn all gas, 3 state short, 4 outputs long, 5 return bomb, 6 bad offsets, 7 empty,
+        // 8 state long, 10 lengths are right but the bytes are cut off
+        uint8[9] memory modes = [1, 2, 3, 4, 5, 6, 7, 8, 10];
+        for (uint256 i = 0; i < modes.length; i++) {
+            circuits.setStepMode(modes[i]);
+            Lens.Replay memory p = lens.replayOn(address(kernel), 2, false);
+            assertFalse(p.ran, "TapeOut's answer is not used");
+            assertFalse(p.ok);
+            Lens.Preflight memory f = lens.preflight(address(kernel));
+            assertFalse(f.tapeoutRan);
+            assertTrue(f.sealedRan);
+            assertFalse(f.agree);
+            (bool matters,,) = lens.stateMatters(address(kernel), 2);
+            assertFalse(matters, "nothing to compare");
+            lens.shadowChip(address(kernel), chipId, 1, 2, cur); // returns
+            circuits.setStepMode(0);
+
+            sealedVM.setStepMode(modes[i]);
+            p = lens.replayOn(address(kernel), 2, true);
+            assertFalse(p.ran, "the sealed evaluator's answer is not used");
+            assertFalse(p.ok);
+            f = lens.preflight(address(kernel));
+            assertTrue(f.tapeoutRan);
+            assertFalse(f.sealedRan);
+            lens.shadowSnapshot(address(kernel), kernel.globals().snapshot, 1, 2, cur); // returns
+            sealedVM.setStepMode(0);
+        }
+        assertTrue(lens.replayOn(address(kernel), 2, false).ok, "and with honest evaluators the record replays");
+        assertTrue(lens.replayOn(address(kernel), 2, true).ok);
+    }
+
+    /// The Lens reads only kernels its factory made. A contract that forwards every call to a real kernel
+    /// would otherwise replay as ok while it could say anything; every entry point refuses it.
+    function test_every_entry_point_refuses_a_kernel_the_factory_did_not_make() public {
+        _history();
+        address fake = address(new ForwardingKernel(address(kernel)));
+        assertEq(Kernel(payable(fake)).count(), kernel.count(), "it answers like the kernel");
+        address[2] memory strangers = [fake, makeAddr("nobody")];
+        Lens.ShadowCursor memory sc;
+        Lens.CfCursor memory cc;
+        address snapshot = kernel.globals().snapshot;
+        for (uint256 i = 0; i < 2; i++) {
+            address k = strangers[i];
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.replay(k, 2);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.replayOn(k, 2, true);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.replayRange(k, 1, 2, false);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.counterfactual(k, 1, 2);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.counterfactualFrom(k, 1, 2, cc);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.shadowChip(k, chipId, 1, 2, sc);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.shadowSnapshot(k, snapshot, 1, 2, sc);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.stateMatters(k, 2);
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.stateMattersVs(k, 2, bytes32(0));
+            vm.expectRevert(Lens.NotKernel.selector);
+            lens.preflight(k);
+        }
+        assertTrue(lens.replay(address(kernel), 2).ok, "the real kernel is read");
+        assertEq(address(lens.FACTORY()), address(factory));
+        // a Lens given another factory reads none of this factory's kernels
+        Lens other = new Lens(makeAddr("another factory"));
+        vm.expectRevert();
+        other.replay(address(kernel), 2);
     }
 
     // ------------------------------------------------------------------ state matters

@@ -67,10 +67,22 @@ git -C "$root" fetch --quiet origin main || refuse "could not fetch origin/main"
 git -C "$root" merge-base --is-ancestor HEAD origin/main \
   || refuse "HEAD is not on origin/main. Push first: the story will point at this commit"
 
+# 4. Nothing outside the commit changes the build or the script. forge reads a .env file and FOUNDRY_* /
+#    DAPP_* variables on its own; either could change compiler settings (the bytecode would no longer be the
+#    one the commit builds) or set REHEARSAL.
+for envfile in .env "$root/.env"; do
+  [ ! -e "$envfile" ] || refuse "a .env file is present ($envfile): forge would read it. Move it away first"
+done
+if env | grep -qE '^(FOUNDRY_|DAPP_)'; then
+  refuse "FOUNDRY_* or DAPP_* variables are set in this shell: $(env | grep -E '^(FOUNDRY_|DAPP_)' | cut -d= -f1 | tr '\n' ' ')"
+fi
+oz=$( (sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' lib/openzeppelin-contracts/package.json 2>/dev/null || true) | head -1)
+[ "$oz" = "5.4.0" ] || refuse "lib/openzeppelin-contracts is '$oz', expected 5.4.0 (README.md, section 1)"
+
 COMMIT=$(git -C "$root" rev-parse HEAD)
 export COMMIT
 export MAINTAINER=$DEPLOYER
-unset REHEARSAL # this is the real thing: chain 196 or nothing
+export REHEARSAL=false # this is the real thing: chain 196 or nothing (an exported value beats any .env)
 
 echo "ignite.sh: commit    $COMMIT"
 echo "ignite.sh: deployer  $DEPLOYER (also the maintainer)"

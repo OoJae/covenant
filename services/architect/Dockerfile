@@ -5,6 +5,7 @@
 #
 #   docker build -f services/architect/Dockerfile -t covenant-architect .
 #   docker run --rm -p 8080:8080 -e X402_MODE=mock covenant-architect
+#   node services/architect/scripts/selfcheck.ts http://localhost:8080 --run --mock-pay
 #
 # The service runs its TypeScript sources directly (Node strips the types); there is no build step.
 
@@ -29,8 +30,9 @@ FROM python:3.12-slim-trixie
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 # Node links against libatomic on arm64, and Python's slim image does not ship it. The last command makes
 # the build fail here, rather than the container at start, if the copied binary cannot run.
+# tini is PID 1: it forwards SIGTERM to the service and reaps every process the toolchain leaves behind.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libatomic1 \
+ && apt-get install -y --no-install-recommends libatomic1 tini \
  && rm -rf /var/lib/apt/lists/* \
  && node --version
 
@@ -64,8 +66,11 @@ RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin app \
  && yowasp-yosys -V \
  && chown -R app:app "$YOWASP_CACHE_DIR"
 
-# The chip sources and the toolchain (tapc, cells, RTL, golden vectors). See Dockerfile.dockerignore.
+# The chip sources and the toolchain (tapc, cells, RTL, properties, model, golden model). See
+# Dockerfile.dockerignore. docs/taps/assets holds the reference implementation of the pin-manifest draft and
+# the covenant-v1 profile, which chips/synth/gen_pins.py needs to write and check a chip's pin manifest.
 COPY chips /app/chips
+COPY docs/taps/assets /app/docs/taps/assets
 
 # The service.
 COPY --from=deps /repo/node_modules /app/node_modules
@@ -81,7 +86,12 @@ USER app
 ENV PORT=8080
 EXPOSE 8080
 
-# TAPC_CMD is deliberately NOT set here: until it is, the service runs in stub mode and the paid route
-# stays closed. Set it as a deployment variable once the toolchain entry point exists, for example
-#   TAPC_CMD=python -m tapc architect
+# The real toolchain (chips/tools/tapc/architect.py, contract in src/toolchain.ts). One request runs one
+# synthesis and up to TAPC_ARCHITECT_JOBS proof workers (default 4) inside a budget of TAPC_ARCHITECT_BUDGET
+# seconds (default 100; proofs still running then are reported as "timeout"). Both are passed through to the
+# toolchain because their names start with TAPC_. Setting TAPC_CMD to an empty value falls back to the stub
+# (the paid route then closes in live mode).
+ENV TAPC_CMD="/opt/venv/bin/python -m tapc.architect"
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "src/index.ts"]

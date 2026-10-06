@@ -124,8 +124,8 @@ struct Envelope {
     uint16  floorMin;        // lg8 code at or above which the floor applies
     uint16  fallbackEpochs;  // epochs without a persisted step after which the fallback word applies
     uint16  fbAllow;         // allowance share used by the fallback word
-    bool    buyEnabled;      // if false, decided buy amounts are credited to `sink` instead
-    address sink;            // pull-credit payee used only when buyEnabled is false
+    bool    buyEnabled;      // must be true for kernel v1
+    address sink;            // ignored by kernel v1
 }
 ```
 
@@ -143,12 +143,13 @@ struct Envelope {
 | `floorMin` | `1 .. 425` |
 | `fallbackEpochs` | `>= 2`, and `epochLen * fallbackEpochs <= 30 days` |
 | `fbAllow` | `<= capT` |
-| `sink` | non-zero if `buyEnabled` is false |
+| `buyEnabled` | must be true: the kernel v1 factory refuses an envelope with buys disabled, because its `sink` would be a second payee outside guarantee 1 |
+| `sink` | ignored by kernels of this factory |
 
 **What these checks guarantee for any chip, however hostile, on any kernel the factory creates:**
 
 1. At most `allowCumBps / 10000`, and never more than half, of the OKB that ever arrives at the kernel can become allowance. The allowance payee receives nothing else, and nothing after graduation. (What arrives includes the tax on the kernel's own buys, so measured against the tax that traders paid the share is slightly higher: 19.2% rather than 18.75% for the reference envelope.)
-2. Everything else can only be bought and locked, burned, or wait in the reserve. (With `buyEnabled` false it is credited to `sink` instead; that address is part of the envelope and public.)
+2. Everything else can only be bought and locked, burned, or wait in the reserve.
 3. A reserve at or above `exp8(floorMin)` (at most 0.009 OKB) is offered to the buy leg at `floorRel / 256` per settle or faster: with a settle every epoch it halves within 30 days and one epoch. Below that threshold the amount is dust.
 4. If the evaluator stops answering, the fallback word applies within 30 days.
 
@@ -263,7 +264,7 @@ The kernel latches `graduated` in the first settle in which the token itself rep
 
 The native pot is the kernel's OKB balance minus `totalCredits(address(0))`. The router buy pays the token's buy tax like any other buy; that tax reaches the kernel as tokens and is inflow, visible to the chip in `TAX`.
 
-With `buyEnabled` false, every amount the tables above send to a buy or a burn is credited to `sink` instead, in the asset it is in. The record then shows `buyExecuted = buyDecided`, `tokensOut = 0` and no buy flag; after graduation the native pot is credited to `sink` in OKB and no router buy is made.
+Kernel v1's factory refuses `buyEnabled = false` (section 7), so every kernel it creates buys; the field and `sink` exist for later kernels.
 
 ### 9.4 Requirements
 
@@ -425,7 +426,7 @@ No bit of the input or output word moved. Revision 2 defines what revision 1 lef
 
 - **Inflow** is defined by balance (8.1); `PROG`, `LOCK`, `DT` and `GRAD` are defined on failure paths (5).
 - **No allowance after graduation** in kernel v1 (8.2, 9.3). One amount code cannot bound an allowance in two units, and a contract payee may be unable to move tokens.
-- **Envelope limits** tightened: `epochLen <= 86400`, `capT <= 128`, `allowCumBps <= 5000`, `floorMin >= 1`, and a bound on how slowly the reserve may drain (7).
+- **Envelope limits** tightened: `epochLen <= 86400`, `capT <= 128`, `allowCumBps <= 5000`, `floorMin >= 1`, a bound on how slowly the reserve may drain, and buys must be enabled (7).
 - **A buy that fails because the caller holds the callee's reentrancy lock reverts the settle** (8.6).
 - **`receive()`** accepts the vault only during the kernel's own claim and the Manager only during its own buy (9.4).
 - **State** is defined as a byte string (3); a wrong-sized evaluator answer is a failure (3, 8.4).

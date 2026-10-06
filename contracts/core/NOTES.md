@@ -13,7 +13,7 @@ No contract here has an owner, an upgrade path or a pause. Unaudited. Nothing is
 | `src/KernelMath.sol` | `lg8`, `exp8` (binary-search msb, no CLZ), input and output word packing and byte order, `prog`/`lock`/`dt` codes, the fallback word, the routing function with clamps K1T, K2, K2C, K2L, K3, K5 and the regime (no allowance after graduation). Passes every vector of `chips/golden/vectors.json` |
 | `src/Kernel.sol` | The kernel. One implementation; one clone per token (`Clones.cloneDeterministicWithImmutableArgs`) |
 | `src/KernelFactory.sol` | `create` / `predict` / `isKernel` / `kernelOf` / `pinsLive`. Checks the envelope (INTERFACE section 7) and the chip, fixes the two step-gas amounts of a kernel, and deploys the Kernel implementation in its constructor |
-| `src/Lens.sol` | Stateless audit views: `replay`, `replayOn`, `replayRange`, `counterfactual`, `shadowChip`, `shadowSnapshot`, `stateMatters`, `preflight` |
+| `src/Lens.sol` | Stateless audit views over the kernels of one factory: `replay`, `replayOn`, `replayRange`, `counterfactual`, `shadowChip`, `shadowSnapshot`, `stateMatters`, `preflight` |
 | `src/lib/SafeCall.sol` | Gas-capped low-level calls with bounded return-data copies. `execCatch` also returns a bounded prefix of the revert data |
 | `src/lib/TradeMath.sol` | Curve quote, largest non-graduating buy, V2 quote net of tax, impact cap, and `curveBuy`, the size of the kernel's curve buy |
 | `src/interfaces/` | `IKernelV1` (INTERFACE section 10: `Record`, `Envelope`, the flags, every function), `IKernelExt` (`Globals` and four views the interface does not have: `globals`, `cumInflow`, `allowPaidCum`, `tokenSupply`), `IEvaluators` (`IFabV1`, `ISealedVM`, `ICircuits`, `IBeacon`), `IIgnix` (the IGNIX and Uniswap V2 surface the kernel touches, from `contracts/probes`) |
@@ -68,7 +68,7 @@ XLAYER_FORK=1 forge test                                           # everything
 ### Deploying
 
 `script/DeployCore.s.sol` makes two creations: the KernelFactory (whose constructor deploys the Kernel
-implementation) and the Lens. The processor, the Fab and the SealedVM must exist first
+implementation) and then the Lens, which is given the factory's address. The processor, the Fab and the SealedVM must exist first
 (`contracts/evaluator/README.md`).
 
 ```
@@ -129,9 +129,9 @@ Last full run: 2026-10-06, forge 1.8.3, solc 0.8.28.
 
 ```
 $ XLAYER_FORK=1 forge test
-Ran 17 test suites: 307 tests passed, 0 failed, 0 skipped
+Ran 17 test suites: 309 tests passed, 0 failed, 0 skipped
 $ forge test                       # no fork: the 29 fork tests skip
-Ran 17 test suites: 278 tests passed, 0 failed, 29 skipped
+Ran 17 test suites: 280 tests passed, 0 failed, 29 skipped
 ```
 
 | Suite | Tests | What |
@@ -146,7 +146,7 @@ Ran 17 test suites: 278 tests passed, 0 failed, 29 skipped
 | `test/unit/Credits.t.sol` | 9 | |
 | `test/unit/Gas.t.sol` | 23 | gas-limit sweeps across each guard, up to 3,000 points each |
 | `test/unit/FailureMatrix.t.sol` | 11 | every combination of the failure switches: 4,320 on the curve, 5,400 after graduation |
-| `test/unit/Lens.t.sol` | 21 | |
+| `test/unit/Lens.t.sol` | 23 | |
 | `test/unit/Rev2Gaps.t.sol` | 21 | the behaviours revision 2 added, section by section (`test_rev2_<section>_*`) |
 | `test/unit/SafeCall.t.sol` | 7 | `execCatch` |
 | `test/integration/RealEvaluators.t.sol` | 7 | real SealedVM, TapeOut's NetlistVM, real netlists; the one test on the live chip file |
@@ -168,8 +168,8 @@ the native pot is spent, and the token reserve leaves at the floor rate or faste
 ```
 $ forge build --sizes
 | Kernel        | 20,413 runtime | 20,513 initcode | 4,163 below the 24,576 limit |
-| KernelFactory |  6,351 runtime | 28,158 initcode (it deploys the Kernel implementation) |
-| Lens          | 13,802 runtime | 13,830 initcode |
+| KernelFactory |  6,312 runtime | 28,119 initcode (it deploys the Kernel implementation) |
+| Lens          | 15,135 runtime | 15,322 initcode |
 ```
 
 **Mutation pass over the revision-2 changes.** 128 small changes were made one at a time to a copy of the
@@ -183,7 +183,8 @@ with nothing decided on a degenerate curve and with fees other than 100 + 100, t
 the gas cap of `execCatch` seen from inside the callee. Two changes were not counted because no behaviour can
 tell them apart from the code: `>=` for `>` in the drain bound (equality needs `floorRel` 89 or 178 and an
 `epochLen` of at least 1,296,000 s, which check 2 refuses), and swapping the two arguments of `_minSettleGas`,
-which is symmetric in them.
+which is symmetric in them. (The three fixes of section 7's last part came after this pass; each has its own
+tests.)
 
 ## 4. Decisions
 
@@ -302,8 +303,13 @@ of a buy stays a flag. The epoch is not consumed and nothing else of that settle
 the Manager refunds part of a curve buy, the router does not spend all of the swap's value, or the burn
 transfer moves less than the amount. Flag 128 keeps meaning "a cap made the amount smaller than decided".
 
-**`buyEnabled = false`.** Every amount that would be bought or burned is credited to `sink` in the asset it is
-in, in both regimes; the native pot is credited to `sink` in OKB. No buy flag is set.
+**Buys must be enabled.** The factory refuses an envelope with `buyEnabled = false` (`BadEnvelope(13)`),
+whatever its `sink`. With buys disabled, every amount that would be bought or burned is credited to `sink`
+instead, so the sink is a second payee outside the allowance limits of INTERFACE section 7 (guarantee 1): an
+independent review showed a sink that is the allowance payee, or any second wallet of the launcher, taking
+97.9% of inflow. Tax-funded kernel buys are allowed, so kernel v1 does not need the mode. The kernel's code
+for it is unchanged and unreachable through this factory; tests still exercise it on clones made outside
+the factory (`_cloneOutsideTheFactory` in `test/Base.t.sol` and `test/fork/ForkBase.sol`).
 
 **Bind** succeeds once, for a token whose Directed vault names this kernel as recipient, with native OKB as
 quote, a non-zero tax on at least one side, and the chip NFT in the kernel. Either the token's creator is the
@@ -311,7 +317,8 @@ envelope's launcher, and then anyone may call, or the caller is the launcher, so
 the wrong wallet can still be bound by the launcher. An untaxed token is refused because it graduates to
 Uniswap V4, where this kernel has no exit for native OKB.
 
-**Factory.** The envelope checks are those of INTERFACE section 7, check for check (`BadEnvelope(1..15)`).
+**Factory.** The envelope checks are those of INTERFACE section 7, check for check (`BadEnvelope(1..15)`;
+13 is "buys disabled").
 Beyond the interface: the Fab's snapshot must be an SSTORE2 pointer whose bytes hash to the recorded hash;
 `nState` 1..256 and `gateCount` <= 3,400 are re-checked; if the Fab exposes `CIRCUITS()` it must be the
 factory's processor; `create` is idempotent (a front-runner changes nothing). The pinned implementation and
@@ -321,8 +328,12 @@ which case it is in.
 **Records** are 7 storage slots. The sixth and seventh hold the regime totals after the settle (`cums(n)`),
 which make any single record replayable without walking the history; the seventh also holds `nativeIn`.
 
-**Lens** steps each evaluator with exactly the gas a kernel gives it, so "replays" also means "fits its
-gas". It routes with the record's own regime. `shadowChip` and `shadowSnapshot` run a chip that is not the
+**Lens** reads only kernels its factory made: it takes the KernelFactory as a constructor argument and every
+function that takes a kernel address reverts `NotKernel` unless `factory.isKernel(kernel)`. (An independent
+review showed a contract forwarding every call to a real kernel replaying as `ok`; such a contract could
+equally lie.) It steps each evaluator with exactly the gas a kernel gives it, so "replays" also means "fits
+its gas", by a gas-capped static call whose answer it decodes by hand like the kernel, so a malformed answer
+is `ran = false` and never makes a Lens function revert. It routes with the record's own regime. `shadowChip` and `shadowSnapshot` run a chip that is not the
 kernel's with the gas TapeOut's evaluator gets for the largest chip the factory accepts. Range functions stop
 early when gas runs low and return where to continue.
 
@@ -349,6 +360,11 @@ Measured on an X Layer fork at block 72,369,000 (`test/fork`, `-vv` prints them)
 `minSettleGas()` is a budget for the worst case, about twice what a settle uses: it must cover a settle in
 which TapeOut's step burns everything it is given and the sealed evaluator then runs. The largest chip the
 factory accepts needs a gas limit of 15.1M.
+
+Through the KeeperTank (`contracts/issuance`), figures from the independent review of 2026-10-06, not
+measured in this package: a settle whose refund is the first the tank pays for a chip needs about 400,000
+gas above `minSettleGas()` (the tank scans the chip's netlist once), and `withdrawCredit` with the tank as
+payee needs about 230,500 gas; with less it reverts and the credit stays where it was.
 
 Leg costs (claim, `buyTo`, transfer, router buy) are in `contracts/probes/FINDINGS.md` section 9; the
 allowances above are more than three times each.
@@ -465,24 +481,19 @@ Rows marked "none" already behaved as revision 2 says.
 `sealedFloor` after `stepFloor`. Anything that decodes these by hand has to be updated. No selector of
 `IKernelMin` or `IKernelV1` changed and the `Settled` event is the same.
 
-**Where the code is not word for word what the interface says.**
+**Where the code goes beyond what the interface says.** INTERFACE revision 2 as it stands on 2026-10-06
+describes the lock rule with both signs (8.6), the step-gas margins (2), the drain bound (7, guarantee 3),
+the launcher row (7), `evaluator()` and flag 32 (10) and the lock case of 8.3 as this code does. What is left:
 
-- Section 8.6 names two errors. The kernel treats one more situation as "the pair's lock is held": a failed
-  swap after which the pair itself says so (the probe above). Without it the rule can be avoided on the live
-  router by the size of the flash loan.
-- Section 2 says TapeOut's `step` needs "at most `101,730 + 2,293 * nNand + 3,059 * nLatch`". A chip of 112
-  latches and no NAND needs 453,834, which is 2.1% more than that line gives. The amount the kernel gives
-  (580,800) covers it.
-- Section 7, guarantee 3, says a reserve above the floor "halves at least every 30 days" with a settle every
-  epoch. The bound `epochLen * 178 <= 2592000 * floorRel` gives a half-life of at most 30 days plus one
-  epoch: with `floorRel = 5` and the longest `epochLen` it allows (72,808 s), 35 settles (29.5 days) leave
-  50.1% and the 36th (30.3 days) leaves 49.2%
-  (`test_drain_bound_halves_the_reserve_within_30_days_and_one_epoch`).
-- Section 7's table still says of `launcher`: "`bind` requires `tokens(token).creator == launcher`". The code
-  follows section 10, which also lets the launcher bind a token another wallet created.
-- Section 10 comments `evaluator()` as "what the next settle would use". It reports what the next settle
-  would ask first; if that is TapeOut's and its step fails, the settle uses the sealed evaluator.
-- Flag 32, "moved less than decided": the code compares what a call moved with what that call was sent, not
-  with `buyDecided`. A buy made smaller by a cap that then executes in full carries flag 128 only.
-- Section 8.3 lists when `settle()` reverts without the reentrancy-lock case of section 8.6, which the code
-  follows.
+- Section 9.3 still describes kernels with buys disabled ("With `buyEnabled` false, every amount the tables
+  above send to a buy or a burn is credited to `sink` instead ..."), and the `Envelope` comments of section 7
+  still describe `sink` as a payee. This factory refuses such envelopes.
+
+**Fixes after the independent review of 2026-10-06** (it found no defect in Kernel, KernelMath, TradeMath,
+SafeCall, Fab or SealedVM; 24,007 settle attempts against an independent model, 0 mismatches):
+
+| Fix | Change | Tests |
+|---|---|---|
+| Buys disabled refused | `KernelFactory._checkEnvelope`: `if (!e.buyEnabled) revert BadEnvelope(13)` | `test_envelope_checks` (sink zero, a third address, the allowance payee, the launcher); every buys-disabled test now runs on a clone made outside the factory |
+| The Lens reads its factory's kernels only | `Lens` takes the factory in its constructor (`FACTORY`); modifier `onlyKernel` on every function that takes a kernel; `DeployCore.s.sol` passes it and reads it back | `test_every_entry_point_refuses_a_kernel_the_factory_did_not_make` (a forwarding fake kernel and an empty address, ten entry points), the deploy-script fork tests |
+| A malformed answer cannot revert the Lens | `Lens._step`: `SafeCall.staticRead` with 256 bytes at most, decoded by hand as in `Kernel._step` | `test_a_malformed_answer_is_reported_and_never_reverts` (nine failure modes, both evaluators: `replayOn`, `preflight`, `stateMatters`, `shadowChip`, `shadowSnapshot`) |

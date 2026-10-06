@@ -61,8 +61,8 @@ contract KernelFactory is IKernelFactoryCallback {
     event KernelBound(address indexed kernel, address indexed token);
 
     /// which: 1 launcher, 2 epochLen, 3 allowancePayee, 4 capT, 5 capV, 6 allowCumBps, 7 ceilMax, 8 relMax,
-    ///        9 floorRel, 10 floorMin, 11 fallbackEpochs, 12 fbAllow, 13 sink, 14 fallback delay too long,
-    ///        15 the reserve would drain too slowly
+    ///        9 floorRel, 10 floorMin, 11 fallbackEpochs, 12 fbAllow, 13 buys disabled, 14 fallback delay
+    ///        too long, 15 the reserve would drain too slowly
     error BadEnvelope(uint8 which);
     /// which: 1 not a Fab chip, 2 nState, 3 gateCount, 4 snapshot shape, 5 snapshot hash
     error BadChip(uint8 which);
@@ -180,7 +180,9 @@ contract KernelFactory is IKernelFactoryCallback {
         if (e.floorMin == 0 || e.floorMin > 425) revert BadEnvelope(10);
         if (e.fallbackEpochs < 2) revert BadEnvelope(11);
         if (e.fbAllow > e.capT) revert BadEnvelope(12);
-        if (!e.buyEnabled && e.sink == address(0)) revert BadEnvelope(13);
+        // Buys must be enabled: with them disabled the sink would be paid what the chip decides to buy, a
+        // second payee outside the allowance limits of INTERFACE section 7 (guarantee 1).
+        if (!e.buyEnabled) revert BadEnvelope(13);
         if (uint256(e.epochLen) * e.fallbackEpochs > MAX_FALLBACK_DELAY) revert BadEnvelope(14);
         if (uint256(e.epochLen) * HALVING_SETTLES > MAX_HALF_LIFE * e.floorRel) revert BadEnvelope(15);
     }

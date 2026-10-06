@@ -5,6 +5,12 @@ import {Record, Envelope, RecordFlags} from "./interfaces/IKernelV1.sol";
 import {Globals, IKernelExt} from "./interfaces/IKernelExt.sol";
 import {ISealedVM, ICircuits} from "./interfaces/IEvaluators.sol";
 import {KernelMath} from "./KernelMath.sol";
+import {SafeCall} from "./lib/SafeCall.sol";
+
+/// The one view of the kernel factory the Lens needs.
+interface IKernelRegistry {
+    function isKernel(address kernel) external view returns (bool);
+}
 
 /// @title Lens
 /// @notice Read-only audit tools for kernels. Stateless, holds nothing, can be redeployed at any time; no
@@ -13,6 +19,10 @@ import {KernelMath} from "./KernelMath.sol";
 ///         Paging: one evaluator step of a large chip costs millions of gas and public RPCs cap `eth_call`
 ///         at 50M, so the range functions stop early when the remaining gas could not pay for another step
 ///         and return the next record number to continue from.
+///
+///         Every function that takes a kernel address first asks the factory given at construction whether
+///         it created that kernel, and reverts `NotKernel` otherwise: a contract that only looks like a
+///         kernel (for instance one that forwards to a real kernel and lies about its records) gets no answer.
 contract Lens {
     uint32 internal constant N_IN = 96;
     uint32 internal constant N_OUT = 112;
@@ -26,6 +36,19 @@ contract Lens {
 
     error PageTooLarge();
     error BadRange();
+    error NotKernel();
+
+    /// The kernel factory whose kernels this Lens reads.
+    IKernelRegistry public immutable FACTORY;
+
+    constructor(address factory) {
+        FACTORY = IKernelRegistry(factory);
+    }
+
+    modifier onlyKernel(address kernel) {
+        if (!FACTORY.isKernel(kernel)) revert NotKernel();
+        _;
+    }
 
     // ------------------------------------------------------------------------------------------ replay
 
@@ -43,13 +66,18 @@ contract Lens {
 
     /// @notice Recomputes record `n` from the previous state and the stored inputs through the evaluator the
     ///         record says was used, and through KernelMath, and compares with what the kernel stored.
-    function replay(address kernel, uint32 n) external view returns (Replay memory) {
+    function replay(address kernel, uint32 n) external view onlyKernel(kernel) returns (Replay memory) {
         Record memory r = IKernelExt(kernel).records(n);
         return _replay(kernel, n, r, r.flags & RecordFlags.SEALED != 0);
     }
 
     /// @notice The same replay through a chosen evaluator: `useSealed` false is TapeOut's `Circuits.step`.
-    function replayOn(address kernel, uint32 n, bool useSealed) external view returns (Replay memory) {
+    function replayOn(address kernel, uint32 n, bool useSealed)
+        external
+        view
+        onlyKernel(kernel)
+        returns (Replay memory)
+    {
         return _replay(kernel, n, IKernelExt(kernel).records(n), useSealed);
     }
 
@@ -59,6 +87,7 @@ contract Lens {
     function replayRange(address kernel, uint32 fromN, uint32 toN, bool useSealed)
         external
         view
+        onlyKernel(kernel)
         returns (uint32 next, uint32 firstBad)
     {
         if (fromN == 0 || toN < fromN || toN > IKernelExt(kernel).count()) revert BadRange();
@@ -159,6 +188,7 @@ contract Lens {
     function counterfactualFrom(address kernel, uint32 fromN, uint32 toN, CfCursor memory cur)
         public
         view
+        onlyKernel(kernel)
         returns (Counterfactual memory curve, Counterfactual memory graduated, CfCursor memory next)
     {
         IKernelExt k = IKernelExt(kernel);
@@ -237,6 +267,7 @@ contract Lens {
     function shadowChip(address kernel, uint256 chipId, uint32 fromN, uint32 toN, ShadowCursor memory cur)
         external
         view
+        onlyKernel(kernel)
         returns (ShadowStep[] memory steps, ShadowCursor memory next, uint32 nextN)
     {
         Target memory t;
@@ -251,6 +282,7 @@ contract Lens {
     function shadowSnapshot(address kernel, address snapshot, uint32 fromN, uint32 toN, ShadowCursor memory cur)
         external
         view
+        onlyKernel(kernel)
         returns (ShadowStep[] memory steps, ShadowCursor memory next, uint32 nextN)
     {
         Target memory t;
@@ -340,6 +372,7 @@ contract Lens {
     function stateMattersVs(address kernel, uint32 n, bytes32 otherState)
         public
         view
+        onlyKernel(kernel)
         returns (bool matters, bytes14 withState, bytes14 withOtherState)
     {
         IKernelExt k = IKernelExt(kernel);
@@ -373,7 +406,7 @@ contract Lens {
 
     /// @notice Run before a token is launched against a kernel: steps the kernel's chip once on both
     ///         evaluators (zero state, zero inputs) with exactly the gas a settle gives them.
-    function preflight(address kernel) external view returns (Preflight memory p) {
+    function preflight(address kernel) external view onlyKernel(kernel) returns (Preflight memory p) {
         IKernelExt k = IKernelExt(kernel);
         Globals memory g = k.globals();
         (, p.sealedModeNow) = k.evaluator();
@@ -427,36 +460,45 @@ contract Lens {
     }
 
     /// @dev One beat. The state must be exactly ceil(nState / 8) bytes and the outputs 14 bytes, as in the
-    ///      kernel; anything else is `ran = false`.
+    ///      kernel; anything else is `ran = false`. As in the kernel, the call is a gas-capped static call
+    ///      that copies at most 256 bytes and the answer is decoded by hand, so a reverting, gas-burning or
+    ///      malformed answer can never make a Lens function revert.
     function _step(Target memory t, bytes32 st, bytes12 inp)
         private
         view
         returns (bool ran, bytes32 newState, bytes14 outputs)
     {
         if (gasleft() < t.gasCap + t.gasCap / 63 + 50_000) revert PageTooLarge();
-        bytes memory a;
-        bytes memory b;
-        if (t.sealedVm) {
-            try ISealedVM(t.vm).step{gas: t.gasCap}(
-                t.snapshot, N_IN, N_OUT, abi.encodePacked(st), abi.encodePacked(inp)
-            ) returns (
-                bytes memory x, bytes memory y
-            ) {
-                (a, b) = (x, y);
-            } catch {
-                return (false, 0, 0);
-            }
-        } else {
-            try ICircuits(t.vm).step{gas: t.gasCap}(t.chipId, abi.encodePacked(st), abi.encodePacked(inp)) returns (
-                bytes memory x, bytes memory y
-            ) {
-                (a, b) = (x, y);
-            } catch {
-                return (false, 0, 0);
-            }
+        bytes memory data = t.sealedVm
+            ? abi.encodeCall(ISealedVM.step, (t.snapshot, N_IN, N_OUT, abi.encodePacked(st), abi.encodePacked(inp)))
+            : abi.encodeCall(ICircuits.step, (t.chipId, abi.encodePacked(st), abi.encodePacked(inp)));
+        (bool ok, uint256 size, bytes memory ret) = SafeCall.staticRead(t.vm, t.gasCap, data, 256);
+        if (!ok || size > 256 || size < 128) return (false, 0, 0);
+
+        // abi.decode(ret, (bytes, bytes)) by hand: the decoder would revert on malformed data
+        uint256 o1;
+        uint256 o2;
+        assembly ("memory-safe") {
+            o1 := mload(add(ret, 0x20))
+            o2 := mload(add(ret, 0x40))
         }
-        if (b.length != KernelMath.OUT_BYTES) return (false, 0, 0);
-        if (t.nState == 0 ? a.length > 32 : a.length != (t.nState + 7) / 8) return (false, 0, 0);
-        return (true, KernelMath.stateToBytes32(a), bytes14(b));
+        if (o1 > size - 32 || o2 > size - 32) return (false, 0, 0);
+        uint256 l1;
+        uint256 l2;
+        assembly ("memory-safe") {
+            l1 := mload(add(add(ret, 0x20), o1))
+            l2 := mload(add(add(ret, 0x20), o2))
+        }
+        if (l2 != KernelMath.OUT_BYTES) return (false, 0, 0);
+        if (t.nState == 0 ? l1 > 32 : l1 != (t.nState + 7) / 8) return (false, 0, 0);
+        if (o1 + 32 + l1 > size || o2 + 32 + l2 > size) return (false, 0, 0);
+        assembly ("memory-safe") {
+            newState := mload(add(add(ret, 0x40), o1))
+            outputs := mload(add(add(ret, 0x40), o2))
+        }
+        // keep exactly the returned bytes; anything past them in memory is not part of the answer
+        if (l1 < 32) newState &= bytes32(~(type(uint256).max >> (8 * l1)));
+        outputs = bytes14(outputs);
+        ran = true;
     }
 }

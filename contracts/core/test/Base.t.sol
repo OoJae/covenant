@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, stdStorage, StdStorage} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import {Kernel} from "../src/Kernel.sol";
 import {Globals, IKernelExt} from "../src/interfaces/IKernelExt.sol";
@@ -28,6 +29,8 @@ import {
 ///         sealed evaluator, the factory and the Lens. Tests build a chip, a kernel and a token on top of it
 ///         in the order real life uses: tape out, create the kernel, launch the token, move the chip, bind.
 abstract contract Base is Test {
+    using stdStorage for StdStorage;
+
     address internal constant DEAD = 0x000000000000000000000000000000000000dEaD;
     address internal constant NATIVE = address(0);
 
@@ -80,7 +83,7 @@ abstract contract Base is Test {
             address(impl),
             address(impl).codehash
         );
-        lens = new Lens();
+        lens = new Lens(address(factory));
         vm.deal(alice, 10_000 ether);
         vm.deal(bob, 10_000 ether);
         vm.deal(whale, 100_000 ether);
@@ -139,13 +142,29 @@ abstract contract Base is Test {
     {
         vm.prank(launcher);
         b.chipId = fab.tapeoutChip(netlist, gateCount);
-        b.kernel = Kernel(payable(factory.create(e, b.chipId, salt)));
+        b.kernel = e.buyEnabled
+            ? Kernel(payable(factory.create(e, b.chipId, salt)))
+            : Kernel(payable(_cloneOutsideTheFactory(e, b.chipId, salt)));
         (address t, address v) = manager.createToken(launcher, address(b.kernel), taxBps, taxBps, 0, 0, GRADUATION);
         b.token = MockToken(t);
         b.vault = MockVault(payable(v));
         vm.prank(launcher);
         circuits.transferFrom(launcher, address(b.kernel), b.chipId);
         b.kernel.bind(t);
+    }
+
+    /// @dev The factory refuses an envelope with buys disabled, but the kernel's code for that case is still
+    ///      there, so tests reach it with a clone the factory did not make: the immutable arguments the factory
+    ///      would write (taken from a kernel it made for the same chip with buys enabled), and its entry in the
+    ///      factory's registry set by hand, so that `bind` can report to the factory and the Lens accepts it.
+    function _cloneOutsideTheFactory(Envelope memory e, uint256 id, bytes32 salt) internal returns (address k) {
+        e.buyEnabled = true;
+        address twin = factory.create(e, id, keccak256(abi.encode(salt, "twin")));
+        e.buyEnabled = false;
+        Globals memory g = IKernelExt(twin).globals();
+        k = Clones.cloneDeterministicWithImmutableArgs(factory.kernelImpl(), abi.encode(g, e), salt);
+        stdstore.target(address(factory)).sig("isKernel(address)").with_key(k).checked_write(true);
+        assertTrue(factory.isKernel(k));
     }
 
     /// @dev The default fixture: a fixed chip, 3% / 3% tax, the default envelope.

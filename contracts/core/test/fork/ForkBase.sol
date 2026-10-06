@@ -9,7 +9,8 @@ import {Lens} from "../../src/Lens.sol";
 import {KernelMath} from "../../src/KernelMath.sol";
 import {TradeMath} from "../../src/lib/TradeMath.sol";
 import {Record, Envelope, RecordFlags} from "../../src/interfaces/IKernelV1.sol";
-import {Globals} from "../../src/interfaces/IKernelExt.sol";
+import {Globals, IKernelExt} from "../../src/interfaces/IKernelExt.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {ICircuits} from "../../src/interfaces/IEvaluators.sol";
 
 import {Fab} from "evaluator/Fab.sol";
@@ -238,7 +239,7 @@ abstract contract ForkBase is Test {
             CIRCUIT_IMPL,
             CIRCUIT_IMPL_HASH
         );
-        lens = new Lens();
+        lens = new Lens(address(factory));
     }
 
     /// @dev The Flow Governor: the fixed copy test/fixtures/fg.hex, the chip as the chip tools built it on
@@ -369,13 +370,28 @@ abstract contract ForkBase is Test {
     ///      chip NFT, bind.
     function _fixture(bytes memory nl, Envelope memory e, uint16 taxBps) internal {
         chipId = _tapeout(nl);
-        kernel = Kernel(payable(factory.create(e, chipId, bytes32("fork"))));
+        kernel = e.buyEnabled
+            ? Kernel(payable(factory.create(e, chipId, bytes32("fork"))))
+            : Kernel(payable(_cloneOutsideTheFactory(e, chipId, bytes32("fork"))));
         vm.label(address(kernel), "kernel");
         (token, vault) = _launch(address(kernel), taxBps, 0, 0);
         vm.prank(launcher);
         ICircuitsNft(circuits).transferFrom(launcher, address(kernel), chipId);
         vm.prank(bob); // anyone
         kernel.bind(address(token));
+    }
+
+    /// @dev The factory refuses an envelope with buys disabled; the kernel's code for that case is reached
+    ///      with a clone the factory did not make (its arguments taken from a kernel the factory made for the
+    ///      same chip, its registry entry set by hand so that `bind` can report to the factory).
+    function _cloneOutsideTheFactory(Envelope memory e, uint256 id, bytes32 salt) internal returns (address k) {
+        e.buyEnabled = true;
+        address twin = factory.create(e, id, keccak256(abi.encode(salt, "twin")));
+        e.buyEnabled = false;
+        Globals memory g = IKernelExt(twin).globals();
+        k = Clones.cloneDeterministicWithImmutableArgs(factory.kernelImpl(), abi.encode(g, e), salt);
+        stdstore.target(address(factory)).sig("isKernel(address)").with_key(k).checked_write(true);
+        assertTrue(factory.isKernel(k));
     }
 
     // ------------------------------------------------------------------ actions

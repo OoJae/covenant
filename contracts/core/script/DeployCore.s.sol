@@ -129,7 +129,7 @@ contract DeployCore is Script {
         factory = new KernelFactory(
             p.manager, p.v2Router, p.wokb, p.circuits, p.fab, p.sealedVM, p.beacon, p.impl0, p.impl0Hash
         );
-        lens = new Lens();
+        lens = new Lens(address(factory));
         vm.stopBroadcast();
 
         // ---- after: the factory holds exactly what it was given, and its Kernel implementation exists
@@ -146,6 +146,7 @@ contract DeployCore is Script {
         require(kernelImpl.code.length != 0, "KernelFactory: no Kernel implementation");
         require(kernelImpl.code.length < 24_576, "Kernel implementation over the code size limit");
         require(address(lens).code.length != 0, "Lens: not deployed");
+        require(address(lens.FACTORY()) == address(factory), "Lens: factory");
         bool pinsLive = factory.pinsLive();
         require(pinsLive == (liveImpl == p.impl0), "KernelFactory: pinsLive disagrees with the beacon");
 

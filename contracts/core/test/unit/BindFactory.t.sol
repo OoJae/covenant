@@ -193,8 +193,15 @@ contract BindFactoryTest is Base {
         e = _env();
         e.fbAllow = e.capT + 1;
         _expectBadEnvelope(e, id, 12);
+        // buys disabled, whoever the sink is: the sink would be a second payee outside guarantee 1
         e = _env();
         e.buyEnabled = false; // sink is zero
+        _expectBadEnvelope(e, id, 13);
+        e.sink = sinkAddr;
+        _expectBadEnvelope(e, id, 13);
+        e.sink = e.allowancePayee;
+        _expectBadEnvelope(e, id, 13);
+        e.sink = e.launcher;
         _expectBadEnvelope(e, id, 13);
         e = _env();
         e.epochLen = 1 days;
@@ -229,8 +236,7 @@ contract BindFactoryTest is Base {
         e.floorMin = 425;
         e.fallbackEpochs = 2;
         e.fbAllow = 128;
-        e.buyEnabled = false;
-        e.sink = sinkAddr;
+        e.sink = sinkAddr; // ignored: buys are enabled
         factory.create(e, id, bytes32("upper"));
 
         // every lower edge at once

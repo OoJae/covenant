@@ -205,8 +205,11 @@ Bytecode of this revision (changes with any edit to the sources, comments includ
    block header on 2026-10-05). If X Layer adopted Ethereum's 16,777,216 per-transaction cap, there would be
    0.94M of room, and none if TapeOut's own tape-out got dearer. A 2,000-gate chip, a little larger than the
    flagship (1,953 gates), needs 9.4M.
-6. **Fork tests depend on public endpoints keeping old state.** Both did on 2026-10-04, and the suite ran
-   against the first on 2026-10-05. Foundry also caches the fork under
+6. **Fork tests depend on public endpoints keeping old state.** Both did on 2026-10-04. Until 2026-10-06 the
+   first was named in `foundry.toml` with a `${XLAYER_RPC_URL:-...}` default, which Foundry does not
+   expand, so the fork runs of 2026-10-04 and 2026-10-05 were served by the OKX endpoint. On 2026-10-06 that
+   endpoint did not resolve; `test/utils/XLayerFork.sol` now reads `XLAYER_RPC_URL` itself, and the suite
+   passed against `https://rpc.xlayer.tech`. Foundry also caches the fork under
    `~/.foundry/cache/rpc/xlayer/72370000`.
 7. **`TooManySignals` is not exercised.** It needs a pointer with about 67 MB of code.
 8. **The fuzz seed is fixed** in `foundry.toml`. Different seeds were run by hand (see the top of this file).

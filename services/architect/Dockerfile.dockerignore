@@ -8,6 +8,7 @@
 !services/architect/src
 !services/architect/scripts
 !chips
+!docs/taps/assets
 
 # Local Python environments, caches, scratch directories and build output stay out of the image.
 chips/.venv

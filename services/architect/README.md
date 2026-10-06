@@ -12,9 +12,11 @@ manifest, proof results and cost comes out. It is the product listed on OKX.AI, 
 It is thin on purpose. The HTTP layer, the paywall and the limits are finished and tested; the chip toolchain is
 reached through one adapter function, `compilePreset(preset, params)` in `src/toolchain.ts`.
 
-**State today.** The toolchain entry point this service needs does not exist yet, so `TAPC_CMD` is unset and the
-service runs in **stub mode**: the free route returns a fixed demo payload marked `stub: true`, and the paid route is
-closed (503), because selling a fixed payload would be dishonest. Nothing has been deployed and no OKX.AI agent has
+**State today.** The toolchain entry point exists: `python -m tapc.architect` (`chips/tools/tapc/architect.py`),
+and the image sets `TAPC_CMD` to it, so a container compiles for real: synthesis, proofs on the netlist bytes, pin
+manifest and cost, in about 30 s for the Flow Governor on 4 CPUs. Run from a checkout without `TAPC_CMD`, the service
+still falls back to **stub mode**: the free route returns a fixed demo payload marked `stub: true`, and the paid route
+is closed (503), because selling a fixed payload would be dishonest. Nothing has been deployed and no OKX.AI agent has
 been registered. What a person has to do is in the runbook below.
 
 | Path | What |
@@ -27,7 +29,8 @@ been registered. What a person has to do is in the runbook below.
 | `src/config.ts`, `src/request.ts`, `src/ratelimit.ts`, `src/cache.ts` | Environment, request validation, limiter, compile cache |
 | `scripts/selfcheck.ts` | Prints (and can run) the curl self-check of OKX's A2MCP guide |
 | `scripts/okx-listing.ts` | Prints the `onchainos agent ...` registration commands with the service JSON filled in |
-| `test/` | 86 tests. Nothing in them contacts OKX or X Layer |
+| `test/` | 89 tests. Nothing in them contacts OKX or X Layer. The 3 in `toolchain-real.test.ts` run against the real toolchain and are opt-in (`TAPC_E2E_CMD`) |
+| `../../chips/tools/tapc/architect.py` | The toolchain entry point (`TAPC_CMD`), owned with the chips; its tests are `chips/tools/tests/test_architect.py` |
 
 ## Run it
 
@@ -40,6 +43,12 @@ pnpm test && pnpm typecheck
 
 X402_MODE=mock node src/index.ts     # http://localhost:8787, stub toolchain, mock payments
 node scripts/selfcheck.ts http://localhost:8787 --run --mock-pay
+
+# the same with the real toolchain (needs chips/.venv, see chips/tools/NOTES.md)
+TAPC_CMD="$PWD/../../chips/.venv/bin/python -m tapc.architect" TAPC_CWD=../../chips/tools \
+  X402_MODE=mock node src/index.ts
+TAPC_E2E_CMD="$PWD/../../chips/.venv/bin/python -m tapc.architect" TAPC_E2E_CWD="$PWD/../../chips/tools" \
+  node --test test/toolchain-real.test.ts      # the adapter and the HTTP app against the real command
 ```
 
 ```sh
@@ -121,7 +130,7 @@ Every answer of the paid route carries `X-Covenant-X402-Mode`. Never list a depl
 
 For the chips team. The full text is at the top of `src/toolchain.ts`; in short:
 
-- `TAPC_CMD` is the complete command, for example `python -m tapc architect`. It is run once per request, without a
+- `TAPC_CMD` is the complete command, for example `python -m tapc.architect`. It is run once per request, without a
   shell and without extra arguments.
 - **stdin**: `{"protocol":"covenant-architect/1","op":"compile","preset":"...","params":{...}}`
 - **stdout**: exactly one JSON object.
@@ -134,9 +143,70 @@ For the chips team. The full text is at the top of `src/toolchain.ts`; in short:
 - The command sees `PATH`, `HOME`, `LANG`, `LC_ALL`, `TZ`, `TMPDIR`, `VIRTUAL_ENV`, `PYTHONPATH`, `PYTHONUNBUFFERED`,
   `YOWASP_CACHE_DIR`, `YOWASP_MOUNT` and `TAPC_*`. No credential of the service reaches it.
 
-`tapc` today has `synth`, `pack`, `prove`, `sim`, `info`, `difftest` and `fork-tapeout`, but no entry point that
-takes a preset and parameters and prints this JSON. That entry point (`tapc architect`, or a wrapper script) is the
-one missing piece. `test/fixtures/fake-tapc.mjs` is a 60-line example of a program that satisfies the contract.
+`test/fixtures/fake-tapc.mjs` is a 60-line example of a program that satisfies the contract; the unit tests use it.
+
+### The real toolchain: `python -m tapc.architect`
+
+`chips/tools/tapc/architect.py` implements the contract. The image runs it as
+`TAPC_CMD="/opt/venv/bin/python -m tapc.architect"`. (`tapc architect`, as a subcommand of the `tapc` command line,
+needs a three-line registration in `chips/tools/tapc/cli.py` that is not made yet; `-m tapc.architect` is the same
+program.)
+
+**Presets.**
+
+- `flow-governor`: the Flow Governor (`chips/rtl/fg_core.v`) with the constants of `chips/rtl/fg_params.json`.
+  `params` may override:
+  - chip constants `M1`, `M2`, `M3` (allowance milestones), `AL0`..`AL3` (allowance share per tier), `CEIL0`
+    (allowance ceiling), `RC` (reserve share), `FLOOR_Q` and `RESMIN_Q` (the token-regime twins `FLOOR_T` and
+    `RESMIN_T` follow);
+  - the target envelope `capT`, `allowCumBps`, `ceilMax`, `relMax`, `floorRel`, `floorMin`, `epochLen`,
+    `fallbackEpochs`, `fbAllow`.
+
+  Each value must be a whole number (numeric strings such as `"430"` are accepted), within the bit width of its
+  constant and the factory limits of `chips/INTERFACE.md` section 7, and the whole set must satisfy every relation
+  `chips/rtl/gen_params.py` checks (for example `AL0 == capT`, `CEIL0 == ceilMax`, `relMax == 2 * TR_MAX`,
+  `allowCumBps * 256 >= capT * 10000`, `fbAllow <= AL3`, `M1 < M2 < M3`). The other constants are fixed in this chip
+  revision: `SURGE_TH`, `XSURGE_TH`, `DIP_TH`, `DD_TH`, `DRYN`, `WARMN`, `CDN`, `TR_MIN`, `TR_MAX`, `RB_MIN` and
+  `RB_SPAN` are pinned by `gen_params.py` (and the inductive invariant P4 is written for the current `DRYN`, `WARMN`
+  and `CDN`); `TRN`, `LEAK`, `SLEW_Q`, `PK_DIV`, `SUR_ON`, `RB_GAIN` and `CEIL_STEP` are wired into the RTL's
+  structure. Sending one of them at its current value is accepted; any other value is refused with code `fixed`.
+- `glutton`: the hostile demo chip (`chips/cells/glutton`). No params. Its proofs say what it does (demands
+  everything, ignores its inputs); it is not clamp-free, and its manifest says so (`architect.hostile: true`).
+
+**A rejection** names every problem at once, each with a path and a hint, for example
+`{"code":"relation","path":"params.AL0","message":"AL0 (40) must equal the envelope's capT (48): ...","hint":"set capT to 40"}`.
+Codes: `type`, `range`, `relation`, `fixed`, `derived`, `unknown_param` (with "did you mean"), and for the request
+`bad_request`, `unsupported_protocol`, `unsupported_op`, `unknown_preset`.
+
+**Pipeline**, in a temporary directory: parameters, `fg_params.vh`, synthesis with one fixed recipe
+(`rich-dc2-compress`, the one recorded in `chips/out/fg.manifest.json`), the `covenant-v1` shape check (at most
+24,000 bytes), then the proofs and the pin manifest in parallel worker processes, then the cost.
+
+**Proofs**, all on the netlist bytes for every state and input, buyer groups first: P1 share groups, P2 clamp-freedom
+against the *requested* envelope (K2, K2V, K3, K5, K2C, and the K2L argument), P3 ratchets, P4 inductive invariant
+(each by Yosys SAT and again by z3 on terms built from the bytes); then EQ, netlist == RTL (Yosys SAT and z3); then
+P5, P6 and the extras. P7 (the reachability witness) is listed as `skipped`. Every row carries `id`, `group`,
+`title`, `check`, `engine`, `status`, `seconds` and `detail`.
+
+**Time budget.** Proofs still running `TAPC_ARCHITECT_BUDGET` seconds (default 100) after the request started are
+stopped and reported with status `timeout`; the answer is still `ok: true` and the dashboard shows them as unproven.
+Any `failed` proof stops the rest and turns the answer into a rejection (`proof_failed`, with the counterexample).
+The slowest check is EQ by z3: 27 to 36 s in the measured runs, but for one of eleven extreme parameter sets tried
+(`RC` 0) it had no verdict in 115 s. EQ by Yosys takes 3 to 7 s, so EQ is proven by at least one engine well inside
+the budget.
+
+**The answer** is deterministic: the same request gives byte-identical `netlistHex` and `manifest` (the timings live
+in `proofs` only). The stock request (`{"preset":"flow-governor","params":{}}`) reproduces `chips/out/fg.tap`,
+`chips/out/fg.manifest.json` and `chips/out/fg.pins.json` byte for byte, on macOS and in the Linux image. The
+manifest is the `tapc-manifest/1` object plus an `architect` block: `preset`, `params` (as whole numbers),
+`recipe`, the full `constants`, and `pinManifest` (`content`, the exact bytes to publish, and its `sha256`, the
+`manifestHash` for `Fab.tapeoutChip`). `cost` is transistors x 0.00002 OKB (the Covenant processor's mint price)
+plus TapeOut's current fees, 2 x 0.00066 OKB per mint call and 0.0013 OKB per tape-out: 0.04166 OKB for the stock
+Flow Governor, with gas estimates. `Fab.quote(netlist)` on chain is authoritative.
+
+**Faults.** A broken installation or a crashed solver prints nothing on stdout and exits 70 (the service answers
+502, nothing charged). Every worker runs in its own process group and stops itself if the request's process
+disappears (for example when the service kills it after `TAPC_TIMEOUT_MS`).
 
 ## Environment
 
@@ -147,7 +217,10 @@ Names with empty values are in `.env.example`.
 | `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` | none | Secrets. Sign the calls to OKX's x402 facilitator. Required for the paid route |
 | `PAY_TO` | none | X Layer address that receives the USDT0. Required for the paid route |
 | `PUBLIC_BASE_URL` | `https://$RAILWAY_PUBLIC_DOMAIN` | Public https origin. The challenge's `resource.url` is built from it |
-| `TAPC_CMD` | unset (stub) | The toolchain command. Required for the paid route |
+| `TAPC_CMD` | unset (stub); the image sets `/opt/venv/bin/python -m tapc.architect` | The toolchain command. Required for the paid route |
+| `TAPC_ARCHITECT_BUDGET` | `100` | Seconds after which unfinished proofs are reported as `timeout`. Keep it about 15 s under `TAPC_TIMEOUT_MS` |
+| `TAPC_ARCHITECT_JOBS` | `4` | Proof worker processes per compile. Set it to the number of vCPUs |
+| `TAPC_TRANSISTOR_PRICE_WEI` | `20000000000000` | The transistor price the real toolchain uses in `cost` |
 | `PRICE_USD` | `0.50` | Price per call, at most 6 decimals. Must equal the OKX.AI listing fee |
 | `X402_MODE` | `live` | `mock` for local tests |
 | `X402_SYNC_SETTLE` | `1` | Wait for the transfer to be mined before releasing the result |
@@ -166,7 +239,7 @@ Names with empty values are in `.env.example`.
 | `CORS_ORIGINS` | `*` | Allowed browser origins |
 | `TAPC_TIMEOUT_MS`, `TAPC_CWD` | `120000`, the service's directory | Toolchain time limit and working directory |
 | `YOWASP_CACHE_DIR` | `/var/cache/yowasp` in the image | Where yowasp-yosys keeps its compiled WebAssembly |
-| `TRANSISTOR_PRICE_WEI` | `20000000000000` | Only for the stub's cost figure |
+| `TRANSISTOR_PRICE_WEI` | `20000000000000` | Only for the stub's cost figure (the real toolchain reads `TAPC_TRANSISTOR_PRICE_WEI`) |
 | `LOG_LEVEL` | `info` | |
 
 A malformed general setting (`PORT`, a limit) stops the process with exit code 2. A problem with the paid
@@ -207,20 +280,25 @@ the code compiled at build time and yowasp recompiled it; attach a volume at `/v
 cache survives deploys (`railway volume add --service covenant-architect --mount-path /var/cache/yowasp`). A Railway
 volume is owned by root while the image runs as an unprivileged user, so also set `RAILWAY_RUN_UID=0` in that case.
 
-At this point: `curl https://<host>/healthz` shows `toolchain.mode: "stub"` and `paid.ready: false` with the reasons,
-the free route answers with the stub, and the paid route answers 503.
+At this point: `curl https://<host>/healthz` shows `toolchain.mode: "cli"` and `paid.ready: false` with the reasons
+(no credentials yet), the free route compiles for real, and the paid route answers 503.
 
-### 2. Wire the toolchain
+### 2. Check the toolchain
 
-When the chips team ships the entry point (see "The toolchain contract"):
+The image sets `TAPC_CMD` (see "The real toolchain"). Match the proof workers to the machine and time one compile of
+the largest preset:
 
 ```sh
-railway variable set --service covenant-architect TAPC_CMD='python -m tapc architect'
+railway variable set --service covenant-architect TAPC_ARCHITECT_JOBS=<vCPUs>
+time curl -s -X POST https://<host>/v1/architect/compile -H 'Content-Type: application/json' \
+  -d '{"preset":"flow-governor","params":{}}' | head -c 300
 ```
 
-(`PYTHONPATH=/app/chips/tools` and the virtualenv are already set in the image.) Check `toolchain.mode: "cli"` in
-`/healthz` and time one compile of the largest preset. It has to finish well inside `TAPC_TIMEOUT_MS`; a payment is
-valid for 300 s and Railway closes a request that sends nothing for 5 minutes.
+It has to finish well inside `TAPC_TIMEOUT_MS` (120 s); a payment is valid for 300 s and Railway closes a request that
+sends nothing for 5 minutes. Measured: about 30 s on 4 CPUs (arm64). On fewer vCPUs a z3 proof may come back as
+`timeout` (unproven) rather than proved; raise `TAPC_ARCHITECT_BUDGET` (and `TAPC_TIMEOUT_MS` with it, at most
+280000) if every proof must finish. With 2 vCPUs consider `MAX_CONCURRENT_COMPILES=1`: two compiles at once share
+the CPUs.
 
 ### 3. Set the secrets and the payee
 
@@ -356,7 +434,9 @@ Notes:
 | 402 but `resource.url` starts with `http://` | `PUBLIC_BASE_URL` is unset outside Railway | Set it to the public https origin |
 | 502 `toolchain_spawn` | `TAPC_CMD` does not start | Check the command inside the container |
 | 502 `toolchain_bad_output` | The toolchain printed something else on stdout | Logs belong on stderr; see the contract |
-| 504 `toolchain_timeout` | Compile slower than `TAPC_TIMEOUT_MS` | Raise it (at most 280000), or precompute |
+| 504 `toolchain_timeout` | Compile slower than `TAPC_TIMEOUT_MS` | Keep `TAPC_ARCHITECT_BUDGET` about 15 s below it; raise both (at most 280000 ms) |
+| 502 `toolchain_crash` | The toolchain exited 70: a fault, not the request | Log line `compile_toolchain_fault` carries its stderr |
+| Proofs with status `timeout` | The machine is slower than the budget | More vCPUs and `TAPC_ARCHITECT_JOBS`, or a larger budget |
 | 503 `busy` | `MAX_CONCURRENT_COMPILES` runs in progress | Retry; raise the limit if the machine has the cores |
 | Buyer was refused with 402 after paying | Settlement failed or timed out | Log lines `payment_settle_failed`, `payment_settlement_timeout` carry the transaction |
 

@@ -447,6 +447,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--cpu", help="reuse this processor on the fork instead of creating a throwaway one")
     sp.add_argument("--report", help="write the result JSON here")
     sp.set_defaults(fn=cmd_fork_tapeout)
+
+    sp = sub.add_parser("architect", add_help=False,
+                        help="Covenant Architect compile: JSON request on stdin, JSON answer on stdout")
+    sp.add_argument("rest", nargs=argparse.REMAINDER)
+    sp.set_defaults(fn=lambda a: __import__("tapc.architect", fromlist=["main"]).main(a.rest))
     return p
 
 

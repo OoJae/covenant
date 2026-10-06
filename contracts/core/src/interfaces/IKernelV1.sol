@@ -46,8 +46,8 @@ struct Envelope {
     // epochLen * fallbackEpochs <= 30 days
     uint16 fallbackEpochs;
     uint16 fbAllow; // allowance share used by the fallback word, 0..capT
-    bool buyEnabled; // if false, decided buy amounts are credited to `sink` instead
-    address sink; // pull-credit payee used only when buyEnabled is false; non-zero in that case
+    bool buyEnabled; // must be true: the kernel v1 factory refuses false (the sink would be a second payee)
+    address sink; // pull-credit payee used only when buyEnabled is false; ignored by kernels of this factory
 }
 
 /// Bits of Record.flags. After graduation 16, 32 and 128 cover both legs (the burn and the router buy).
