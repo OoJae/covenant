@@ -9,6 +9,9 @@
 #   deploy/publish-site.sh --broadcast   the same, then SEND it, signed by keystore 'covenant-deployer'.
 #   MONTHS=3 deploy/publish-site.sh ...  months (30 days each) of name activation to pay for if the name is not
 #                                        active yet (default 1; 0.026 OKB per month when written)
+#   PRUNE=0 deploy/publish-site.sh ...   keep files that are on chain but not in this build. By default they are removed
+#                                        (the plan lists each one before anything is sent), so the container holds exactly
+#                                        this build and verify.ts finds chain = build with no exceptions.
 #
 # What is sent (tools/deweb/sim/script/Publish.s.sol, one forge run, one password): open the container (0.08 OKB,
 # once), one putFile per file and one appendChunk per further 24,000 bytes (HTML last), and bind the on-chain name
@@ -36,7 +39,8 @@ ACCOUNT=covenant-deployer
 TAPEOUT_FACTORY=0x1f09DAeFA827f02CBb40967cc91b259763760761
 RPC_URL=${XLAYER_RPC_URL:-https://rpc.xlayer.tech}
 MONTHS=${MONTHS:-1}
-USAGE="usage: [MONTHS=n] deploy/publish-site.sh [--broadcast]"
+PRUNE=${PRUNE:-1}
+USAGE="usage: [MONTHS=n] [PRUNE=0] deploy/publish-site.sh [--broadcast]"
 # verify.ts: the live checks after the send. (The end-to-end test of this script, on a fork, replaces these two:
 # a fork has no second node operator and the official gateway cannot see it.)
 LIVE_VERIFY_OPTS=()
@@ -62,6 +66,11 @@ case "$RPC_URL" in
   *) refuse "the RPC must be an https one, not '$RPC_URL'" ;;
 esac
 [[ "$MONTHS" =~ ^[0-9]+$ ]] && [ "$MONTHS" -ge 1 ] && [ "$MONTHS" -le 120 ] || refuse "MONTHS must be a whole number from 1 to 120, not '$MONTHS'"
+case "$PRUNE" in
+  1) PLAN_PRUNE=(--prune); PUBLISH_PRUNE=true; VERIFY_EXTRA=() ;;
+  0) PLAN_PRUNE=(); PUBLISH_PRUNE=false; VERIFY_EXTRA=(--allow-extra) ;;
+  *) refuse "PRUNE must be 1 (default: remove files this build no longer has) or 0 (keep them), not '$PRUNE'" ;;
+esac
 for tool in forge cast anvil jq node python3 rsync; do
   command -v "$tool" >/dev/null || refuse "$tool is not installed"
 done
@@ -202,14 +211,14 @@ FORK_BLOCK=$(cast block-number --rpc-url "$FORK")
 NONCE_BEFORE=$(cast nonce $DEPLOYER --rpc-url "$FORK")
 BALANCE_BEFORE=$(cast balance $DEPLOYER --rpc-url "$FORK")
 node tools/deweb/plan.ts --processor "$CIRCUITS" --circuit "$CIRCUIT_ID" --dir "$WORK/sim/site" --months "$MONTHS" \
-  --from "$DEPLOYER" --rpc "$RPC_URL" --block "$FORK_BLOCK" --timeout 180 --json "$WORK/plan.json" >"$WORK/plan.txt" \
+  ${PLAN_PRUNE[@]+"${PLAN_PRUNE[@]}"} --from "$DEPLOYER" --rpc "$RPC_URL" --block "$FORK_BLOCK" --timeout 180 --json "$WORK/plan.json" >"$WORK/plan.txt" \
   || { cat "$WORK/plan.txt" >&2; refuse "plan.ts failed"; }
 sed -n '/^Processor/,/^Chain state/p;/^TOTAL/,$p' "$WORK/plan.txt"
 PROCESSOR_NUMBER=$(jq -r .target.processorNumber "$WORK/plan.json")
 STEPS=$(jq -r '.steps | length' "$WORK/plan.json")
 
 # ---- 7. The rehearsal: the whole publication on that fork, from the scratch copy, impersonating the deployer.
-publish_env=(PROCESSOR="$CIRCUITS" CIRCUIT_ID="$CIRCUIT_ID" PROCESSOR_NUMBER="$PROCESSOR_NUMBER" MONTHS="$MONTHS")
+publish_env=(PROCESSOR="$CIRCUITS" CIRCUIT_ID="$CIRCUIT_ID" PROCESSOR_NUMBER="$PROCESSOR_NUMBER" MONTHS="$MONTHS" PRUNE="$PUBLISH_PRUNE")
 say "REHEARSAL on a local fork of X Layer at block $FORK_BLOCK (deployer nonce $NONCE_BEFORE). Nothing is sent."
 if [ "$STEPS" -gt 0 ]; then
   (cd "$WORK/sim" && env "${publish_env[@]}" SITE_DIR=site forge script script/Publish.s.sol --rpc-url "$FORK" \
@@ -221,7 +230,8 @@ SENT=$((NONCE_AFTER - NONCE_BEFORE))
 [ "$SENT" -eq "$STEPS" ] || refuse "the rehearsal sent $SENT transactions, the plan has $STEPS"
 SPENT=$(python3 -c "print(($BALANCE_BEFORE - $(cast balance $DEPLOYER --rpc-url "$FORK")) / 10**18)")
 node tools/deweb/verify.ts --processor "$CIRCUITS" --circuit "$CIRCUIT_ID" --dir "$WORK/sim/site" --rpc "$FORK" \
-  --block "$(cast block-number --rpc-url "$FORK")" --second-rpc none --no-gateway --timeout 180 >"$WORK/verify-fork.txt" 2>&1 \
+  --block "$(cast block-number --rpc-url "$FORK")" --second-rpc none --no-gateway --timeout 180 \
+  ${VERIFY_EXTRA[@]+"${VERIFY_EXTRA[@]}"} >"$WORK/verify-fork.txt" 2>&1 \
   || { cat "$WORK/verify-fork.txt" >&2; refuse "the rehearsed site does not read back identical from the fork"; }
 kill "$ANVIL" 2>/dev/null || true
 ANVIL=
@@ -259,7 +269,7 @@ fi
 #      the gateway.
 HEAD_NOW=$(cast block-number --rpc-url "$RPC_URL")
 node tools/deweb/verify.ts --processor "$CIRCUITS" --circuit "$CIRCUIT_ID" --dir "$SIM/site" --rpc "$RPC_URL" --block "$HEAD_NOW" \
-  ${LIVE_VERIFY_OPTS[@]+"${LIVE_VERIFY_OPTS[@]}"} --no-gateway >"$WORK/verify-chain.txt" 2>&1 \
+  ${LIVE_VERIFY_OPTS[@]+"${LIVE_VERIFY_OPTS[@]}"} ${VERIFY_EXTRA[@]+"${VERIFY_EXTRA[@]}"} --no-gateway >"$WORK/verify-chain.txt" 2>&1 \
   || { cat "$WORK/verify-chain.txt" >&2; refuse "the site on chain is not this build (see above). It is not recorded"; }
 container=$(cast call 0x536adD8F30f03b69f6fbF29d425A816A0dC50106 "accountOf(address,uint256)(address)" "$CIRCUITS" "$CIRCUIT_ID" --rpc-url "$RPC_URL")
 # cast annotates large numbers ("1793897036 [1.793e9]"): keep the number
@@ -286,7 +296,7 @@ if [ "$GATEWAY_CHECK" = yes ]; then
   say "checking the live gateway https://$host.tapekit.org/ in a headless browser"
   set +e
   node tools/deweb/verify.ts --processor "$CIRCUITS" --circuit "$CIRCUIT_ID" --dir "$SIM/site" --rpc "$RPC_URL" --block "$HEAD_NOW" \
-    ${LIVE_VERIFY_OPTS[@]+"${LIVE_VERIFY_OPTS[@]}"} --expect-selector '#app *'
+    ${LIVE_VERIFY_OPTS[@]+"${LIVE_VERIFY_OPTS[@]}"} ${VERIFY_EXTRA[@]+"${VERIFY_EXTRA[@]}"} --expect-selector '#app *'
   code=$?
   set -e
   case $code in
