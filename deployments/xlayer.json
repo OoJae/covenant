@@ -53,5 +53,18 @@
       "0x03120b2d6e7c60f5eaf86ef21cf638d059a18d91fa3c488ea0b8698c1c06683d",
       "0x7a412c0a42e365b7bb3bd82d63bcf683b57d7d2498c907966b27b7bdad28a4c4"
     ]
+  },
+  "prelaunch": {
+    "commit": "e612e4c077fc9e663626e6352a7e1ca95f215c5c",
+    "gluttonChipId": 3,
+    "glutton512ChipId": 4,
+    "gluttonManifestHash": "0x12d9b75b416937b270a13f65bc5eb36caada9ee98d46df69a08f2e0c4d2cc7ea",
+    "keeperInvited": "0x7444eC2a06d3c1070203b76c2c3EeE998317C4Ff",
+    "holder": "deployer (never bound to a kernel; run with Lens.shadowChip)",
+    "txs": [
+      "0x968c8030932d59878b0773dc81a5ffadc24d851d09c9e8def1ae5a0a95ca3c36",
+      "0xf8a6f70dae0c8cd419db727679cf836d8c38153a9cb97f6dcb8426f9ada55588",
+      "0x40a5ceecd91fbc39c5a8ddf64b05c36ea53786888e321df938311013942eb43e"
+    ]
   }
 }
