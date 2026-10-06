@@ -1,0 +1,67 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+cache_path = "cache"
+libs = ["lib"]
+
+# Compiler: pinned, same as the other Covenant packages.
+# X Layer executes Cancun opcodes (TSTORE/TLOAD/MCOPY) and rejects Osaka ones (CLZ); see NOTES.md.
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+
+auto_detect_remappings = false
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  # test tree only: TapeOut's vendored sources are compiled as the differential oracle and as a local fixture
+  "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+  "tapeout/=../vendor/tapeout-xlayer/src/",
+]
+# TapeOut's verified MIT sources live outside this project root. They are read, never edited, from here.
+allow_paths = ["../vendor"]
+
+# TapeOut's NetlistVM does not compile on the legacy pipeline ("stack too deep" in NetlistVM.run), so the
+# three test harnesses that wrap or vary the vendored sources are built with via-IR. Everything under src/ is
+# pinned to the legacy pipeline, and the tests deploy the harnesses from their artifacts (deployCode)
+# rather than importing them, so the contracts under test are always the production build.
+additional_compiler_profiles = [{ name = "tapeout", via_ir = true }]
+compilation_restrictions = [
+  { paths = "src/**", via_ir = false },
+  { paths = "test/utils/NetlistVMHarness.sol", via_ir = true },
+  { paths = "test/utils/LocalTapeOut.sol", via_ir = true },
+  { paths = "test/utils/TestCircuits.sol", via_ir = true },
+]
+
+# The differential suite evaluates 3,400-gate netlists on TapeOut's evaluator (about 8M gas each) and
+# the fork suite reads 33 KB netlists, so tests get a generous gas and memory budget.
+gas_limit = "18446744073709551615"
+memory_limit = 1073741824
+
+# test/fixtures: TAP-20's vectors and a fixed copy of the flagship netlist (fg.hex, the 2026-10-04 build).
+# chips/out: the chip tools' current output, read by exactly one test (the live-chip test in
+# test/fork/StepGas.fork.t.sol).
+fs_permissions = [
+  { access = "read", path = "./test/fixtures" },
+  { access = "read", path = "../../chips/out" },
+]
+
+[fuzz]
+runs = 1024
+seed = "0xc0ffee"
+
+# FOUNDRY_PROFILE=deep: the four differential and reference fuzz tests carry their own, larger run counts
+# for this profile (forge-config comments on the tests): 20,000 netlists, 50,000 damaged ones.
+[profile.deep.fuzz]
+runs = 1024
+
+[rpc_endpoints]
+xlayer = "${XLAYER_RPC_URL:-https://rpc.xlayer.tech}"
+xlayer_fallback = "https://xlayerrpc.okx.com"
+
+[fmt]
+line_length = 120

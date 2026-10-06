@@ -31,7 +31,7 @@ That says nothing about safety on v2: kernel v1 ignores the `V_*` group, so a ch
 
 A chip core is written as a pure function `core(s, x) -> (ns, y)`; the packer adds the LATCH records.
 
-**Gas.** The kernel gives each evaluator a fixed amount of gas for one beat, computed by the kernel factory from the chip's gate and latch counts: `200,000 + 2,600 * gateCount + 800 * nState` for TapeOut's and `40,000 + 200 * nNand + 400 * nLatch` for the sealed one. Measured on a fork at the all-ones state and all-ones inputs, TapeOut's `step` needs at most `101,730 + 2,293 * nNand + 3,059 * nLatch` and the sealed evaluator at most `20,000 + 160 * nNand + 280 * nLatch` over every shape this section allows, so a chip cannot be made to fail by its own state or inputs.
+**Gas.** The kernel gives each evaluator a fixed amount of gas for one beat, computed by the kernel factory from the chip's gate and latch counts: `200,000 + 2,600 * gateCount + 800 * nState` for TapeOut's and `40,000 + 200 * nNand + 400 * nLatch` for the sealed one. Measured on a fork at the all-ones state and all-ones inputs over the corners of every shape this section allows, TapeOut's `step` needs at most 87.4% of its amount and the sealed evaluator at most 75.5% of its own (table in `contracts/core/NOTES.md`), so a chip cannot be made to fail by its own state or inputs.
 
 ## 3. Bits and bytes
 
@@ -81,7 +81,7 @@ exp8(c) = ((8 + ((c-1) & 7)) << ((c-1) >> 3)) >> 3
 
 Every bit is assembled by the kernel from chain state. No caller supplies an input. What a caller can still influence:
 
-- **When** within an epoch the settle happens, and whether epochs are skipped. `TAX` then covers a longer window and `DT` says how many epochs it covers. `DT = 15` means 15 or more: a rate-based chip should read it as "rate unknown".
+- **When** within an epoch the settle happens, and whether epochs are skipped. `TAX` then covers a longer window and `DT` says how many epochs it covers. `DT = 15` means 15 or more: after a longer gap a chip that divides `TAX` by `DT` overstates the rate.
 - **`PROG`** and **`LOCK`** are spot readings. One buy, settle and sell-back shows any `PROG` to one settle, so they must not drive a one-way ratchet.
 - **`TAX`** and **`TAXCUM`**, by sending value to the vault or (after graduation) tokens to the kernel. It is routed like tax and the sender does not get it back, but `TAXCUM` is therefore not a measure of trading alone.
 - **`RES`** includes decided buys that did not execute.
@@ -131,7 +131,7 @@ struct Envelope {
 
 | Field | Factory check |
 |---|---|
-| `launcher` | non-zero. `bind` requires `tokens(token).creator == launcher` |
+| `launcher` | non-zero. Only a token it created, or one it binds itself, can be bound (section 10) |
 | `epochLen` | `300 .. 86400` |
 | `allowancePayee` | non-zero |
 | `capT` | `<= 128` |
@@ -147,9 +147,9 @@ struct Envelope {
 
 **What these checks guarantee for any chip, however hostile, on any kernel the factory creates:**
 
-1. At most `allowCumBps / 10000`, and never more than half, of the OKB that ever arrives can become allowance. The allowance payee receives nothing else, and nothing after graduation.
+1. At most `allowCumBps / 10000`, and never more than half, of the OKB that ever arrives at the kernel can become allowance. The allowance payee receives nothing else, and nothing after graduation. (What arrives includes the tax on the kernel's own buys, so measured against the tax that traders paid the share is slightly higher: 19.2% rather than 18.75% for the reference envelope.)
 2. Everything else can only be bought and locked, burned, or wait in the reserve. (With `buyEnabled` false it is credited to `sink` instead; that address is part of the envelope and public.)
-3. A reserve at or above `exp8(floorMin)` (at most 0.009 OKB) is offered to the buy leg at `floorRel / 256` per settle or faster: with a settle every epoch it halves at least every 30 days. Below that threshold the amount is dust.
+3. A reserve at or above `exp8(floorMin)` (at most 0.009 OKB) is offered to the buy leg at `floorRel / 256` per settle or faster: with a settle every epoch it halves within 30 days and one epoch. Below that threshold the amount is dust.
 4. If the evaluator stops answering, the fallback word applies within 30 days.
 
 Everything tighter than that is the launcher's choice of envelope. The envelope, not the chip, is what a holder has to read.
@@ -192,14 +192,14 @@ K5   if lg8(reserve0) >= floorMin and REL < floorRel:  REL = floorRel
 
 - Each `K*` sets a bit in the record's `clampBits`: `K1T` 1, `K2` 4, `K2C` 8, `K2L` 16, `K3` 32, `K5` 64. (`K1V` 2 and `K2V` 128 belong to the revenue group of kernel v2.)
 - When `K2` clips, the excess is added to the reserve share, so the four effective shares still sum to 256.
-- `clampBits == 0` means the envelope did not have to correct the chip in that settle. It does not mean the chip behaved well: a chip that asks for exactly the envelope's maximum every time also shows 0. It is also 0 on a fallback record, which is marked by flag 1 instead. A chip with published proofs that no clamp can ever fire, such as the Flow Governor, is the case where `clampBits == 0` on every epoch means "the chip decided".
+- `clampBits == 0` means the envelope did not have to correct the chip in that settle. It does not mean the chip behaved well: a chip that asks for exactly the envelope's maximum every time also shows 0. A fallback record is marked by flag 1, whatever its clamp bits are (the fallback word passes through the same clamps and can set `K2C` or `K2L`). A chip with published proofs that no clamp can ever fire, such as the Flow Governor, is the case where `clampBits == 0` on every epoch means "the chip decided".
 - `K5` offers the release to the buy leg. Whether it executes is section 9.
 - If `allowCumBps * 256 >= capT * 10000`, `K2L` can never fire. A chip cannot see `allowPaidCum`, so this is the only way to rule `K2L` out by proof. A chip is compiled against its kernel's `capT`, `ceilMax`, `relMax`, `floorRel`, `floorMin` and `allowCumBps`.
 - A buy leg that fails or is shrunk leaves the unexecuted part in the reserve. Nothing is lost and nothing is re-routed.
 
 ### 8.3 One settle per epoch
 
-`epoch = (block.timestamp - bindTime) / epochLen`. A settle requires `epoch > lastEpoch`, and `lastEpoch` is 0 at bind, so epoch 0 is never settled: the first settle is possible once one full epoch has passed since bind. `settle()` reverts when it does no work: not bound, epoch not elapsed, too little gas, or an evaluator failure inside the grace period.
+`epoch = (block.timestamp - bindTime) / epochLen`. A settle requires `epoch > lastEpoch`, and `lastEpoch` is 0 at bind, so epoch 0 is never settled: the first settle is possible once one full epoch has passed since bind. `settle()` reverts when it does no work: not bound, epoch not elapsed, too little gas, an evaluator failure inside the grace period, or a buy refused because the caller holds the callee's lock (8.6).
 
 ### 8.4 Evaluator failure and the fallback word
 
@@ -215,7 +215,7 @@ Every external call the kernel makes gets a fixed amount of gas, the same for ev
 
 ### 8.6 A caught failure must be one every caller would see
 
-A failure of the claim, of the curve read or of a buy becomes a flag, not a revert, so that nothing IGNIX or Uniswap does can stop a settle. The exception: if the buy fails because the callee's reentrancy lock is held (`ReentrancyGuardReentrantCall()` from IgnixManager, `UniswapV2: LOCKED` from the pair), `settle()` reverts. That state exists only inside a call stack the caller built, so only the caller's own transaction is affected and the epoch is not consumed.
+A failure of the claim, of the curve read or of a buy becomes a flag, not a revert, so that nothing IGNIX or Uniswap does can stop a settle. The exception: if the buy fails because the callee's reentrancy lock is held, `settle()` reverts. The kernel recognises this by IgnixManager's `ReentrancyGuardReentrantCall()` on the curve; after graduation by the pair's `UniswapV2: LOCKED`, or, when the router fails before it reaches the pair, by a static `pair.sync()` that reverts because the pair is locked. That state exists only inside a call stack the caller built, so only the caller's own transaction is affected and the epoch is not consumed. (The kernel cannot tell a held lock from an upgraded IgnixManager that always answers with that error. Such an upgrade would stop settles altogether and the tax would wait in the vault; it is one of the IGNIX owner's powers named in section 13.)
 
 ## 9. Routes by regime (kernel v1)
 
@@ -237,7 +237,7 @@ with `Q` the pool's quote-side reserve (`vQuote` on the curve), `F` the round-tr
 
 **What the cap does and does not do.** A trader who buys before a kernel buy and sells after it loses money when the two trades surround one settle, or two adjacent ones. Two settles can be one block apart (the last block of one epoch and the first of the next); that is why the divisor is 4, not 2. A release spread over three or more epochs is not covered: a chip's outputs follow from public inputs and public state, so its schedule is predictable, and a position held across several capped buys can profit once the amounts are large relative to the pool. Chips should keep each epoch's release small relative to `Q`. For the reference deployment the cap is about 0.49 OKB per settle and the flows are far below it.
 
-`maxNonGraduatingBuy` is the largest buy that leaves one base unit of token on the curve. The kernel never graduates the curve itself. If the curve is one unit from the end, the kernel's buys are zero until someone else's buy graduates it.
+`maxNonGraduatingBuy` is the largest buy that leaves at least one base unit of token on the curve. The kernel never graduates the curve itself. If the curve is one unit from the end, the kernel's buys are zero until someone else's buy graduates it.
 
 ### 9.2 Graduation
 
@@ -261,7 +261,7 @@ The kernel latches `graduated` in the first settle in which the token itself rep
 | Tokens bought on the curve | `lockedTokens` is the sum of the kernel's balance changes around its own `buyTo` calls. `burnLocked()`, callable by anyone, sends them to `0xdEaD`. They are never counted as inflow or reserve |
 | Tokens that reached the kernel on the curve any other way | Someone else's `buyTo` with the kernel as recipient. They are not locked tokens: they count as inflow in the first settle after graduation |
 
-The native pot is the kernel's OKB balance minus `totalCredits(address(0))`.
+The native pot is the kernel's OKB balance minus `totalCredits(address(0))`. The router buy pays the token's buy tax like any other buy; that tax reaches the kernel as tokens and is inflow, visible to the chip in `TAX`.
 
 With `buyEnabled` false, every amount the tables above send to a buy or a burn is credited to `sink` instead, in the asset it is in. The record then shows `buyExecuted = buyDecided`, `tokensOut = 0` and no buy flag; after graduation the native pot is credited to `sink` in OKB and no router buy is made.
 
@@ -322,7 +322,7 @@ interface IKernelV1 is IKernelMin {
     function graduated() external view returns (bool);           // as of the last settle
     function pair() external view returns (address);
     function envelope() external view returns (Envelope memory);
-    function evaluator() external view returns (address vm, bool sealedMode);   // what the next settle would use
+    function evaluator() external view returns (address vm, bool sealedMode);   // what the next settle would ask first
     function minSettleGas() external view returns (uint256);
 }
 ```
@@ -336,11 +336,11 @@ A record together with `cums(n)`, `cums(n-1)` and the previous record's `stateAf
 | Bit | Set when |
 |---|---|
 | 1 | The fallback word was applied (section 8.4) |
-| 2 | The sealed evaluator was used (section 12) |
+| 2 | The sealed evaluator's answer was used (section 12) |
 | 4 | The vault held something and a claim failed |
 | 8 | The curve words of `IgnixManager.tokens(token)` could not be read or were out of range |
 | 16 | A buy was skipped by a guard, or the capped amount was zero (sections 9.1, 9.3) |
-| 32 | A buy or burn call failed, or moved less than decided |
+| 32 | A buy, burn or swap call failed, or moved less than it was sent (a cap shrinking the amount is flag 128, not 32) |
 | 64 | The record was written in the graduated regime |
 | 128 | A buy was shrunk by a cap |
 
@@ -415,7 +415,7 @@ Every one of these reads is a gas-capped static call that copies a bounded amoun
 
 - No Covenant contract on the tax path has an owner, an upgrade path or a pause.
 - TapeOut's factory is unsealed: a 3-of-5 Safe can upgrade processor logic. The kernel then uses the sealed evaluator.
-- IgnixManager is upgradeable by its owner, a 1-of-2 Safe, which can also pause buys and, 72 hours at a time, claims. An upgrade could stop the buy leg or the claim; the kernel then keeps settling and the affected amounts wait.
+- IgnixManager is upgradeable by its owner, a 1-of-2 Safe, which can also pause buys and, 72 hours at a time, claims. An upgrade could stop the buy leg or the claim (the kernel then keeps settling and the affected amounts wait), or make every settle revert (section 8.6; the tax then waits in the vault).
 - The keeper is liveness only: anyone can call `settle()`.
 - Unaudited.
 
