@@ -1,0 +1,39 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+cache_path = "cache"
+libs = ["lib"]
+
+# Compiler: pinned, as in the other Covenant projects.
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+
+auto_detect_remappings = false
+remappings = ["forge-std/=lib/forge-std/src/"]
+
+# Every top-level call a test makes is executed as its own transaction: intrinsic gas (21,000 plus
+# calldata) is charged and refunds are settled per call. The per-transaction gas figures in NOTES.md
+# are measured that way and were compared with real receipts (see NOTES.md).
+isolate = true
+
+# The publication reads the site's files from disk. Read access: this project (fixtures) and the
+# repository's web/ directory (the real build output, web/dist). Write access: only measured/, where the
+# fork test leaves the gas it measured for the TypeScript tests to compare with plan.ts.
+fs_permissions = [
+  { access = "read", path = "./" },
+  { access = "read", path = "../../../web" },
+  { access = "read-write", path = "./measured" },
+]
+
+[fmt]
+line_length = 120
+
+# This project is tooling (a script and its tests), not deployed contracts: loops that call out and
+# that revert on the first bad file are intended here.
+[lint]
+exclude_lints = ["calls-loop", "require-revert-in-loop", "uninitialized-local", "unused-return"]

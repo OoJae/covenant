@@ -8,7 +8,7 @@ holds a key, signs or sends a transaction to a real network.
 |---|---|
 | [`launch-check/`](launch-check/NOTES.md) | The last check before a human signs the irreversible IGNIX token launch (`IgnixManager.createToken`) at ignix.bot. Two commands: `launch-check.ts` decodes the exact transaction the wallet shows and checks it against the rules and the chain; `simulate.ts` runs that exact transaction on a local fork, then binds the kernel, buys from an unrelated address, waits one epoch and settles. |
 | [`audit-team/`](audit-team/NOTES.md) | Lists every transaction each declared team wallet has ever sent (a nonce walk on an archive RPC, no explorer) and flags any IGNIX trade, any call to the Uniswap V2 router or WOKB, any value sent into a kernel or its vault, any transistor transfer. The wallets are those of `docs/WALLETS.md`, the deployer, the keeper, the Architect's agent wallet, and every wallet the on-chain `TeamRegistry` lists. A wallet that is a known smart wallet (an OKX Agentic Wallet: EIP-7702 delegation to OKX's SmartWalletEntry) is not flagged for its code; its ERC-4337 user operations are found on the EntryPoints and audited like transactions. |
-| `deweb/` | Plans and verifies the publication of a site into a TapeOut circuit's DeWEB container (see the headers of `deweb/plan.ts` and `deweb/verify.ts`; not covered by this README). |
+| [`deweb/`](deweb/NOTES.md) | Publishes the site (web/) into the DeWEB container of the probe circuit, so that https://1-2-283.tapekit.org/ serves it from the chain. `plan.ts` prints the transactions and their cost from the live chain; `verify.ts` reads the site back and compares it with the build, a second node operator and what the gateway serves; `deploy/publish-site.sh` builds, rehearses on a fork and sends (see "Publishing the site" below). |
 
 Tests: `cd tools && node --test launch-check/test/*.test.ts audit-team/test/*.test.ts`
 (`OFFLINE=1` skips everything that needs the network; `REHEARSE=1` adds the full launch-day rehearsal against the
@@ -123,6 +123,22 @@ VERDICT: FAIL. The simulated launch did not complete. DO NOT SIGN this transacti
 
 Exit codes, both commands: 0 pass, 1 refused or could not run, 2 called wrongly (nothing was checked; never a
 pass). `launch-check --json` prints the same result for a program.
+
+## Publishing the site (DeWEB)
+
+```
+deploy/publish-site.sh                 build the site of HEAD, plan, rehearse on a local fork, read back. Sends nothing
+deploy/publish-site.sh --broadcast     the same, then send (keystore covenant-deployer, one password), record in
+                                       deployments/xlayer.json under .site, and check the live gateway
+MONTHS=3 deploy/publish-site.sh ...    months of name activation (default 1)
+```
+
+The site goes into circuit 1 of Covenant's processor (processor number 283): container
+`0x911350102b2D81a1E8A816638D429a16b80B8Ee2`, name `1.2.283.tape`, served at **https://1-2-283.tapekit.org/**.
+The first publication is 17 transactions: opening the container (0.08 OKB), the files (about 0.001 OKB of gas in all)
+and one month of the name (0.026 OKB): **about 0.107 OKB**; each further month 0.026 OKB. A later run sends only what
+changed. A run that stopped is recovered from the chain and nothing that reached it is sent again. Details, and what
+was verified: `deweb/NOTES.md`. Check any time: `node tools/deweb/verify.ts --site 1-2-283`.
 
 ## Rehearsal
 

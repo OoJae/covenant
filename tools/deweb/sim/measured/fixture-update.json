@@ -1,0 +1,67 @@
+{
+  "calldataBytes": [
+    452,
+    388,
+    644,
+    132,
+    132
+  ],
+  "calldataHashes": [
+    "0xe9cd3b8bb407c8269712407f5b93af52a839c79a7751cf8e7eebe44993e8aa0b",
+    "0x23a4725378d7a7c9026696c51289c2c4f29258a6e8525d7dbf6a5c4ca535b3f5",
+    "0x0f29e024f653a9a8339e9bf1cac9c0112b1e764b8f51c520f3a7ca76ff708733",
+    "0x7aed9499543eb8de1c383cba4d512c4dcba84af6bb506e6c66675de2be5a36f8",
+    "0x6d1bd5a413bc3d87239043786c1c63ff67c4296d1117ce1156eca144bf33312e"
+  ],
+  "circuitId": 1,
+  "container": "0x2A44cFe7e4E515e32452f42079323944621AD36C",
+  "fallbackPath": "",
+  "forkBlock": 72376000,
+  "gasUsed": [
+    389655,
+    301753,
+    216218,
+    124046,
+    159944
+  ],
+  "holder": "0x406EAa30A19dA284EcFB903fD91384038C3aA95A",
+  "kinds": [
+    2,
+    2,
+    2,
+    5,
+    5
+  ],
+  "labels": [
+    "putFile notes/a-path-longer-than-thirty-two-bytes/site.webmanifest chunk 1/1 (45 bytes)",
+    "putFile notes/read-me.txt chunk 1/1 (56 bytes)",
+    "putFile index.html chunk 1/1 (311 bytes)",
+    "removeFile big.bin",
+    "removeFile style.css"
+  ],
+  "live": true,
+  "monthlyFee": "26000000000000000",
+  "months": 1,
+  "name": "1.2.275.tape",
+  "openFee": "80000000000000000",
+  "opened": true,
+  "processor": "0xB04EB79D1A5EECaabAAfF7B77d7c27578EE693FF",
+  "processorNumber": 275,
+  "prune": true,
+  "siteDir": "test/fixtures/site-v2",
+  "targets": [
+    "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6",
+    "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6",
+    "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6",
+    "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6",
+    "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6"
+  ],
+  "totalGas": 1191616,
+  "values": [
+    "0",
+    "0",
+    "0",
+    "0",
+    "0"
+  ]
+}
