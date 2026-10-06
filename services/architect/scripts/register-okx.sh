@@ -40,8 +40,8 @@ ask() {
   read -r -p "$1 [y/N] " answer
   [ "$answer" = "y" ] || [ "$answer" = "Y" ] || { echo "stopped; nothing more was sent"; exit 0; }
 }
-field() { # json, jq path list -> first non-empty value
-  jq -r "$2 // empty" <<<"$1" | head -1
+field() { # json, comma-separated jq paths -> the first one that is set (not null, not empty)
+  jq -r "[$2] | map(select(. != null and . != \"\")) | (first // empty)" <<<"$1"
 }
 
 echo "== 0. the endpoint answers 402"
