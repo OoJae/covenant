@@ -1,0 +1,23 @@
+{
+  "chainId": 196,
+  "note": "X Layer mainnet. Every address below was read back from the chain after deployment.",
+  "deployer": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
+  "issuance": {
+    "commit": "9e9988576c1eb5ed1cb29c6b410444c368e3943e",
+    "splitter": "0xB87101F7426BA9175E0a944d3e763dC69B19867f",
+    "splitterTx": "0x9b4c9a6ccb5553318f4deff26f037b8830acb047e06069fa539fbe9795d5479f",
+    "block": 72519781,
+    "transistors": "0xC372dc307eFE4B551c866A79F582D692A373960A",
+    "circuits": "0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b",
+    "keeperTank": "0xb89BCe53822a99503A937C22974F1224D9Ab6352",
+    "teamRegistry": "0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699",
+    "storyKeccak256": "0x2c6b7c473159e62997d307e7eb662fb3052711adf66a863619ac6e90325ab5d0"
+  },
+  "probe": {
+    "circuitId": 1,
+    "gates": 118,
+    "netlistKeccak256": "0xbe0a646df5b58df69e5dc50f492dcc5bdcffa440c3188b8b786ff506cb181325",
+    "tapeoutTx": "0x9e75ed66ef52052282da8682644815fc1457768b02eeb6edb77c9ac39ce572fa"
+  },
+  "keeper": "0x7444eC2a06d3c1070203b76c2c3EeE998317C4Ff"
+}
