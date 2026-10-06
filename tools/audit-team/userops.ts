@@ -11,7 +11,7 @@
 // transfer inside an operation that emits nothing is not seen (NOTES.md, "What it cannot see").
 
 import type { Chain, Receipt, RpcLog, ScanLog } from './chain.ts';
-import type { Classified, Context, Flag } from './classify.ts';
+import { usdt0Amount, usdt0IntoKernels, type Classified, type Context, type Flag } from './classify.ts';
 import { TOPIC, topicOf } from './known.ts';
 
 export const UO_TOPIC = {
@@ -124,6 +124,7 @@ const short = (a: string): string => a.slice(0, 6) + '...' + a.slice(-4);
  *   first-buy            TokenCreated together with a Trade in the same execution
  *   dex-call             any WOKB event, or a Uniswap V2 Swap, in the execution
  *   transistor-transfer  a transfer of Covenant transistors to or from the wallet (validation phase included)
+ *   kernel-usdt0         USD₮0 moved from the wallet to a kernel or a kernel's vault (validation phase included)
  * Events of kernels and of their vaults are named in the text; value sent to them is not visible (no event).
  */
 export function classifyUserOp(op: UserOp, receipt: Receipt, ctx: Context, wallet: string, bundler: string | null): Classified {
@@ -156,6 +157,9 @@ export function classifyUserOp(op: UserOp, receipt: Receipt, ctx: Context, walle
     for (const l of [...seg.validation, ...seg.execution]) {
       if (ownIgnix(l)) add('ignix-activity', `THE WALLET ${l.topics[0] === TOPIC.trade ? 'TRADED' : 'MOVED OR APPROVED'} IGNIX token ${short(l.address === ctx.manager ? topicAddr(l.topics[1]) : l.address)}`);
       if (ownTransistors(l)) add('transistor-transfer', 'COVENANT TRANSISTORS MOVED to or from the wallet');
+      for (const m of usdt0IntoKernels([l], ctx, wallet)) {
+        add('kernel-usdt0', `USD₮0 SENT FROM THE WALLET TO A KERNEL (${usdt0Amount(m.data)} to ${ctx.targets.get(topicAddr(m.topics[2]))?.label ?? topicAddr(m.topics[2])})`);
+      }
       if (ctx.transistors === null && (l.topics[0] === TOPIC.transferSingle || l.topics[0] === TOPIC.transferBatch) && [topicAddr(l.topics[2]), topicAddr(l.topics[3])].includes(wallet) && !undecided.includes('transistor-transfer')) {
         undecided.push('transistor-transfer');
       }

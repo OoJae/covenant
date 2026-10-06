@@ -5,6 +5,8 @@
 //   contracts/core/src/interfaces/IKernelExt.sol   (Globals, globals())
 //   contracts/core/src/KernelFactory.sol           (isKernel, kernelOf, the step gas constants)
 //   tools/launch-check/sim/src/Interfaces.sol      (the copies the fork simulation compiles against)
+//   contracts/core-v2/src/interfaces/IKernelV2.sol (kernel v2: GlobalsV2, RecordV2, quote(), quoteShift())
+//   contracts/core-v2/src/KernelFactoryV2.sol      (isKernel, kernelOf, the same step gas constants)
 // A missing file or a difference FAILS: the kernel changed, so re-check kernel-abi.ts and the sim copies.
 
 import assert from 'node:assert/strict';
@@ -15,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import {
   ENVELOPE_FIELDS,
   GLOBALS_FIELDS,
+  GLOBALS_V2_FIELDS,
   KERNEL_ABI_SNAPSHOT,
   KernelAbiError,
   RECORD_FIELDS,
@@ -39,6 +42,8 @@ const SOURCES = {
   ext: 'contracts/core/src/interfaces/IKernelExt.sol',
   factory: 'contracts/core/src/KernelFactory.sol',
   sim: 'tools/launch-check/sim/src/Interfaces.sol',
+  v2: 'contracts/core-v2/src/interfaces/IKernelV2.sol',
+  factoryV2: 'contracts/core-v2/src/KernelFactoryV2.sol',
 } as const;
 
 /** The fields of `struct <name> { ... }`, comments removed, as [name, type]. */
@@ -120,9 +125,11 @@ test('the sim interface declares the same kernel functions it calls', () => {
   for (const sig of ['chipId() returns (uint256)', 'settle() returns (uint32)', 'token() returns (address)', 'vault() returns (address)', 'count() returns (uint32)', 'records(uint32) returns (Record)', 'envelope() returns (Envelope)', 'globals() returns (Globals)', 'isKernel(address) returns (bool)', 'kernelOf(address) returns (address)', 'epochNow() returns (uint32)', 'lastEpoch() returns (uint32)', 'reserve() returns (uint256)']) {
     assert.ok(sim.has(sig), `sim/src/Interfaces.sol declares ${sig}`);
   }
+  // each one is kernel v1's own declaration, or kernel v2's (globals() returns (GlobalsV2), quote(), quoteShift())
   const v1 = functionSignatures(read(SOURCES.v1) + read(SOURCES.ext));
+  const v2 = functionSignatures(read(SOURCES.v2));
   for (const sig of sim) {
-    if (/^(chipId|settle|token|vault|count|records|envelope|globals|epochNow|lastEpoch|reserve)\(/.test(sig)) assert.ok(v1.has(sig), `${sig} (sim) is the kernel's own declaration`);
+    if (/^(chipId|settle|token|vault|count|records|envelope|globals|epochNow|lastEpoch|reserve|quote|quoteShift)\(/.test(sig)) assert.ok(v1.has(sig) || v2.has(sig), `${sig} (sim) is the kernel's own declaration`);
   }
 });
 
@@ -200,4 +207,66 @@ test('struct returns are decoded strictly', () => {
   const inputsAt = 2 + 4 * 64;
   assert.throws(() => k.records(1).decode(r.slice(0, inputsAt + 63) + '1' + r.slice(inputsAt + 64)), /does not fit bytes12/);
   assert.throws(() => k.records(1).decode(r.slice(0, -64)), /416 bytes; 448 expected/, 'a record without nativeIn (interface revision 1)');
+});
+
+// ───────────────────────────── kernel v2 (USD₮0 quote, contracts/core-v2) ─────────────────────────────
+
+test('struct GlobalsV2: IKernelV2.sol and the sim copy match kernel-abi.ts (quote in place of wokb, quoteShift last)', () => {
+  for (const file of [SOURCES.v2, SOURCES.sim]) {
+    assert.deepEqual(structFields(read(file), 'GlobalsV2'), asPairs(GLOBALS_V2_FIELDS), `${file}: the GlobalsV2 layout changed; re-check tools/launch-check/kernel-abi.ts`);
+  }
+  // everything but wokb -> quote and the trailing shift is kernel v1's Globals, field for field
+  const v1 = asPairs(GLOBALS_FIELDS).map(([n, ty]) => (n === 'wokb' ? ['quote', ty] : [n, ty]));
+  assert.deepEqual(asPairs(GLOBALS_V2_FIELDS).slice(0, -1), v1);
+  assert.deepEqual(GLOBALS_V2_FIELDS.at(-1), ['quoteShift', 'uint256']);
+});
+
+test('struct RecordV2 is Record word for word, with quoteIn in place of nativeIn (readers of v1 records read v2 records)', () => {
+  const v2 = structFields(read(SOURCES.v2), 'RecordV2');
+  assert.deepEqual(v2.slice(0, -1), asPairs(RECORD_FIELDS).slice(0, -1));
+  assert.deepEqual(v2.at(-1), ['quoteIn', 'uint128']);
+});
+
+test('every kernel v2 call the tools make is declared in IKernelV2.sol / KernelFactoryV2.sol, with the same selectors', () => {
+  const k = kernel('0x00000000000000000000000000000000c0fe0011');
+  const f = kernelFactory('0x00000000000000000000000000000000c0fe0015');
+  const v2 = functionSignatures(read(SOURCES.v2));
+  // chipId() and settle() come from IKernelMin, which IKernelV2 inherits from kernel v1's IKernelV1.sol
+  const min = functionSignatures(/interface IKernelMin\s*\{[^}]*\}/.exec(read(SOURCES.v1))?.[0] ?? '');
+  assert.ok(min.has('chipId() returns (uint256)') && min.has('settle() returns (uint32)'), 'IKernelMin declares chipId() and settle()');
+  for (const c of [k.token(), k.vault(), k.chipId(), k.count(), k.envelope(), k.globalsV2(), k.quote(), k.quoteShift()]) {
+    assert.ok(v2.has(c.signature) || min.has(c.signature), `${c.signature} is declared in ${SOURCES.v2} (or IKernelMin)`);
+    assert.equal(c.data.slice(0, 10), selector(c.signature.replace(/ returns.*$/, '')));
+  }
+  assert.ok(v2.has('records(uint32) returns (RecordV2)'));
+  // IKernelMin (chipId, settle) is inherited: the KeeperTank's two selectors
+  assert.match(read(SOURCES.v2), /interface IKernelV2 is IKernelMin/);
+  assert.equal(k.globalsV2().data, k.globals().data, 'one selector, globals(), for both generations');
+  const factory = functionSignatures(read(SOURCES.factoryV2));
+  for (const c of [f.isKernel(k.token().to), f.kernelOf(k.token().to)]) assert.ok(factory.has(c.signature), `${c.signature} is declared in ${SOURCES.factoryV2}`);
+});
+
+test('KernelFactoryV2 uses the same step gas constants as kernel v1 (stepFloor and sealedFloor read the same)', () => {
+  const src = read(SOURCES.factoryV2);
+  const constant = (name: string): bigint => {
+    const m = new RegExp(`uint256\\s+public\\s+constant\\s+${name}\\s*=\\s*([0-9_]+);`).exec(src);
+    assert.ok(m, `${name} is declared in KernelFactoryV2.sol`);
+    return BigInt(m[1].replace(/_/g, ''));
+  };
+  assert.deepEqual([constant('STEP_BASE'), constant('STEP_PER_GATE'), constant('STEP_PER_LATCH')], [STEP_GAS.base, STEP_GAS.perGate, STEP_GAS.perLatch]);
+  assert.deepEqual([constant('SEALED_BASE'), constant('SEALED_PER_NAND'), constant('SEALED_PER_LATCH')], [SEALED_GAS.base, SEALED_GAS.perNand, SEALED_GAS.perLatch]);
+});
+
+test('GlobalsV2 is decoded strictly: a kernel v1 answer (18 words) is not a v2 kernel, and the other way round', () => {
+  const k = kernel('0x00000000000000000000000000000000c0fe0011');
+  const g2 = { ...GLOBALS, quote: '0x779ded0c9e1022225f8e0630b35a9b54be713736', quoteShift: 33n } as Record<string, string | bigint | boolean>;
+  delete g2.wokb;
+  const enc = encodeStruct(GLOBALS_V2_FIELDS, g2);
+  assert.equal((enc.length - 2) / 2, 19 * 32);
+  const dec = k.globalsV2().decode(enc);
+  assert.equal(dec.quoteShift, 33n);
+  assert.equal(dec.quote, '0x779ded0c9e1022225f8e0630b35a9b54be713736');
+  assert.equal(dec.stepFloor, GLOBALS.stepFloor);
+  assert.throws(() => k.globalsV2().decode(encodeStruct(GLOBALS_FIELDS, { ...GLOBALS })), /576 bytes; 608 expected/, 'kernel v1 globals');
+  assert.throws(() => k.globals().decode(enc), /608 bytes; 576 expected/, 'kernel v2 globals read as v1');
 });

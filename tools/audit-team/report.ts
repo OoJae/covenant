@@ -16,10 +16,19 @@ const cell = (s: string): string => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 function rowLine(r: Row): string {
   const target = r.target === null ? '(contract creation)' : `\`${show(r.target)}\` ${r.targetLabel}`;
-  const fn = r.kind === 'authorization' ? '(authorisation)' : r.kind === 'userOperation' ? '(user operation)' : r.selector === null ? '(none)' : `\`${r.selector}\`${r.selectorName ? ' ' + r.selectorName : ''}`;
+  const fn =
+    r.kind === 'authorization'
+      ? '(authorisation)'
+      : r.kind === 'userOperation'
+        ? '(user operation)'
+        : r.kind === 'usdt0Transfer'
+          ? '(USD₮0 transfer, sent by another account)'
+          : r.selector === null
+            ? '(none)'
+            : `\`${r.selector}\`${r.selectorName ? ' ' + r.selectorName : ''}`;
   const marks = [...r.flags.map((f) => `FLAG ${f}`), ...(r.unknownTarget ? ['WARN unknown target'] : []), ...r.undecided.map((f) => `NOT CHECKED ${f}`)];
-  const nonce = r.kind === 'userOperation' ? `op ${r.nonce}` : String(r.nonce);
-  const value = r.valueWei === '' ? 'not visible' : formatOkb(BigInt(r.valueWei));
+  const nonce = r.kind === 'userOperation' ? `op ${r.nonce}` : r.kind === 'usdt0Transfer' ? '(none)' : String(r.nonce);
+  const value = r.kind === 'usdt0Transfer' ? '0 (USD₮0 above)' : r.valueWei === '' ? 'not visible' : formatOkb(BigInt(r.valueWei));
   return `| ${r.block} | ${utc(r.timestamp)} | ${nonce} | ${cell(target)} | ${cell(fn)} | ${value} | ${cell(r.classification)}${marks.length ? ' **[' + marks.join('; ') + ']**' : ''} | \`${r.hash}\` |`;
 }
 
@@ -73,6 +82,12 @@ export function verdictLines(result: AuditResult): string[] {
       out.push(`NOT COVERED       user operations of ${show(w.wallet.address)}: ${u.why ?? 'not scanned'}`);
     }
   }
+  const s = result.usdt0Scan;
+  if (s && s.scanned) {
+    out.push(`COVERED      ${String(s.found).padStart(3)}  USD₮0 transfer(s) out of the team wallets in transactions they did not send (EIP-3009 authorisations such as x402 payments, allowances), blocks ${s.from}..${s.to} (USD₮0 Transfer logs, from the KernelFactoryV2's creation)`);
+  } else if (s) {
+    out.push(`NOT COVERED       USD₮0 moved out of the team wallets by other accounts: ${s.why ?? 'not scanned'}`);
+  }
   const total = result.wallets.reduce((s, w) => s + w.found, 0);
   const ops = result.wallets.reduce((s, w) => s + w.rows.filter((r) => r.kind === 'userOperation').length, 0);
   out.push('');
@@ -95,6 +110,7 @@ export const LIMITS: readonly string[] = [
   'Calls made by contracts on a wallet\'s behalf. Only the transactions a wallet itself signed and sent are listed, and, for a wallet that has code (an EIP-7702 delegation), its ERC-4337 user operations through the EntryPoints of addresses.json. A contract the wallet controls, a relayer, or the wallet\'s delegate code called directly by another account (not through an EntryPoint) can act for it in transactions sent by other accounts; those are invisible here. Within a wallet\'s own transactions and user operations, internal calls are visible only through the events they emit (the IGNIX Trade event and token Transfer / Approval events are checked); an internal call or a value transfer that emits nothing is not seen (debug_traceTransaction is not available on the public RPC).',
   'Wallets that were never declared. The audit covers the addresses it is given and nothing else. It cannot show that the team controls no other wallet.',
   'Anything off-chain (for example trades on a centralised exchange).',
+  'Tokens moved out of a wallet by other accounts. The one exception is USD₮0, the quote of kernel v2: every USD₮0 Transfer out of a team wallet is scanned (EIP-3009 authorisations, such as x402 payments, and allowances need no transaction of the wallet), from the creation of the KernelFactoryV2, before which no kernel quoted in USD₮0 could receive any.',
 ];
 
 export function renderMarkdown(result: AuditResult): string {

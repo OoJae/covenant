@@ -10,12 +10,14 @@ import {
     IERC721Min,
     IKernelV1,
     IKernelExt,
+    IKernelExtV2,
     IKernelFactoryV1,
     ILens,
     IFabV1,
     CurveToken,
     Envelope,
     Globals,
+    GlobalsV2,
     Record
 } from "./Interfaces.sol";
 
@@ -37,6 +39,11 @@ import {
 ///
 ///         Any deviation reverts with a message that starts with "sim:". Nothing here sends a transaction to
 ///         a real network or uses a key: forks and cheatcodes only.
+///
+///         Kernel v2 (contracts/core-v2, a launch quoted in USD₮0; `Deployment.quote` is USD₮0): the same steps, with
+///         the kernel's GlobalsV2 (its quote and code shift must be the deployment's), the vault quoted in USD₮0,
+///         the outsider's buy paid in USD₮0 (dealt to an unrelated address on the fork, never a team wallet) and
+///         every balance of step 6 read in USD₮0.
 ///
 /// @dev    The kernel is used through chips/INTERFACE.md sections 7 and 10 (bind, settle, token, vault, count,
 ///         records, epochNow, lastEpoch, reserve, envelope) and IKernelExt.globals(). What happens inside settle
@@ -63,6 +70,8 @@ abstract contract LaunchSim is Test {
         address sealedVM;
         address lens; // zero: the Lens preflight is not run
         uint256 chipId;
+        address quote; // zero: kernel v1 (native OKB); USD₮0: kernel v2 (contracts/core-v2)
+        uint256 quoteShift; // kernel v2: the code shift the deployment's KernelFactoryV2 pins
     }
 
     struct Inputs {
@@ -99,11 +108,43 @@ abstract contract LaunchSim is Test {
             return c;
         }
         _bind(inp, c);
-        uint256 tax = _outsiderBuy(c);
+        uint256 tax = inp.dep.quote == address(0) ? _outsiderBuy(c) : _outsiderBuyQuote(inp, c);
         _settle(inp, c, tax);
     }
 
     // ───────────────────────────── 0: the kernel belongs to the deployment ─────────────────────────────
+
+    /// @dev The globals both kernel generations have. For kernel v2, its quote and code shift are checked here.
+    struct KernelInfo {
+        address manager;
+        address factory;
+        address circuits;
+        address fab;
+        address sealedVM;
+        uint256 chipId;
+        uint32 nState;
+        uint32 gateCount;
+    }
+
+    function _kernelInfo(Inputs memory inp) internal view returns (KernelInfo memory g) {
+        if (inp.dep.quote == address(0)) {
+            Globals memory v1 = IKernelExt(inp.kernel).globals();
+            (g.manager, g.factory, g.circuits, g.fab, g.sealedVM) = (v1.manager, v1.factory, v1.circuits, v1.fab, v1.sealedVM);
+            (g.chipId, g.nState, g.gateCount) = (v1.chipId, v1.nState, v1.gateCount);
+        } else {
+            GlobalsV2 memory v2 = IKernelExtV2(inp.kernel).globals();
+            require(v2.quote == inp.dep.quote, "sim: the v2 kernel's quote is not the deployment's (USDT0)");
+            require(IKernelExtV2(inp.kernel).quote() == inp.dep.quote, "sim: kernel.quote() is not the deployment's (USDT0)");
+            require(v2.quoteShift == inp.dep.quoteShift, "sim: the v2 kernel's code shift is not the deployment's");
+            (g.manager, g.factory, g.circuits, g.fab, g.sealedVM) = (v2.manager, v2.factory, v2.circuits, v2.fab, v2.sealedVM);
+            (g.chipId, g.nState, g.gateCount) = (v2.chipId, v2.nState, v2.gateCount);
+        }
+    }
+
+    /// @dev What `who` holds of the launch's quote: native OKB for kernel v1, USD₮0 for kernel v2.
+    function _quoteBalance(Inputs memory inp, address who) internal view returns (uint256) {
+        return inp.dep.quote == address(0) ? who.balance : IERC20Min(inp.dep.quote).balanceOf(who);
+    }
 
     function _checkDeployment(Inputs memory inp) internal view {
         Deployment memory d = inp.dep;
@@ -113,7 +154,7 @@ abstract contract LaunchSim is Test {
             IKernelFactoryV1(d.kernelFactory).isKernel(inp.kernel),
             "sim: the kernel was not created by the deployment's KernelFactory"
         );
-        Globals memory g = IKernelExt(inp.kernel).globals();
+        KernelInfo memory g = _kernelInfo(inp);
         require(g.factory == d.kernelFactory, "sim: the kernel's globals name another KernelFactory");
         require(g.manager == address(M), "sim: the kernel is wired to another IgnixManager");
         require(
@@ -131,6 +172,10 @@ abstract contract LaunchSim is Test {
         require(e.launcher == inp.from, "sim: the kernel's envelope launcher is not the sender of createToken");
         require(e.buyEnabled, "sim: the kernel's envelope has buys disabled");
         console2.log("the kernel belongs to the deployment");
+        if (d.quote != address(0)) {
+            console2.log("  kernel v2, quote", d.quote);
+            console2.log("  code shift (bits)", d.quoteShift);
+        }
         console2.log("  KernelFactory  ", d.kernelFactory);
         console2.log("  chip id        ", g.chipId);
         console2.log("  gates, latches ", uint256(g.gateCount), uint256(g.nState));
@@ -203,7 +248,7 @@ abstract contract LaunchSim is Test {
         if (!inp.allowFirstBuy) {
             require(t.sold == 0, "sim: tokens were sold inside createToken (a first buy)");
             require(IERC20Min(c.token).balanceOf(inp.from) == 0, "sim: the launcher holds tokens after createToken (a first buy)");
-            require(c.vault.balance == 0, "sim: the vault holds tax right after createToken (a first buy)");
+            require(_quoteBalance(inp, c.vault) == 0, "sim: the vault holds tax right after createToken (a first buy)");
             for (uint256 i; i < c.logs.length; ++i) {
                 require(
                     !(c.logs[i].emitter == address(M) && c.logs[i].topics[0] == T_TRADE),
@@ -212,7 +257,12 @@ abstract contract LaunchSim is Test {
             }
         }
         if (!inp.skipKernel) {
-            require(v.QUOTE() == address(0), "sim: the vault's quote is not native OKB (kernel v1 cannot bind it)");
+            if (inp.dep.quote == address(0)) {
+                require(v.QUOTE() == address(0), "sim: the vault's quote is not native OKB (kernel v1 cannot bind it)");
+            } else {
+                require(v.QUOTE() == inp.dep.quote, "sim: the vault's quote is not USDT0 (kernel v2 cannot bind it)");
+                require(t.quote == inp.dep.quote, "sim: the curve's quote is not USDT0 (kernel v2 cannot bind it)");
+            }
             require(M.snipeBpsNow(c.token) == 0, "sim: anti-snipe is on (the kernel skips buys while it is)");
             (, uint64 founderEndsAt,,) = M.founderRound(c.token);
             require(founderEndsAt == 0, "sim: a founder round is open");
@@ -265,6 +315,27 @@ abstract contract LaunchSim is Test {
         console2.log("  tax in the vault (wei)", tax);
     }
 
+    /// @dev Kernel v2: the same buy in USD₮0. The buyer is an unrelated address the fork credits with USD₮0 (a storage
+    ///      write, `deal`); no team wallet pays or buys anything.
+    function _outsiderBuyQuote(Inputs memory inp, Created memory c) internal returns (uint256 tax) {
+        address buyer = makeAddr("sim: unrelated funded buyer");
+        uint256 amount = 10e6; // 10 USD₮0
+        IERC20Min q = IERC20Min(inp.dep.quote);
+        deal(address(q), buyer, 100e6);
+        uint256 before = q.balanceOf(c.vault);
+        vm.startPrank(buyer, buyer);
+        q.approve(address(M), amount);
+        M.buy(c.token, amount, 0);
+        vm.stopPrank();
+        tax = q.balanceOf(c.vault) - before;
+        CurveToken memory t = M.tokens(c.token);
+        require(tax == (amount * t.taxBuyBps) / 10_000, "sim: the vault did not receive amount * taxBuyBps / 10000 (USDT0)");
+        require(tax != 0, "sim: the buy put no tax in the vault");
+        require(IERC20Min(c.token).balanceOf(buyer) != 0, "sim: the buyer received no tokens");
+        console2.log("an unrelated address bought 10 USDT0 on the curve");
+        console2.log("  tax in the vault (USDT0 base units)", tax);
+    }
+
     // ───────────────────────────── 6: one epoch later, settle ─────────────────────────────
 
     /// @dev Working values of the settle step, kept in memory to stay inside the stack.
@@ -294,8 +365,8 @@ abstract contract LaunchSim is Test {
         }
 
         s.n0 = k.count();
-        s.kernelBefore = inp.kernel.balance;
-        s.vaultBefore = c.vault.balance;
+        s.kernelBefore = _quoteBalance(inp, inp.kernel);
+        s.vaultBefore = _quoteBalance(inp, c.vault);
         s.reserveBefore = k.reserve();
         require(s.vaultBefore >= tax && s.vaultBefore != 0, "sim: the vault lost its tax before settle");
 
@@ -316,21 +387,34 @@ abstract contract LaunchSim is Test {
             "sim: the record's inflow is not the tax that was in the vault"
         );
         require(
-            inp.kernel.balance == s.kernelBefore + s.vaultBefore - s.spent,
+            _quoteBalance(inp, inp.kernel) == s.kernelBefore + s.vaultBefore - s.spent,
             "sim: the kernel's balance is not (before + claimed tax - its own curve buy)"
         );
-        require(c.vault.balance == s.taxBack, "sim: the vault is not empty apart from the tax of the kernel's own buy");
+        require(
+            _quoteBalance(inp, c.vault) == s.taxBack, "sim: the vault is not empty apart from the tax of the kernel's own buy"
+        );
 
         console2.log("kernel.settle() wrote a record one epoch later");
         console2.log("  record number  ", uint256(n));
         console2.log("  epoch          ", uint256(r.epoch));
-        console2.log("  inflow (wei)   ", uint256(r.inflow));
-        console2.log("  flags          ", uint256(r.flags));
-        console2.log("  clampBits      ", uint256(r.clampBits));
-        console2.log("  allowance (wei)", uint256(r.allow));
-        console2.log("  buy decided (wei)", uint256(r.buyDecided));
-        console2.log("  kernel buy (wei)", s.spent);
-        console2.log("  kernel balance (wei)", inp.kernel.balance);
+        if (inp.dep.quote == address(0)) {
+            console2.log("  inflow (wei)   ", uint256(r.inflow));
+            console2.log("  flags          ", uint256(r.flags));
+            console2.log("  clampBits      ", uint256(r.clampBits));
+            console2.log("  allowance (wei)", uint256(r.allow));
+            console2.log("  buy decided (wei)", uint256(r.buyDecided));
+            console2.log("  kernel buy (wei)", s.spent);
+            console2.log("  kernel balance (wei)", inp.kernel.balance);
+        } else {
+            console2.log("  inflow (USDT0 base units)", uint256(r.inflow));
+            console2.log("  flags          ", uint256(r.flags));
+            console2.log("  clampBits      ", uint256(r.clampBits));
+            console2.log("  input word     ", vm.toString(abi.encodePacked(r.inputs)));
+            console2.log("  allowance (USDT0 base units)", uint256(r.allow));
+            console2.log("  buy decided (USDT0 base units)", uint256(r.buyDecided));
+            console2.log("  kernel buy (USDT0 base units)", s.spent);
+            console2.log("  kernel USDT0 balance", IERC20Min(inp.dep.quote).balanceOf(inp.kernel));
+        }
     }
 
     /// @dev settle() is called by an unrelated address: anyone may call it.
@@ -354,7 +438,10 @@ abstract contract LaunchSim is Test {
             if (l.topics.length != 3) continue;
             if (l.emitter == c.vault && l.topics[0] == T_CLAIMED) {
                 require(address(uint160(uint256(l.topics[1]))) == inp.kernel, "sim: the vault paid someone other than the kernel");
-                require(l.topics[2] == bytes32(0), "sim: the vault paid an asset other than native OKB before graduation");
+                require(
+                    l.topics[2] == bytes32(uint256(uint160(inp.dep.quote))),
+                    "sim: the vault paid an asset other than the launch's quote before graduation"
+                );
                 require(abi.decode(l.data, (uint256)) == s.vaultBefore, "sim: the vault did not pay its whole balance");
                 s.claimed = true;
             } else if (l.emitter == address(M) && l.topics[0] == T_TRADE) {

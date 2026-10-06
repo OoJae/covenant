@@ -69,7 +69,7 @@ test('a wallet that never sent a transaction is clean: zero rows, exit code 0', 
   assert.equal(r.wallets[0].transactionCount, 0);
   for (const rule of r.rules) assert.equal(rule.count, 0);
   const lines = verdictLines(r);
-  assert.equal(lines.filter((l) => l.startsWith('PASS')).length, 9);
+  assert.equal(lines.filter((l) => l.startsWith('PASS')).length, 10);
   assert.match(lines.at(-1) as string, /^VERDICT: CLEAN\. 0 transaction\(s\) of 1 declared wallet\(s\)/);
   assert.match(renderMarkdown(r), /No transaction has ever been sent by this wallet\./);
   // unconfigured Covenant addresses do not matter when there is nothing to classify
@@ -388,8 +388,8 @@ test('the report: a markdown table per wallet, a JSON document, and what the met
   assert.equal(j.wallets[0].transactions.length, 2);
   assert.deepEqual(j.wallets[0].transactions[0].flags, ['first-buy']);
   assert.equal(j.wallets[0].transactions[0].valueWei, '100000000000000000');
-  assert.equal(j.cannotSee.length, 3);
-  assert.equal(j.rules.length, 9);
+  assert.equal(j.cannotSee.length, 4);
+  assert.equal(j.rules.length, 10);
 });
 
 // ───────────────────────────── the on-chain TeamRegistry ─────────────────────────────

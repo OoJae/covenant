@@ -2,9 +2,9 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { DEFAULT_EXPECTED, FIXED, type Expected, type TxInput } from './checks.ts';
-import { MANAGER } from './decode.ts';
-import { DeploymentError, loadDeployment, type Deployment } from './deployment.ts';
+import { DEFAULT_EXPECTED, FIXED, USDT0, type Expected, type Generation, type TxInput } from './checks.ts';
+import { MANAGER, decodeCreateToken } from './decode.ts';
+import { DeploymentError, hasKernelV2, loadDeployment, type Deployment } from './deployment.ts';
 import { isHex, parseAddress, parseValue, sameAddress, strip0x } from './hex.ts';
 
 /** A mistake in how the tool was called. It is reported and the tool exits non-zero; it is never a PASS. */
@@ -119,13 +119,16 @@ export function parseTxJson(text: string, where: string = '--tx'): { from: strin
 /**
  * The transaction as the wallet will send it, from --tx <json | @file> or from --from --to --value --data, and
  * the kernel it must pay: --kernel, or the kernel of the deployment file (`fallbackKernel`) when --kernel is not
- * given.
+ * given. `fallbackKernel` may depend on the calldata (kernel v1 or v2, by the launch's quote).
  */
-export function readTx(flags: Map<string, string>, fallbackKernel: string | null = null): TxInput {
-  try {
+export function readTx(flags: Map<string, string>, fallbackKernel: string | null | ((data: string) => string | null) = null): TxInput {
+  const withKernel = (t: { from: string; to: string; value: bigint; data: string }): TxInput => {
     const k = flags.get('kernel');
-    if (k === undefined && fallbackKernel === null) throw new UsageError('--kernel is required (or --deployment with a file that names the kernel)');
-    const kernel = k !== undefined ? parseAddress(k, '--kernel') : (fallbackKernel as string);
+    const fallback = typeof fallbackKernel === 'function' ? fallbackKernel(t.data) : fallbackKernel;
+    if (k === undefined && fallback === null) throw new UsageError('--kernel is required (or --deployment with a file that names the kernel)');
+    return { ...t, kernel: k !== undefined ? parseAddress(k, '--kernel') : (fallback as string) };
+  };
+  try {
     const txArg = flags.get('tx');
     if (txArg !== undefined) {
       const clash = ['from', 'to', 'value', 'data'].filter((f) => flags.has(f));
@@ -139,15 +142,14 @@ export function readTx(flags: Map<string, string>, fallbackKernel: string | null
           throw new UsageError(`--tx: cannot read ${path}: ${(e as Error).message}`);
         }
       }
-      return { ...parseTxJson(text, '--tx'), kernel };
+      return withKernel(parseTxJson(text, '--tx'));
     }
-    return {
+    return withKernel({
       from: parseAddress(need(flags, 'from'), '--from'),
       to: parseAddress(need(flags, 'to'), '--to'),
       value: parseValue(need(flags, 'value')),
       data: readData(need(flags, 'data')),
-      kernel,
-    };
+    });
   } catch (e) {
     if (e instanceof UsageError) throw e;
     throw new UsageError((e as Error).message);
@@ -217,8 +219,8 @@ export function parseExpected(jsonText: string, where: string = 'expected-values
   fixed('snipeStartBps', 0, 'launches with anti-snipe off (0)');
   fixed('founderBps', 0, 'launches without a founder round (0)');
   if (o.firstBuy !== undefined && o.firstBuy !== 0 && o.firstBuy !== '0') throw new UsageError(`${where}: firstBuy must be 0; a first buy is a team buy`);
-  if (o.quote !== undefined && !(typeof o.quote === 'string' && sameAddress(o.quote, FIXED.quote))) {
-    throw new UsageError(`${where}: quote must be the zero address (native OKB); kernel v1 binds nothing else`);
+  if (o.quote !== undefined && !(typeof o.quote === 'string' && (sameAddress(o.quote, FIXED.quote) || sameAddress(o.quote, USDT0)))) {
+    throw new UsageError(`${where}: quote must be the zero address (native OKB, kernel v1) or USD₮0 ${USDT0} (kernel v2); no kernel binds anything else`);
   }
   if (o.manager !== undefined && !(typeof o.manager === 'string' && sameAddress(o.manager, MANAGER))) {
     throw new UsageError(`${where}: manager must be the IgnixManager proxy ${MANAGER}`);
@@ -248,6 +250,9 @@ export function parseExpected(jsonText: string, where: string = 'expected-values
     fab: null,
     sealedVM: null,
     chipId: null,
+    generation: 'v1',
+    quote: typeof o.quote === 'string' ? parseAddress(o.quote, 'quote') : null,
+    quoteShift: null,
   };
 }
 
@@ -271,6 +276,55 @@ export function withDeployment(expected: Expected, d: Deployment): Expected {
     fab: merge('the Fab', expected.fab, d.fab),
     sealedVM: merge('the SealedVM', expected.sealedVM, d.sealedVM),
     chipId: expected.chipId ?? d.chipId,
+  };
+}
+
+/**
+ * Which kernel a launch is checked against. Kernel v2 only when the launch's quote (the expected-values file's, else
+ * the calldata's) is USD₮0 AND the deployment names a complete v2 deployment; anything else is checked against kernel
+ * v1, whose rules refuse every quote but native OKB. So a USD₮0 launch is approved only against the deployment's v2
+ * kernel, and an OKB launch only against its v1 kernel.
+ */
+export function chooseGeneration(expected: Expected, d: Deployment | null, data: string): Generation {
+  let quote = expected.quote;
+  if (quote === null) {
+    try {
+      quote = decodeCreateToken(data).p.quote;
+    } catch {
+      quote = null; // the calldata check reports it; kernel v1's rules apply
+    }
+  }
+  if (quote === null || !sameAddress(quote, USDT0)) return 'v1';
+  if (hasKernelV2(d)) return 'v2';
+  if (expected.quote !== null) {
+    throw new UsageError(`the expected-values file names the USD₮0 quote (kernel v2), but ${d ? d.source + ' records no complete kernel v2 (coreV2, flagshipV2)' : 'no --deployment was given'}`);
+  }
+  return 'v1';
+}
+
+/**
+ * The expected values for a kernel v2 launch: the deployment's v2 kernel, KernelFactoryV2, chip and code shift, with
+ * the processor, Fab and SealedVM kernel v1 shares. An address the expected-values file also names must be the same.
+ */
+export function withDeploymentV2(expected: Expected, d: Deployment): Expected {
+  const merge = (what: string, mine: string | null, theirs: string | null): string | null => {
+    if (mine !== null && theirs !== null && !sameAddress(mine, theirs)) {
+      throw new UsageError(`the expected-values file says ${what} is ${mine}, the deployment file ${d.source} says ${theirs}`);
+    }
+    return mine ?? theirs;
+  };
+  if (d.quoteV2 !== null && !sameAddress(d.quoteV2, USDT0)) throw new UsageError(`${d.source}: coreV2.quote is ${d.quoteV2}, not USD₮0 ${USDT0}`);
+  return {
+    ...expected,
+    generation: 'v2',
+    kernel: merge('the kernel', expected.kernel, d.kernelV2),
+    circuits: merge('processor.circuits', expected.circuits, d.circuits),
+    transistors: merge('processor.transistors', expected.transistors, d.transistors),
+    kernelFactory: d.kernelFactoryV2,
+    fab: merge('the Fab', expected.fab, d.fab),
+    sealedVM: merge('the SealedVM', expected.sealedVM, d.sealedVM),
+    chipId: d.chipIdV2,
+    quoteShift: d.quoteShiftV2,
   };
 }
 

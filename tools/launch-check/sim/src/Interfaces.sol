@@ -94,6 +94,7 @@ interface IDirectedVault {
 
 interface IERC20Min {
     function balanceOf(address a) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);
 }
@@ -180,7 +181,39 @@ interface IKernelExt is IKernelV1 {
     function globals() external view returns (Globals memory);
 }
 
-/// @notice The kernel factory (chips/INTERFACE.md section 10, IKernelFactoryV1).
+/// @notice Kernel v2's globals (contracts/core-v2/src/interfaces/IKernelV2.sol): kernel v1's Globals with the quote
+///         asset in place of `wokb` and the code shift (bits) last. A copy; kernel-abi.test.ts compares it.
+struct GlobalsV2 {
+    address manager;
+    address v2Router;
+    address quote;
+    address factory;
+    address circuits;
+    address fab;
+    address sealedVM;
+    address beacon;
+    address impl0;
+    bytes32 impl0Hash;
+    address snapshot;
+    bytes32 netlistHash;
+    uint256 chipId;
+    uint32 nState;
+    uint32 gateCount;
+    uint32 netlistLen;
+    uint256 stepFloor;
+    uint256 sealedFloor;
+    uint256 quoteShift;
+}
+
+/// @notice Kernel v2 (USD₮0 quote, chips/INTERFACE-V2.md): kernel v1's ABI (records() returns RecordV2, whose
+///         14-word layout is Record's with `quoteIn` in place of `nativeIn`), GlobalsV2, the quote and its shift.
+interface IKernelExtV2 is IKernelV1 {
+    function globals() external view returns (GlobalsV2 memory);
+    function quote() external view returns (address);
+    function quoteShift() external view returns (uint256);
+}
+
+/// @notice The kernel factory (chips/INTERFACE.md section 10, IKernelFactoryV1; KernelFactoryV2 has the same two).
 interface IKernelFactoryV1 {
     function isKernel(address kernel) external view returns (bool);
     function kernelOf(address token) external view returns (address);

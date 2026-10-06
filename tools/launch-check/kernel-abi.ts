@@ -9,6 +9,10 @@
 //   contracts/core, not frozen by the document:
 //       struct Globals and globals()        contracts/core/src/interfaces/IKernelExt.sol
 //                                            (`sealedFloor` was added as its last field in revision 2)
+//   kernel v2 (USD₮0 quote, chips/INTERFACE-V2.md):
+//       struct GlobalsV2, globals(), quote(), quoteShift()   contracts/core-v2/src/interfaces/IKernelV2.sol
+//       (kernel v1's ABI otherwise: token() vault() chipId() count() envelope() ... and isKernel / kernelOf on the
+//        KernelFactoryV2; RecordV2 has Record's 14-word layout with `quoteIn` in place of `nativeIn`)
 //
 // test/kernel-abi.test.ts parses those Solidity sources (and the Solidity blocks of INTERFACE.md, and the
 // copies in sim/src/Interfaces.sol) and fails when any struct below, or any function signature used below,
@@ -22,13 +26,14 @@ import { addressWord, bytesToHex, strip0x, word } from './hex.ts';
 
 /** The sources this module was last compared with (informational; the layout tests decide). */
 export const KERNEL_ABI_SNAPSHOT = {
-  readAtUtc: '2026-10-06T12:00:00Z',
+  readAtUtc: '2026-10-06T12:00:00Z', // IKernelV2.sol: 2026-10-06T21:00:00Z
   interfaceRevision: 2,
   sources: [
     { file: 'chips/INTERFACE.md', sha256: '6d35f54e424f1656760d72af55506ffb33bf5b31def9f5cedcf1b7ff63532b29', gives: 'struct Envelope (section 7), struct Record and the kernel ABI (section 10)' },
     { file: 'contracts/core/src/interfaces/IKernelV1.sol', sha256: 'c273bc7e1cb514cca3a23ae9d573570e55566fdbe08d27ec947db251b8c4349a', gives: 'struct Envelope, struct Record, IKernelV1' },
     { file: 'contracts/core/src/interfaces/IKernelExt.sol', sha256: '5cd4406f60120fccd665928505b380baaec8c6b628a66bae9db538cbf5fe2c7a', gives: 'struct Globals and globals()' },
     { file: 'contracts/core/src/KernelFactory.sol', sha256: 'ddb7a9ef6bc6fc03e2623ba10d4e3a8bb3db11ac80a388e268e6ff1186605106', gives: 'isKernel(address), kernelOf(address), step gas constants' },
+    { file: 'contracts/core-v2/src/interfaces/IKernelV2.sol', sha256: '06258b45f6d0d2c0ec07ee25bde9a201c922c7435ac158e1a1a85df89384d953', gives: 'struct GlobalsV2, struct RecordV2, IKernelV2 (kernel v2, USD₮0 quote)' },
   ],
 } as const;
 
@@ -73,6 +78,32 @@ export const GLOBALS_FIELDS = [
   ['netlistLen', 'uint32'],
   ['stepFloor', 'uint256'],
   ['sealedFloor', 'uint256'],
+] as const satisfies readonly Field[];
+
+/**
+ * `struct GlobalsV2` of kernel v2 (contracts/core-v2/src/interfaces/IKernelV2.sol): kernel v1's Globals with the
+ * quote asset in place of `wokb`, and the code shift in bits as the last field.
+ */
+export const GLOBALS_V2_FIELDS = [
+  ['manager', 'address'],
+  ['v2Router', 'address'],
+  ['quote', 'address'],
+  ['factory', 'address'],
+  ['circuits', 'address'],
+  ['fab', 'address'],
+  ['sealedVM', 'address'],
+  ['beacon', 'address'],
+  ['impl0', 'address'],
+  ['impl0Hash', 'bytes32'],
+  ['snapshot', 'address'],
+  ['netlistHash', 'bytes32'],
+  ['chipId', 'uint256'],
+  ['nState', 'uint32'],
+  ['gateCount', 'uint32'],
+  ['netlistLen', 'uint32'],
+  ['stepFloor', 'uint256'],
+  ['sealedFloor', 'uint256'],
+  ['quoteShift', 'uint256'],
 ] as const satisfies readonly Field[];
 
 /** `struct Record`, in declaration order (INTERFACE.md section 10). */
@@ -140,6 +171,33 @@ export interface Globals {
   stepFloor: bigint;
   sealedFloor: bigint;
 }
+
+/** Kernel v2's globals (GlobalsV2). The fields both generations share have the same names and types. */
+export interface GlobalsV2 {
+  manager: string;
+  v2Router: string;
+  quote: string;
+  factory: string;
+  circuits: string;
+  fab: string;
+  sealedVM: string;
+  beacon: string;
+  impl0: string;
+  impl0Hash: string;
+  snapshot: string;
+  netlistHash: string;
+  chipId: bigint;
+  nState: bigint;
+  gateCount: bigint;
+  netlistLen: bigint;
+  stepFloor: bigint;
+  sealedFloor: bigint;
+  quoteShift: bigint;
+}
+
+/** The globals of either generation: what a check may read without knowing which one it has. */
+export type AnyGlobals = Globals | GlobalsV2;
+export const isGlobalsV2 = (g: AnyGlobals): g is GlobalsV2 => 'quoteShift' in g;
 
 export interface KernelRecord {
   epoch: bigint;
@@ -261,6 +319,12 @@ export const kernel = (at: string) => ({
   envelope: (): Call<Envelope> => mk(at, 'envelope() returns (Envelope)', '', (ret) => decodeStruct<Envelope>(ENVELOPE_FIELDS, ret, 'kernel.envelope()')),
   /** Not part of the frozen ABI (IKernelExt.sol). */
   globals: (): Call<Globals> => mk(at, 'globals() returns (Globals)', '', (ret) => decodeStruct<Globals>(GLOBALS_FIELDS, ret, 'kernel.globals()')),
+  /** Kernel v2 only (IKernelV2.sol): same selector as globals(), a 19-word GlobalsV2. A v1 kernel answers 18 words, an error here. */
+  globalsV2: (): Call<GlobalsV2> => mk(at, 'globals() returns (GlobalsV2)', '', (ret) => decodeStruct<GlobalsV2>(GLOBALS_V2_FIELDS, ret, 'kernel.globals() (v2)')),
+  /** Kernel v2 only: the ERC-20 quote asset (USD₮0) the kernel routes on the curve. */
+  quote: (): Call<string> => mk(at, 'quote() returns (address)', '', one<string>('address', 'kernel.quote()')),
+  /** Kernel v2 only: the code shift in bits applied to quote amounts before the chip sees them. */
+  quoteShift: (): Call<bigint> => mk(at, 'quoteShift() returns (uint256)', '', one<bigint>('uint256', 'kernel.quoteShift()')),
 });
 
 /** The reads of the KernelFactory (INTERFACE.md section 10, IKernelFactoryV1). */

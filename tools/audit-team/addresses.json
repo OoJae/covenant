@@ -5,8 +5,9 @@
   "tapeoutFactory": "0x1f09daefa827f02cbb40967cc91b259763760761",
   "uniswapV2Router": "0x182a927119D56008d921126764bF884221b10f59",
   "wokb": "0xe538905cf8410324e03A5A23C1c177a474D59b2b",
+  "usdt0": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
   "covenant": {
-    "comment": "The Covenant contracts on X Layer mainnet. They are recorded in deployments/xlayer.json by the signing sessions; pass that file with --deployment deployments/xlayer.json and every null below is filled in from it (an address named in both places must be the same). They stay null here so that one file, written from the chain, is the only record. The deployer deploys every contract and is entry 0 of the TeamRegistry; the deployer and the keeper are always audited. transistors and circuits are the processor the Splitter created; kernels lists kernels beyond the deployment's flagship (the audit also asks the KernelFactory).",
+    "comment": "The Covenant contracts on X Layer mainnet. They are recorded in deployments/xlayer.json by the signing sessions; pass that file with --deployment deployments/xlayer.json and every null below is filled in from it (an address named in both places must be the same). They stay null here so that one file, written from the chain, is the only record. The deployer deploys every contract and is entry 0 of the TeamRegistry; the deployer and the keeper are always audited. transistors and circuits are the processor the Splitter created; kernelFactoryV2 and lensV2 are kernel v2 (USD₮0 quote, deploy/launch-kernel-v2.sh); kernels lists kernels beyond the deployment's flagships (the audit also asks both KernelFactories).",
     "deployer": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
     "keeper": null,
     "agentWallet": null,
@@ -19,6 +20,8 @@
     "fab": null,
     "kernelFactory": null,
     "lens": null,
+    "kernelFactoryV2": null,
+    "lensV2": null,
     "kernels": []
   },
   "other": {

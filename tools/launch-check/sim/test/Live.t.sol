@@ -11,7 +11,8 @@ import {LaunchSim} from "../src/LaunchSim.sol";
 ///               { "from": "0x..", "to": "0x..", "value": "0", "data": "0x..", "kernel": "0x..",
 ///                 "block": 0, "skipKernelChecks": false,
 ///                 "deployment": { "kernelFactory": "0x..", "circuits": "0x..", "fab": "0x..",
-///                                 "sealedVM": "0x..", "lens": "0x..", "chipId": "2" } }
+///                                 "sealedVM": "0x..", "lens": "0x..", "chipId": "2",
+///                                 "quote": "0x..", "quoteShift": "33" } }       (quote and quoteShift: kernel v2 only)
 ///         "block" 0 (or absent) forks the latest block and runs the transaction at the later of the chain's
 ///         clock and this machine's clock; a block number forks that block and runs the transaction in the next.
 ///         The fork is of XLAYER_RPC_URL (default https://rpc.xlayer.tech): a local anvil fork works the same way.
@@ -39,6 +40,11 @@ contract LiveLaunch is LaunchSim {
             inp.dep.sealedVM = vm.parseJsonAddress(json, ".deployment.sealedVM");
             inp.dep.lens = vm.parseJsonAddress(json, ".deployment.lens");
             inp.dep.chipId = vm.parseJsonUint(json, ".deployment.chipId");
+            // kernel v2 (a USD₮0 launch): the quote and code shift the deployment's KernelFactoryV2 pins
+            if (vm.keyExistsJson(json, ".deployment.quote")) inp.dep.quote = vm.parseJsonAddress(json, ".deployment.quote");
+            if (vm.keyExistsJson(json, ".deployment.quoteShift")) {
+                inp.dep.quoteShift = vm.parseJsonUint(json, ".deployment.quoteShift");
+            }
         }
         return (true, inp, forkBlock);
     }

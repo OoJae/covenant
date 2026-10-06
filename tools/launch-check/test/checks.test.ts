@@ -280,7 +280,8 @@ test('the expected transistor contract is compared when the file names it', asyn
 test('expected.cvref.json states the reference token and is accepted', () => {
   const text = readFileSync(new URL('../expected.cvref.json', import.meta.url), 'utf8');
   const e = parseExpected(text);
-  assert.deepEqual(e, { taxBuyBps: 300, taxSellBps: 300, protectionSecs: 8_640_000, name: null, symbol: null, kernel: null, circuits: null, transistors: null, kernelFactory: null, fab: null, sealedVM: null, chipId: null });
+  // the file pins the native OKB quote: a launch it describes is checked against kernel v1 only
+  assert.deepEqual(e, { taxBuyBps: 300, taxSellBps: 300, protectionSecs: 8_640_000, name: null, symbol: null, kernel: null, circuits: null, transistors: null, kernelFactory: null, fab: null, sealedVM: null, chipId: null, generation: 'v1', quote: '0x0000000000000000000000000000000000000000', quoteShift: null });
   const raw = JSON.parse(text);
   assert.equal(raw.templateId, 3);
   assert.equal(raw.venue, 1);

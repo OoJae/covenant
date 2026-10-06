@@ -33,6 +33,8 @@ export interface Known {
   tapeoutFactory: string;
   router: string;
   wokb: string;
+  /** USD₮0 on X Layer: the quote of kernel v2. USD₮0 sent from a team wallet to a kernel is a FLAG. null: not checked. */
+  usdt0: string | null;
   /** The account that deploys every Covenant contract; entry 0 of the TeamRegistry. Always audited. */
   deployer: string | null;
   /** The keeper wallet (it only ever settles). Always audited. */
@@ -50,6 +52,9 @@ export interface Known {
   fab: string | null;
   kernelFactory: string | null;
   lens: string | null;
+  /** Kernel v2 (USD₮0 quote, contracts/core-v2): its KernelFactoryV2 and LensV2, or null before signing session 3. */
+  kernelFactoryV2: string | null;
+  lensV2: string | null;
   kernels: string[];
   /** label -> address, for further contracts the team calls, so that they are not listed as unknown targets. */
   other: Record<string, string>;
@@ -69,9 +74,9 @@ export class ConfigError extends Error {
   }
 }
 
-const TOP = new Set(['description', 'chainId', 'ignixManager', 'tapeoutFactory', 'uniswapV2Router', 'wokb', 'covenant', 'other', 'entryPoints', 'smartWalletImplementations']);
-/** The Covenant contracts, in the order of the signing sessions (deploy/rehearse.sh). */
-export const COVENANT_CONTRACTS = ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits', 'sealedVM', 'fab', 'kernelFactory', 'lens'] as const;
+const TOP = new Set(['description', 'chainId', 'ignixManager', 'tapeoutFactory', 'uniswapV2Router', 'wokb', 'usdt0', 'covenant', 'other', 'entryPoints', 'smartWalletImplementations']);
+/** The Covenant contracts, in the order of the signing sessions (deploy/rehearse.sh, then deploy/rehearse-v2.sh). */
+export const COVENANT_CONTRACTS = ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits', 'sealedVM', 'fab', 'kernelFactory', 'lens', 'kernelFactoryV2', 'lensV2'] as const;
 const COVENANT = new Set<string>(['comment', 'deployer', 'keeper', 'agentWallet', ...COVENANT_CONTRACTS, 'kernels']);
 
 export function parseKnown(text: string, where: string = 'addresses.json'): Known {
@@ -132,6 +137,7 @@ export function parseKnown(text: string, where: string = 'addresses.json'): Know
     tapeoutFactory: addr(o.tapeoutFactory, 'tapeoutFactory'),
     router: addr(o.uniswapV2Router, 'uniswapV2Router'),
     wokb: addr(o.wokb, 'wokb'),
+    usdt0: orNull(o.usdt0, 'usdt0'),
     deployer: orNull(c.deployer, 'covenant.deployer'),
     keeper: orNull(c.keeper, 'covenant.keeper'),
     agentWallet: orNull(c.agentWallet, 'covenant.agentWallet'),
@@ -144,6 +150,8 @@ export function parseKnown(text: string, where: string = 'addresses.json'): Know
     fab: orNull(c.fab, 'covenant.fab'),
     kernelFactory: orNull(c.kernelFactory, 'covenant.kernelFactory'),
     lens: orNull(c.lens, 'covenant.lens'),
+    kernelFactoryV2: orNull(c.kernelFactoryV2, 'covenant.kernelFactoryV2'),
+    lensV2: orNull(c.lensV2, 'covenant.lensV2'),
     kernels: kernels.map((k, i) => addr(k, `covenant.kernels[${i}]`)),
     other,
     smartWallets,
@@ -153,7 +161,7 @@ export function parseKnown(text: string, where: string = 'addresses.json'): Know
 
 /**
  * Completes the known addresses with a deployment file (deploy/rehearsal.json format). An address both name
- * must be the same; a disagreement is a configuration error. The deployment's kernel joins the kernel list.
+ * must be the same; a disagreement is a configuration error. The deployment's kernels (v1 and v2) join the list.
  */
 export function withDeployment(known: Known, d: Deployment): Known {
   const out: Known = { ...known, kernels: [...known.kernels], other: { ...known.other }, smartWallets: { ...known.smartWallets }, entryPoints: [...known.entryPoints] };
@@ -169,7 +177,7 @@ export function withDeployment(known: Known, d: Deployment): Known {
   merge('keeper');
   merge('agentWallet');
   for (const k of COVENANT_CONTRACTS) merge(k);
-  if (d.kernel !== null && !out.kernels.some((k) => sameAddress(k, d.kernel as string))) out.kernels.push(d.kernel);
+  for (const k of [d.kernel, d.kernelV2]) if (k !== null && !out.kernels.some((x) => sameAddress(x, k))) out.kernels.push(k);
   return out;
 }
 
@@ -243,6 +251,10 @@ const SIGNATURES: readonly string[] = [
   'approve(address,uint256)',
   'transfer(address,uint256)',
   'transferFrom(address,address,uint256)',
+  // USD₮0 (EIP-3009): the transfers an x402 payment uses
+  'transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)',
+  'transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,bytes)',
+  'receiveWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)',
   'safeTransferFrom(address,address,uint256)',
   'safeTransferFrom(address,address,uint256,bytes)',
   'safeTransferFrom(address,address,uint256,uint256,bytes)',
@@ -306,6 +318,10 @@ export const selectorName = (selector: string): string | null => NAMES.get(selec
 
 export const SEL = {
   createToken: selectorOf(CREATE_TOKEN_SIGNATURE),
+  transfer: selectorOf('transfer(address,uint256)'),
+  transferFrom: selectorOf('transferFrom(address,address,uint256)'),
+  transferWithAuthorization: selectorOf('transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)'),
+  transferWithAuthorizationBytes: selectorOf('transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,bytes)'),
   erc1155Transfer: selectorOf('safeTransferFrom(address,address,uint256,uint256,bytes)'),
   erc1155BatchTransfer: selectorOf('safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)'),
 } as const;

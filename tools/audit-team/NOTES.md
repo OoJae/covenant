@@ -46,7 +46,8 @@ transaction or by an EIP-7702 authorisation the wallet signed. Then each transac
 | `dex-call` | any call to the Uniswap V2 router or to WOKB |
 | `ignix-token-call` | any transaction to a token launched through IgnixManager (`creatorOf(token) != 0`) or to a kernel's token |
 | `ignix-activity` | an IGNIX `Trade` event, or a Transfer / Approval of an IGNIX token to or from the wallet, inside a transaction to any other contract (for example a sale through an aggregator) |
-| `kernel-value` | native value sent to a kernel (listed, or `KernelFactory.isKernel`) or to a kernel's vault |
+| `kernel-value` | native value sent to a kernel (listed, or `KernelFactory.isKernel` / `KernelFactoryV2.isKernel`) or to a kernel's vault |
+| `kernel-usdt0` | USD₮0 sent from the wallet to a kernel (v1 or v2) or to a kernel's vault: a USD₮0 `Transfer` from the wallet to one in the receipt of any of its transactions or user operations, a USD₮0 `transfer` / `transferFrom` / `transferWithAuthorization` call naming one (also when it reverted), or a USD₮0 `Transfer` out of the wallet in a transaction it did not send (its EIP-3009 authorisation, such as an x402 payment, or an allowance, executed by anyone; see "USD₮0 and kernel v2") |
 | `transistor-transfer` | `safeTransferFrom` / `safeBatchTransferFrom` on the Covenant Transistors, or a `TransferSingle` / `TransferBatch` of them to or from the wallet inside any transaction (mints and burns are not transfers) |
 | `delegation` | the wallet has code other than an EIP-7702 designator to a known smart-wallet implementation (a contract, or a delegation to an implementation not listed in `smartWalletImplementations`), or one of its nonces was used by an authorisation to such an implementation |
 | `unexplained-nonce` | a nonce that neither a transaction nor an authorisation of the wallet explains |
@@ -61,6 +62,24 @@ KeeperTank, TeamRegistry, Transistors, Circuits, SealedVM, Fab, KernelFactory, L
 null there: `deployments/xlayer.json`, written from the chain by the signing sessions, is the one record, and
 `--deployment deployments/xlayer.json` fills them in (an address named in both places must be the same). Known
 Covenant contracts are named in the report, so calls to them are not unknown targets.
+
+## USD₮0 and kernel v2
+
+A v2 kernel (`contracts/core-v2`) routes every USD₮0 it receives as tax: x402 revenue paid to it funds buys of the
+team's token. So no team wallet may ever pay one (self-payment is forbidden), and the audit treats a v2 kernel like a
+v1 kernel and adds the rule `kernel-usdt0`. `--deployment` brings the v2 kernel (`flagshipV2.kernel`) and the
+KernelFactoryV2 (`coreV2.kernelFactory`, asked `isKernel` for every unknown target and every USD₮0 recipient) and the
+LensV2; `addresses.json` names USD₮0 (`usdt0`).
+
+An x402 payment needs no transaction of the payer: the payer signs an EIP-3009 authorisation and the facilitator
+submits it. Such a payment uses no nonce and no user operation, so the nonce walk cannot see it. When a KernelFactoryV2
+is configured, the audit therefore scans every USD₮0 `Transfer` log whose `from` is one of the team wallets (one
+`eth_getLogs` filter for all of them, 100-block chunks, the part below the safe head cached), from the block at which
+the KernelFactoryV2 got its code (found by a search over `eth_getCode` at historical blocks; no v2 kernel can exist
+before it) to the audit block. Each transfer in a transaction the wallet did not send is listed as a row of its own
+(function "(USD₮0 transfer, sent by another account)"); into a kernel or a kernel's vault it is a FLAG, to anything
+else it is listed only. The verdict shows a `COVERED` line with the blocks scanned, or `NOT COVERED` with the reason
+(then the audit is INCOMPLETE).
 
 ## Smart wallets (EIP-7702 + ERC-4337)
 
@@ -99,6 +118,7 @@ is `dex-call`; events of kernels and their vaults are named. The verdict shows a
 - Wallets that were never declared, in the table or in the registry. The registry proves nothing about a wallet
   that is not listed.
 - Anything off-chain (a centralised exchange).
+- Tokens moved out of a wallet by other accounts, except USD₮0 from the KernelFactoryV2's creation on (above).
 - A wallet whose nonce was already non-zero at block 0 (reported as incomplete).
 
 ## Verified facts
@@ -113,6 +133,8 @@ is `dex-call`; events of kernels and their vaults are named. The verdict shows a
 | The selectors and event topics the rules use are computed from their signatures and equal the values measured on the chain (`createToken` 0xef44bdf2, `buyTo` 0x9415aa2a, `claim` 0x1e83409a, `creatorOf` 0xdea5c2e0, `TransferSingle`, ...). | `test/known.test.ts` |
 | The TeamRegistry is read with `count()` and `at(i)` (`(address wallet, string role, uint256 timestamp)`, contracts/issuance/src/TeamRegistry.sol); on the rehearsal fork, entry 0 is the deployer. | `test/audit.test.ts` (offline), `REHEARSE=1 node --test tools/launch-check/test/rehearsal.test.ts` (on the fork) |
 | The nonce walk locates every nonce exactly for random histories, with any number of probes per round, and refuses a node whose counts go backwards. | `test/walk.test.ts` |
+| USD₮0 into a kernel is flagged: by a transfer of the wallet (also reverted, also into the kernel's vault, also through another contract), by its user operation, and by its EIP-3009 authorisation executed by a facilitator (no nonce used); a payment to anyone else is listed and not flagged; the scan starts at the KernelFactoryV2's creation; a KernelFactoryV2 without `usdt0` makes the audit INCOMPLETE. The wallets are synthetic table addresses: no real wallet pays anything in any test. | `OFFLINE=1 node --test tools/audit-team/test/usdt0.test.ts` (10 tests) |
+| On a fork with the real kernel v2 (deployed by `deploy/rehearse-v2.sh`), launched, bound, traded by unrelated addresses and paid 0.5 USD₮0 by an unrelated payer, the audit with the completed deployment file flags nothing and scans USD₮0 from the KernelFactoryV2's creation. | `REHEARSE=1 node --test tools/launch-check/test/rehearsal-v2.test.ts` |
 
 Tests: `OFFLINE=1 node --test tools/audit-team/test/*.test.ts` (offline, a chain made of tables) and
 `node --test tools/audit-team/test/live.test.ts` (read-only, X Layer at a pinned block).

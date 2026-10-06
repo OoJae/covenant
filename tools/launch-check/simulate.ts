@@ -17,8 +17,8 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { UsageError, parseFlags, readDeploymentFlag, readTx } from './args.ts';
-import type { TxInput } from './checks.ts';
+import { UsageError, chooseGeneration, parseFlags, readDeploymentFlag, readTx } from './args.ts';
+import { DEFAULT_EXPECTED, USDT0, V2_QUOTE_SHIFT, type Generation, type TxInput } from './checks.ts';
 import { sessionTwoRefusal, type Deployment } from './deployment.ts';
 import { sameAddress, show } from './hex.ts';
 
@@ -37,7 +37,9 @@ const USAGE = `simulate: runs the exact createToken transaction on a fork of X L
   The arguments are the ones launch-check.ts takes (--tx or --from --to --value --data).
   --deployment  the Covenant deployment (deployments/xlayer.json, or the deploy/rehearsal.json format). Required:
                 the kernel must have been created by its KernelFactory, hold its chip and pass the Lens
-                preflight before anything runs. Refused while signing session 2 is not recorded in it
+                preflight before anything runs. Refused while signing session 2 is not recorded in it.
+                A launch quoted in USD₮0 runs against the deployment's kernel v2 (coreV2, flagshipV2) when the
+                file names one: the outsider's buy and every balance are then in USD₮0
   --rpc         an X Layer JSON-RPC endpoint with archive state (default https://rpc.xlayer.tech); a local
                 anvil fork (http://127.0.0.1:PORT) works the same way
   --block       fork this block instead of the latest one
@@ -136,10 +138,24 @@ export function judge(json: ReturnType<typeof forgeJson>, skipKernel: boolean, f
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
-/** The input file forge reads. `value` and `chipId` are decimal strings so that no precision is lost. */
-export function inputFile(tx: TxInput, block: number, skipKernel: boolean, d: Deployment | null = null): string {
+/**
+ * The input file forge reads. `value` and `chipId` are decimal strings so that no precision is lost. For kernel v2
+ * the deployment is its v2 part (KernelFactoryV2, LensV2, the v2 chip) plus the quote and its code shift.
+ */
+export function inputFile(tx: TxInput, block: number, skipKernel: boolean, d: Deployment | null = null, generation: Generation = 'v1'): string {
   const o: Record<string, unknown> = { from: tx.from, to: tx.to, value: tx.value.toString(), data: tx.data, kernel: tx.kernel, block, skipKernelChecks: skipKernel };
-  if (d) {
+  if (d && generation === 'v2') {
+    o.deployment = {
+      kernelFactory: d.kernelFactoryV2 ?? ZERO,
+      circuits: d.circuits ?? ZERO,
+      fab: d.fab ?? ZERO,
+      sealedVM: d.sealedVM ?? ZERO,
+      lens: d.lensV2 ?? ZERO,
+      chipId: (d.chipIdV2 ?? 0n).toString(),
+      quote: USDT0,
+      quoteShift: (d.quoteShiftV2 ?? V2_QUOTE_SHIFT).toString(),
+    };
+  } else if (d) {
     o.deployment = {
       kernelFactory: d.kernelFactory ?? ZERO,
       circuits: d.circuits ?? ZERO,
@@ -160,13 +176,16 @@ export class NotDeployed extends Error {
   }
 }
 
-/** The deployment the full simulation needs: session 2 recorded, and the same kernel as --kernel. */
-export function checkDeployment(d: Deployment | null, tx: TxInput, skipKernel: boolean): void {
+/** The deployment the full simulation needs: session 2 recorded, and the same kernel as --kernel (v1 or v2). */
+export function checkDeployment(d: Deployment | null, tx: TxInput, skipKernel: boolean, generation: Generation = 'v1'): void {
   if (skipKernel) return;
   if (!d) throw new UsageError('--deployment is required: the simulation runs against the deployed Covenant contracts (deployments/xlayer.json)');
   const refusal = sessionTwoRefusal(d);
   if (refusal) throw new NotDeployed(refusal);
-  if (d.kernel !== null && !sameAddress(d.kernel, tx.kernel)) throw new UsageError(`--kernel ${show(tx.kernel)} is not the deployment's kernel ${show(d.kernel)}`);
+  const want = generation === 'v2' ? d.kernelV2 : d.kernel;
+  if (want !== null && !sameAddress(want, tx.kernel)) {
+    throw new UsageError(`--kernel ${show(tx.kernel)} is not the deployment's ${generation === 'v2' ? 'v2 kernel (the launch is quoted in USD₮0)' : 'kernel'} ${show(want)}`);
+  }
 }
 
 async function main(argv: readonly string[]): Promise<number> {
@@ -175,6 +194,7 @@ async function main(argv: readonly string[]): Promise<number> {
   let skipKernel = false;
   let rpc: string | undefined;
   let deployment: Deployment | null;
+  let generation: Generation = 'v1';
   try {
     const flags = parseFlags(argv, FLAGS);
     if (flags.has('help') || argv.length === 0) {
@@ -185,8 +205,12 @@ async function main(argv: readonly string[]): Promise<number> {
     skipKernel = flags.has('skip-kernel-checks');
     const refusal = deployment && !skipKernel ? sessionTwoRefusal(deployment) : null;
     if (refusal) throw new NotDeployed(refusal);
-    tx = readTx(flags, deployment?.kernel ?? null);
-    checkDeployment(deployment, tx, skipKernel);
+    // kernel v1 or v2 by the launch's quote, exactly as launch-check.ts decides it
+    tx = readTx(flags, (data) => {
+      generation = chooseGeneration(DEFAULT_EXPECTED, deployment, data);
+      return (generation === 'v2' ? deployment?.kernelV2 : deployment?.kernel) ?? null;
+    });
+    checkDeployment(deployment, tx, skipKernel, generation);
     rpc = flags.get('rpc');
     if (flags.has('block')) {
       const b = flags.get('block') as string;
@@ -214,13 +238,14 @@ async function main(argv: readonly string[]): Promise<number> {
   // one input file per run, so that two runs can never read each other's transaction
   const inputName = `launch-${process.pid}-${Date.now()}.json`;
   mkdirSync(join(SIM, 'inputs'), { recursive: true });
-  writeFileSync(join(SIM, 'inputs', inputName), inputFile(tx, block, skipKernel, skipKernel ? null : deployment));
+  writeFileSync(join(SIM, 'inputs', inputName), inputFile(tx, block, skipKernel, skipKernel ? null : deployment, generation));
 
   console.log('simulate: the exact createToken transaction on a fork of X Layer (nothing is sent)');
   console.log(`      from   ${show(tx.from)}`);
   console.log(`      to     ${show(tx.to)}`);
   console.log(`      kernel ${show(tx.kernel)}`);
   if (deployment && !skipKernel) console.log(`      deployment ${deployment.source}`);
+  if (generation === 'v2' && !skipKernel) console.log('      kernel v2 (contracts/core-v2): the launch is quoted in USD₮0');
   console.log(`      fork   ${block === 0 ? 'the latest block' : 'block ' + block}${rpc ? ' of ' + rpc : ''}`);
   console.log('');
 

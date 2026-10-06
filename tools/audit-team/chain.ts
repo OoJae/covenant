@@ -332,8 +332,9 @@ export class Chain {
    * (ten queries per HTTP request, spaced like every other request). The part below the safe head is remembered,
    * so that a later run with the same `from` only asks for the blocks after it.
    */
-  async scanLogs(address: string, topics: readonly (string | null)[], from: number, onProgress?: (done: number, total: number) => void): Promise<ScanLog[]> {
-    const key = `${address.toLowerCase()}:${topics.map((t) => t ?? '*').join(',')}`;
+  async scanLogs(address: string, topics: readonly (string | readonly string[] | null)[], from: number, onProgress?: (done: number, total: number) => void): Promise<ScanLog[]> {
+    // a topic may be a list (any of them matches, as eth_getLogs defines it)
+    const key = `${address.toLowerCase()}:${topics.map((t) => (t === null ? '*' : typeof t === 'string' ? t : [...t].sort().join('|'))).join(',')}`;
     const stored = this.cache.scans[key];
     const base = stored && stored.from === from && stored.to <= this.safeHead() ? stored : null;
     if (base) this.stats.cacheHits++;
@@ -388,6 +389,38 @@ export class Chain {
       if (r instanceof Error) throw new Error(`eth_call to ${reqs[i].to} failed: ${r.message}`);
       return r as string;
     });
+  }
+
+  /**
+   * The first block at which `address` has code, by a search over eth_getCode at historical blocks (nine probes per
+   * round, one HTTP request each), or null when it has no code at the audit block. Needs an archive node.
+   */
+  async firstCodeBlock(address: string): Promise<number | null> {
+    const has = async (blocks: readonly number[]): Promise<boolean[]> => {
+      const replies = await this.batch(blocks.map((b) => ['eth_getCode', [address, hexBlock(b)]] as const));
+      return replies.map((r, i) => {
+        if (r instanceof Error || typeof r !== 'string') throw new Error(`eth_getCode(${address}, block ${blocks[i]}) failed${r instanceof Error ? ': ' + r.message : ''}`);
+        return r !== '0x';
+      });
+    };
+    const [atHead, atZero] = await has([this.head, 0]);
+    if (!atHead) return null;
+    if (atZero) return 0;
+    let lo = 0; // no code here
+    let hi = this.head; // code here
+    while (hi - lo > 1) {
+      const step = Math.max(1, Math.floor((hi - lo) / 10));
+      const probes: number[] = [];
+      for (let b = lo + step; b < hi && probes.length < 9; b += step) probes.push(b);
+      const got = await has(probes);
+      const i = got.indexOf(true);
+      if (i < 0) lo = probes.at(-1) as number;
+      else {
+        hi = probes[i];
+        if (i > 0) lo = probes[i - 1];
+      }
+    }
+    return hi;
   }
 
   /** Runtime code at the audit block ("0x" for an address without code). */

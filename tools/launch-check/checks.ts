@@ -16,7 +16,7 @@ import {
   type CreateTokenCall,
 } from './decode.ts';
 import { ZERO_ADDRESS, formatDuration, formatOkb, formatUtc, hexToBytes, isPlainAscii, sameAddress, show, visible } from './hex.ts';
-import type { Envelope, Globals } from './kernel-abi.ts';
+import { isGlobalsV2, type AnyGlobals, type Envelope, type Globals } from './kernel-abi.ts';
 import { recoverFromSignature } from './secp256k1.ts';
 
 /** TapeOut's processor factory on X Layer. */
@@ -32,6 +32,17 @@ export const FIXED = {
   venue: 1, // Uniswap V2 (the only venue a taxed token can use)
   curveFeeBps: 100, // LaunchLogic.validate reverts on anything else
 } as const;
+
+/**
+ * USD₮0 on X Layer: the only quote kernel v2 (contracts/core-v2) binds. A launch quoted in it is checked against the
+ * v2 kernel the deployment file names, and only then; every other rule is kernel v1's.
+ */
+export const USDT0 = '0x779ded0c9e1022225f8e0630b35a9b54be713736';
+/** The code shift (bits) of kernel v2's KernelFactoryV2 on X Layer (contracts/core-v2/NOTES.md section 3). */
+export const V2_QUOTE_SHIFT = 33n;
+
+/** Which kernel a launch is checked against: v1 (native OKB quote) or v2 (USD₮0 quote). */
+export type Generation = 'v1' | 'v2';
 
 export interface Expected {
   taxBuyBps: number;
@@ -53,6 +64,15 @@ export interface Expected {
   sealedVM: string | null;
   /** The deployment's chip id for its kernel, or null: then it is not compared. */
   chipId: bigint | null;
+  /**
+   * The kernel the launch is checked against. 'v2' only when the launch is quoted in USD₮0 AND the deployment names a
+   * v2 kernel (launch-check.ts decides; `kernel`, `kernelFactory` and `chipId` are then the v2 deployment's).
+   */
+  generation: Generation;
+  /** The quote an expected-values file names (the zero address or USD₮0), or null: then the calldata's is used. */
+  quote: string | null;
+  /** v2: the code shift the deployment's KernelFactoryV2 pins, or null (then V2_QUOTE_SHIFT). */
+  quoteShift: bigint | null;
 }
 
 export const DEFAULT_EXPECTED: Expected = {
@@ -68,7 +88,18 @@ export const DEFAULT_EXPECTED: Expected = {
   fab: null,
   sealedVM: null,
   chipId: null,
+  generation: 'v1',
+  quote: null,
+  quoteShift: null,
 };
+
+/** Amounts in the launch's quote: OKB (18 decimals) for kernel v1, USD₮0 (6 decimals) for kernel v2. */
+export function formatQuote(amount: bigint, generation: Generation): string {
+  if (generation === 'v1') return `${formatOkb(amount)} OKB (${amount} wei)`;
+  const whole = amount / 1_000_000n;
+  const frac = (amount % 1_000_000n).toString().padStart(6, '0').replace(/0+$/, '');
+  return `${whole}${frac ? '.' + frac : ''} USD₮0 (${amount} base units)`;
+}
 
 export interface Line {
   kind: 'check' | 'info';
@@ -112,7 +143,7 @@ const quoted = (s: string): string => `"${visible(s)}"` + (isPlainAscii(s) ? '' 
 const okb = (wei: bigint): string => `${formatOkb(wei)} OKB (${wei} wei)`;
 
 /** Labels of every check that reads the decoded arguments, used when the calldata does not decode. */
-const DEPENDENT_LABELS = [
+const DEPENDENT_LABELS_V1 = [
   'calldata carries nothing beyond its arguments',
   'templateId is 3 (Directed vault)',
   'vault recipient is the kernel',
@@ -126,6 +157,11 @@ const DEPENDENT_LABELS = [
   'anti-snipe is off (snipeStartBps 0)',
   'no founder round (founderBps 0, founderSecs 0, no founder root)',
 ];
+/** Kernel v2 (USD₮0 quote): the same checks, but the quote and the value rule follow the ERC-20 quote. */
+const DEPENDENT_LABELS_V2 = DEPENDENT_LABELS_V1.map((l, i) =>
+  i === 3 ? "quote is USD₮0 (the v2 kernel's quote asset)" : i === 9 ? 'msg.value is 0 (a USD₮0 launch pays its listing fee in USD₮0)' : l,
+);
+export const dependentLabels = (g: Generation): readonly string[] => (g === 'v2' ? DEPENDENT_LABELS_V2 : DEPENDENT_LABELS_V1);
 
 /**
  * Everything that can be decided from the transaction the wallet shows, without the chain.
@@ -133,6 +169,12 @@ const DEPENDENT_LABELS = [
  */
 export function calldataLines(tx: TxInput, expected: Expected): CalldataResult {
   const lines: Line[] = [];
+  const gen = expected.generation;
+  const DEPENDENT_LABELS = dependentLabels(gen);
+  const amount = (a: bigint): string => formatQuote(a, gen);
+  if (gen === 'v2') {
+    lines.push(info('kernel generation', `v2 (contracts/core-v2): the launch is quoted in USD₮0 and the deployment names a v2 kernel; every other rule is kernel v1's`));
+  }
 
   lines.push(check(sameAddress(tx.to, MANAGER), 'to is the IgnixManager proxy', show(tx.to), `expected ${show(MANAGER)}`));
 
@@ -174,7 +216,19 @@ export function calldataLines(tx: TxInput, expected: Expected): CalldataResult {
   }
 
   // ── market ──
-  lines.push(check(sameAddress(p.quote, FIXED.quote), DEPENDENT_LABELS[3], show(p.quote), 'expected the zero address; kernel v1 binds only a native OKB vault'));
+  if (gen === 'v2') {
+    lines.push(check(sameAddress(p.quote, USDT0), DEPENDENT_LABELS[3], show(p.quote), `expected USD₮0 ${show(USDT0)}; kernel v2 binds only a vault quoted in USD₮0`));
+  } else {
+    lines.push(
+      check(
+        sameAddress(p.quote, FIXED.quote),
+        DEPENDENT_LABELS[3],
+        show(p.quote),
+        'expected the zero address; kernel v1 binds only a native OKB vault' +
+          (sameAddress(p.quote, USDT0) ? '. A USD₮0 launch is checked only against a v2 kernel, and the deployment file names none (deploy/launch-kernel-v2.sh records it)' : ''),
+      ),
+    );
+  }
   lines.push(check(call.venue === FIXED.venue, DEPENDENT_LABELS[4], String(call.venue), 'expected 1'));
   lines.push(
     check(
@@ -202,15 +256,26 @@ export function calldataLines(tx: TxInput, expected: Expected): CalldataResult {
   );
 
   // ── no team buy, no anti-snipe, no founder round ──
-  lines.push(check(p.firstBuy === 0n, DEPENDENT_LABELS[8], okb(p.firstBuy), 'a first buy is executed inside createToken with the launcher\'s own money: a team buy'));
-  lines.push(
-    check(
-      tx.value === p.listingFee,
-      DEPENDENT_LABELS[9],
-      `value ${okb(tx.value)}, listingFee ${okb(p.listingFee)}`,
-      'the value must equal the listing fee; anything above it is spent on a first buy',
-    ),
-  );
+  lines.push(check(p.firstBuy === 0n, DEPENDENT_LABELS[8], amount(p.firstBuy), 'a first buy is executed inside createToken with the launcher\'s own money: a team buy'));
+  if (gen === 'v2') {
+    lines.push(
+      check(
+        tx.value === 0n,
+        DEPENDENT_LABELS[9],
+        `value ${okb(tx.value)}, listingFee ${amount(p.listingFee)}`,
+        'an ERC-20-quoted launch takes no OKB: the Manager reverts BadValue() on any value, and pulls listingFee + firstBuy in USD₮0',
+      ),
+    );
+  } else {
+    lines.push(
+      check(
+        tx.value === p.listingFee,
+        DEPENDENT_LABELS[9],
+        `value ${okb(tx.value)}, listingFee ${okb(p.listingFee)}`,
+        'the value must equal the listing fee; anything above it is spent on a first buy',
+      ),
+    );
+  }
   lines.push(
     check(p.snipeStartBps === 0, DEPENDENT_LABELS[10], `snipeStartBps ${p.snipeStartBps}, snipeMins ${p.snipeMins}`, 'expected snipeStartBps 0; the surcharge goes to the platform and the kernel skips buys while it is on'),
   );
@@ -230,8 +295,8 @@ export function calldataLines(tx: TxInput, expected: Expected): CalldataResult {
   else lines.push(info('ticker (compare with what you typed)', quoted(p.symbol)));
   if (!p.textOk) lines.push(fail('name, ticker and metadata URI are valid UTF-8', 'no', 'one of the three strings is not valid UTF-8 text'));
   lines.push(info('metadata URI', quoted(p.metadataURI)));
-  lines.push(info('graduation target', okb(p.graduation)));
-  lines.push(info('listing fee (paid to the platform)', okb(p.listingFee)));
+  lines.push(info('graduation target', amount(p.graduation)));
+  lines.push(info('listing fee (paid to the platform)', amount(p.listingFee)));
   lines.push(info('salt', p.salt));
   lines.push(info('vault factory argument', show(call.factory)));
   lines.push(info('signature deadline', `${call.deadline} (${formatUtc(call.deadline)})`));
@@ -265,7 +330,11 @@ export interface ChainFacts {
   kernelToken: Fact<string>;
   kernelChipId: Fact<bigint>;
   kernelEnvelope: Fact<Envelope>;
-  kernelGlobals: Fact<Globals>;
+  /** Globals of the generation checked: kernel v1's Globals, or kernel v2's GlobalsV2. */
+  kernelGlobals: Fact<AnyGlobals>;
+  /** Kernel v2 only: the launcher's USD₮0 balance and its USD₮0 allowance to the IgnixManager. */
+  launcherQuoteBalance: Fact<bigint>;
+  launcherQuoteAllowance: Fact<bigint>;
   /** The Circuits address used for the chip check (expected file or --circuits), or the reason there is none. */
   circuits: Fact<string>;
   circuitsCodeSize: Fact<number>;
@@ -390,21 +459,23 @@ export function chainLines(tx: TxInput, call: CreateTokenCall | null, expected: 
       ),
     ),
   );
+  const v2 = expected.generation === 'v2';
+  const factoryName = v2 ? 'KernelFactoryV2' : 'KernelFactory';
   {
-    const label = 'kernel was created by the Covenant KernelFactory (isKernel)';
-    if (expected.kernelFactory === null) lines.push(notPerformed(label, 'no KernelFactory address was given: pass --deployment with the deployment file'));
+    const label = `kernel was created by the Covenant ${factoryName} (isKernel)`;
+    if (expected.kernelFactory === null) lines.push(notPerformed(label, `no ${factoryName} address was given: pass --deployment with the deployment file`));
     else {
       const f = expected.kernelFactory;
       lines.push(on(facts.kernelIsKernel, label, (is) => check(is, label, `isKernel = ${is} at ${show(f)}`, 'this address was not created by the deployment\'s KernelFactory: its envelope and its code are not the audited ones')));
     }
   }
   {
-    const want: [string, keyof Globals, string | null][] = [
-      ['KernelFactory', 'factory', expected.kernelFactory],
+    const want: [string, keyof Globals & keyof AnyGlobals, string | null][] = [
+      [factoryName, 'factory', expected.kernelFactory],
       ['Fab', 'fab', expected.fab],
       ['SealedVM', 'sealedVM', expected.sealedVM],
     ];
-    const known = want.filter(([, , a]) => a !== null) as [string, keyof Globals, string][];
+    const known = want.filter(([, , a]) => a !== null) as [string, keyof Globals & keyof AnyGlobals, string][];
     if (known.length) {
       const label = `kernel's globals name the deployment's ${known.map(([n]) => n).join(', ')}`;
       lines.push(
@@ -425,6 +496,35 @@ export function chainLines(tx: TxInput, call: CreateTokenCall | null, expected: 
       check(sameAddress(g.manager, MANAGER), 'kernel is wired to the IgnixManager proxy', show(g.manager), `expected ${show(MANAGER)}; bind looks the vault up in the kernel's own manager`),
     ),
   );
+  if (v2) {
+    const shift = expected.quoteShift ?? V2_QUOTE_SHIFT;
+    const label = `kernel quotes in USD₮0 with the ${shift}-bit code shift (globals().quote, globals().quoteShift)`;
+    lines.push(
+      on(facts.kernelGlobals, label, (g) =>
+        isGlobalsV2(g)
+          ? check(sameAddress(g.quote, USDT0) && g.quoteShift === shift, label, `quote ${show(g.quote)}, shift ${g.quoteShift} bits`, `expected USD₮0 ${show(USDT0)} and ${shift} bits (the deployment's KernelFactoryV2)`)
+          : fail(label, 'kernel v1 globals', 'this kernel has kernel v1\'s globals: it binds only a native OKB vault'),
+      ),
+    );
+    const feeLabel = 'launcher can pay the USD₮0 listing fee (balance and allowance to the IgnixManager)';
+    if (!call) lines.push(notPerformed(feeLabel, noCall));
+    else if (call.p.listingFee === 0n) lines.push(pass(feeLabel, 'listing fee 0: createToken pulls no USD₮0'));
+    else if (!facts.launcherQuoteBalance.ok) lines.push(notPerformed(feeLabel, facts.launcherQuoteBalance.error));
+    else if (!facts.launcherQuoteAllowance.ok) lines.push(notPerformed(feeLabel, facts.launcherQuoteAllowance.error));
+    else {
+      const fee = call.p.listingFee;
+      const bal = facts.launcherQuoteBalance.value;
+      const allow = facts.launcherQuoteAllowance.value;
+      lines.push(
+        check(
+          bal >= fee && allow >= fee,
+          feeLabel,
+          `fee ${formatQuote(fee, 'v2')}; balance ${formatQuote(bal, 'v2')}; allowance ${formatQuote(allow, 'v2')}`,
+          'createToken pulls the listing fee with transferFrom and would revert; approve exactly the fee to the IgnixManager first',
+        ),
+      );
+    }
+  }
 
   // ── the chip
   if (facts.circuits.ok) lines.push(info('Circuits (processor) address used for the chip checks', show(facts.circuits.value)));
@@ -476,6 +576,7 @@ export function chainLines(tx: TxInput, call: CreateTokenCall | null, expected: 
   if (facts.launcherBalance.ok) {
     lines.push(info('launcher balance', `${formatOkb(facts.launcherBalance.value)} OKB (the transaction sends ${formatOkb(tx.value)} OKB plus gas)`));
   }
+  if (v2 && facts.launcherQuoteBalance.ok) lines.push(info('launcher USD₮0 balance', formatQuote(facts.launcherQuoteBalance.value, 'v2')));
   if (facts.kernelEnvelope.ok) {
     const e = facts.kernelEnvelope.value;
     lines.push(info('kernel envelope', `epoch ${e.epochLen} s, allowance payee ${show(e.allowancePayee)}, capT ${e.capT}, allowCumBps ${e.allowCumBps}, buys ${e.buyEnabled ? 'enabled' : 'disabled'}`));
@@ -483,6 +584,7 @@ export function chainLines(tx: TxInput, call: CreateTokenCall | null, expected: 
   if (facts.kernelGlobals.ok) {
     const g = facts.kernelGlobals.value;
     lines.push(info('kernel chip', `${g.gateCount} gates, ${g.nState} latches; step gas ${g.stepFloor} (TapeOut), ${g.sealedFloor} (sealed)`));
+    if (isGlobalsV2(g)) lines.push(info('kernel quote', `${show(g.quote)}, code shift ${g.quoteShift} bits (${8n * g.quoteShift} lg8 codes on curve amounts)`));
   }
   return lines;
 }

@@ -4,9 +4,9 @@
 import { kernel as kernelCalls, kernelFactory as factoryCalls } from '../launch-check/kernel-abi.ts';
 import { addressWord, strip0x } from '../launch-check/hex.ts';
 import { createAddress } from '../launch-check/rlp.ts';
-import type { AuthorizationUse, Chain, Receipt, Tx } from './chain.ts';
-import { classify, type Classified, type Context, type Flag, type Target } from './classify.ts';
-import { selectorOf, type Known, type Wallet } from './known.ts';
+import type { AuthorizationUse, Chain, Receipt, ScanLog, Tx } from './chain.ts';
+import { classify, isKernelish, usdt0Amount, usdt0CallParties, type Classified, type Context, type Flag, type Target } from './classify.ts';
+import { TOPIC, selectorOf, type Known, type Wallet } from './known.ts';
 import type { RegistryView } from './registry.ts';
 import { classifyUserOp, findUserOps, type UserOp } from './userops.ts';
 import { walkNonces, type NonceBlock, type WalkResult } from './walk.ts';
@@ -20,6 +20,7 @@ export const RULES: readonly { id: RuleId; title: string }[] = [
   { id: 'ignix-token-call', title: 'transactions to a token launched through IgnixManager (approve, transfer, ...)' },
   { id: 'ignix-activity', title: 'IGNIX trades or token movements inside transactions to other contracts (seen in logs)' },
   { id: 'kernel-value', title: 'native value sent to a kernel or to its vault' },
+  { id: 'kernel-usdt0', title: 'USD₮0 sent from a team wallet to a kernel or to its vault (by its own transaction or user operation, or by an EIP-3009 authorisation or allowance anyone executed, such as an x402 payment)' },
   { id: 'transistor-transfer', title: 'transfers of Covenant transistors (ERC-1155 safeTransferFrom / safeBatchTransferFrom)' },
   { id: 'delegation', title: 'wallets that are neither plain accounts nor known smart wallets (contract code, or an EIP-7702 delegation to an unknown implementation)' },
   { id: 'unexplained-nonce', title: 'nonces that no transaction of the wallet explains' },
@@ -35,9 +36,11 @@ export interface Row extends Classified {
   nonce: number;
   /** The transaction: the wallet's own, the one that carried the authorisation, or the bundle. */
   hash: string;
-  /** Wei sent; '' for a user operation, whose value is not visible in its logs. */
+  /** Wei sent; '' for a user operation, whose value is not visible in its logs, and for a USD₮0 transfer. */
   valueWei: string;
-  kind: 'transaction' | 'authorization' | 'userOperation';
+  /** 'usdt0Transfer': USD₮0 moved from the wallet by a transaction it did not send (an EIP-3009 authorisation, such
+   *  as an x402 payment, or an allowance), found by the USD₮0 scan. */
+  kind: 'transaction' | 'authorization' | 'userOperation' | 'usdt0Transfer';
   /** How a finding names this row: "nonce 3", "user op 0x1234abcd...". */
   ref: string;
   /** User operations only. */
@@ -78,6 +81,18 @@ export interface UserOpScan {
   found: number;
 }
 
+/** The scan for USD₮0 that other accounts moved out of the team wallets (EIP-3009 authorisations, allowances). */
+export interface Usdt0Scan {
+  scanned: boolean;
+  /** Why it was not scanned, when it was not. */
+  why?: string;
+  /** Blocks scanned: from the creation of the KernelFactoryV2 (no v2 kernel exists before it) to the audit block. */
+  from: number;
+  to: number;
+  /** USD₮0 transfers from the team wallets found in transactions they did not send. */
+  found: number;
+}
+
 export interface RuleResult {
   id: RuleId;
   title: string;
@@ -105,6 +120,8 @@ export interface AuditResult {
   walletsByHand: boolean;
   /** Reasons the audit is not complete (a cap, an unconfigured address that mattered, ...). */
   incomplete: string[];
+  /** The USD₮0 scan (kernel v2), or null when neither USD₮0 nor a KernelFactoryV2 is configured. */
+  usdt0Scan: Usdt0Scan | null;
   /** 0 clean, 1 flagged, 2 incomplete without a flag. */
   exitCode: 0 | 1 | 2;
   stats: Chain['stats'];
@@ -250,6 +267,38 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
   // ── 2. receipts
   const receipts = await chain.receipts(all.map((x) => x.tx.hash));
 
+  // ── 2b. USD₮0 that other accounts moved out of the team wallets: an EIP-3009 authorisation (an x402 payment is one)
+  //    or an allowance needs no transaction, no nonce and no user operation of the wallet. Every USD₮0 Transfer from a
+  //    team wallet, from the creation of the KernelFactoryV2 (no kernel quoted in USD₮0 exists before it) to the audit
+  //    block, in a transaction the wallet did not send itself.
+  let usdt0Scan: Usdt0Scan | null = null;
+  const moved: ScanLog[] = [];
+  if (known.usdt0 && known.kernelFactoryV2) {
+    usdt0Scan = { scanned: false, from: 0, to: chain.head, found: 0 };
+    const start = await chain.firstCodeBlock(known.kernelFactoryV2);
+    if (start === null) {
+      usdt0Scan.why = `the KernelFactoryV2 ${known.kernelFactoryV2} has no code at the audit block`;
+      incomplete.push(`USD₮0 moved from the team wallets by authorisations was NOT scanned: ${usdt0Scan.why}`);
+    } else if (opts.maxNonces !== undefined) {
+      usdt0Scan.why = 'only the first nonces were audited (--max-nonces)';
+      incomplete.push(`USD₮0 moved from the team wallets by authorisations was NOT scanned (--max-nonces)`);
+    } else {
+      usdt0Scan.from = start;
+      const own = new Set([...all.map((x) => x.tx.hash), ...ops.map((o) => o.op.log.transactionHash)]);
+      const walletTopics = wallets.map((w) => '0x' + w.address.replace(/^0x/, '').toLowerCase().padStart(64, '0'));
+      const logs = await chain.scanLogs(known.usdt0, [TOPIC.transfer, walletTopics, null], start, (done, total) => {
+        if (total > 50) log(`USD₮0 transfers from the team wallets: ${done} of ${total} eth_getLogs chunks`);
+      });
+      for (const l of logs) if (!own.has(l.transactionHash)) moved.push(l);
+      usdt0Scan.scanned = true;
+      usdt0Scan.found = moved.length;
+      log(`USD₮0: ${moved.length} transfer(s) from the team wallets in transactions they did not send, blocks ${start}..${chain.head}`);
+    }
+  } else if (known.kernelFactoryV2 && !known.usdt0) {
+    usdt0Scan = { scanned: false, why: 'usdt0 is not configured in addresses.json', from: 0, to: chain.head, found: 0 };
+    incomplete.push('a KernelFactoryV2 is configured but usdt0 is not: USD₮0 sent to v2 kernels cannot be checked');
+  }
+
   // ── 3. what every target and every log emitter is
   const targets = new Map<string, Target>();
   const put = (address: string | null, kind: Target['kind'], label: string): void => {
@@ -268,6 +317,9 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
   put(known.fab, 'fab', 'Covenant Fab');
   put(known.kernelFactory, 'kernelFactory', 'Covenant KernelFactory');
   put(known.lens, 'lens', 'Covenant Lens');
+  put(known.kernelFactoryV2, 'kernelFactory', 'Covenant KernelFactoryV2 (kernel v2, USD₮0 quote)');
+  put(known.lensV2, 'lens', 'Covenant LensV2');
+  put(known.usdt0, 'other', 'USD₮0');
   for (const ep of known.entryPoints) put(ep.address, 'other', `ERC-4337 ${ep.label}`);
   known.kernels.forEach((k, i) => put(k, 'kernel', `Covenant kernel #${i + 1}`));
   for (const [label, a] of Object.entries(known.other)) put(a, 'other', label);
@@ -286,17 +338,33 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
     if (c !== ZERO) ignixTokens.add(a);
   });
 
-  // kernels: the configured list, plus anything the KernelFactory says is one
+  // where USD₮0 from a team wallet went: Transfer logs in the wallets' own receipts, USD₮0 transfer calls, the scan
+  const usdTo = new Set<string>();
+  if (known.usdt0) {
+    const fromWallet = (l: { address: string; topics: string[] }): boolean =>
+      l.address === known.usdt0 && l.topics[0] === TOPIC.transfer && l.topics.length === 3 && wallets.some((w) => w.address === '0x' + l.topics[1].slice(26).toLowerCase());
+    for (const r of [...receipts, ...opReceiptList]) for (const l of r.logs) if (fromWallet(l)) usdTo.add('0x' + l.topics[2].slice(26).toLowerCase());
+    for (const { tx } of all) {
+      const p = tx.to === known.usdt0 ? usdt0CallParties(tx.input) : null;
+      if (p) usdTo.add(p.to);
+    }
+    for (const l of moved) usdTo.add('0x' + l.topics[2].slice(26).toLowerCase());
+  }
+  const usdUnknown = [...usdTo].filter((a) => !targets.has(a) && !unknown.includes(a));
+
+  // kernels: the configured list (both flagships), plus anything either KernelFactory says is one
   const kernels = new Set(known.kernels);
-  if (known.kernelFactory && unknown.length) {
-    const f = factoryCalls(known.kernelFactory);
-    const is = await chain.calls(unknown.map((a) => f.isKernel(a)));
-    unknown.forEach((a, i) => {
+  for (const [factory, label] of [[known.kernelFactory, 'KernelFactory'], [known.kernelFactoryV2, 'KernelFactoryV2']] as const) {
+    const ask = [...unknown, ...usdUnknown].filter((a) => !kernels.has(a));
+    if (!factory || !ask.length) continue;
+    const f = factoryCalls(factory);
+    const is = await chain.calls(ask.map((a) => f.isKernel(a)));
+    ask.forEach((a, i) => {
       const r = is[i];
-      if (typeof r !== 'string') throw new Error(`KernelFactory.isKernel(${a}) reverted: the rule "value sent to a kernel" cannot be checked (re-check kernel-abi.ts)`);
+      if (typeof r !== 'string') throw new Error(`${label}.isKernel(${a}) reverted: the rules "value or USD₮0 sent to a kernel" cannot be checked (re-check kernel-abi.ts)`);
       if (f.isKernel(a).decode(r)) {
         kernels.add(a);
-        targets.set(a, { kind: 'kernel', label: 'Covenant kernel (per the KernelFactory)' });
+        targets.set(a, { kind: 'kernel', label: `Covenant kernel (per the ${label})` });
       }
     });
   }
@@ -341,7 +409,10 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
     else if (t.kind === 'unknown') t.label = `a contract deployed by ${short(wallet.address)} at nonce ${tx.nonce}`;
   }
 
-  const ctx: Context = { targets, ignixTokens, manager: known.manager, transistors: known.transistors, kernelsKnown: kernels.size > 0 || known.kernelFactory !== null };
+  // the other USD₮0 recipients: named for the report (a kernel's vault is already named above)
+  for (const a of usdUnknown) if (!targets.has(a)) targets.set(a, { kind: 'other', label: 'a USD₮0 recipient that is not a kernel' });
+
+  const ctx: Context = { targets, ignixTokens, manager: known.manager, transistors: known.transistors, kernelsKnown: kernels.size > 0 || known.kernelFactory !== null || known.kernelFactoryV2 !== null, usdt0: known.usdt0 };
 
   // ── 4. classify
   all.forEach(({ wallet, tx }, i) => {
@@ -365,6 +436,38 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
       ref: `user op ${op.userOpHash.slice(0, 10)}...`,
       userOpHash: op.userOpHash,
       position: op.log.logIndex,
+    });
+  });
+  // USD₮0 that other accounts moved out of the team wallets
+  const movedTimes = await chain.blockTimes(moved.map((l) => l.blockNumber));
+  moved.forEach((l, i) => {
+    const from = '0x' + l.topics[1].slice(26).toLowerCase();
+    const to = '0x' + l.topics[2].slice(26).toLowerCase();
+    const wallet = wallets.find((w) => w.address === from) as Wallet;
+    const report = reports.find((r) => r.wallet.address === from) as WalletReport;
+    const intoKernel = isKernelish(ctx, to);
+    report.rows.push({
+      wallet: wallet.address,
+      role: wallet.role,
+      block: l.blockNumber,
+      timestamp: movedTimes[i],
+      nonce: -1,
+      hash: l.transactionHash,
+      valueWei: '',
+      kind: 'usdt0Transfer',
+      ref: `USD₮0 transfer ${l.transactionHash.slice(0, 10)}...`,
+      position: l.logIndex,
+      target: to,
+      targetLabel: targets.get(to)?.label ?? 'USD₮0 recipient',
+      selector: null,
+      selectorName: null,
+      classification:
+        `${usdt0Amount(l.data)} moved from the wallet by a transaction it did not send (an EIP-3009 authorisation, such as an x402 payment, or an allowance)` +
+        (intoKernel ? ` INTO ${targets.get(to)?.label}: a kernel routes it as tax, so a team payment funds buys of the team's token` : ''),
+      flags: intoKernel ? ['kernel-usdt0'] : [],
+      unknownTarget: false,
+      undecided: [],
+      reverted: false,
     });
   });
   for (const { wallet, use, block, timestamp } of auths) {
@@ -448,6 +551,7 @@ export async function runAudit(chain: Chain, known: Known, wallets: readonly Wal
     registry,
     walletsByHand: opts.walletsByHand ?? false,
     incomplete,
+    usdt0Scan,
     exitCode: flagged ? 1 : incomplete.length ? 2 : 0,
     stats: chain.stats,
   };

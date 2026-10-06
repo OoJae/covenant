@@ -10,7 +10,7 @@
 // A check that could not be performed is a failure. This tool never signs and never sends anything.
 
 import { pathToFileURL } from 'node:url';
-import { UsageError, loadExpected, parseFlags, readDeploymentFlag, readTx, withDeployment } from './args.ts';
+import { UsageError, chooseGeneration, loadExpected, parseFlags, readDeploymentFlag, readTx, withDeployment, withDeploymentV2 } from './args.ts';
 import { sessionTwoRefusal } from './deployment.ts';
 import { DEFAULT_RPCS, connect, readChain } from './chain.ts';
 import { calldataLines, chainLines, formatLine, got, missing, verdict, type Expected, type Fact, type Line, type TxInput } from './checks.ts';
@@ -26,15 +26,18 @@ const USAGE = `launch-check: the last check before signing createToken. It never
   --deployment  the Covenant deployment: deployments/xlayer.json (the mainnet record of the signing sessions)
                 or a file in the format of deploy/rehearsal.json. It names the kernel, its KernelFactory, the
                 processor's Circuits and Transistors, the Fab and the SealedVM. Refused while signing session 2
-                (evaluator, core, flagship) is not recorded in it
+                (evaluator, core, flagship) is not recorded in it.
+                A launch quoted in USD₮0 is checked against the deployment's KERNEL V2 (coreV2, flagshipV2, written
+                by deploy/launch-kernel-v2.sh) and only if the file names one; every other launch against kernel v1,
+                which accepts only native OKB
   --tx          the eth_sendTransaction parameters {"from","to","value","data"} as JSON, or @file holding them
                 (what a hook on the page's window.ethereum.request captures); replaces the next four options
   --from        the wallet that will sign (the launcher)
   --to          the address the wallet says it is interacting with
   --value       the amount the wallet says it sends: wei ("0"), hex wei, or OKB with the unit ("0.4okb")
   --data        the raw hex data of the transaction, or @file holding it (it starts with 0xef44bdf2)
-  --kernel      the kernel that must receive the token's tax (default: the deployment's kernel; if both
-                are given they must be the same)
+  --kernel      the kernel that must receive the token's tax (default: the deployment's kernel, v1 or v2 by
+                the launch's quote; if both are given they must be the same)
   --expected    expected values (see expected.cvref.json). Default: tax 300/300 bps, protection 8,640,000 s
   --circuits    the Covenant processor's Circuits contract, if no file names it
   --rpc         an X Layer JSON-RPC endpoint (default: rpc.xlayer.tech, then xlayerrpc.okx.com)
@@ -82,7 +85,7 @@ export function pickCircuits(expected: Expected, flag: string | undefined): Fact
 export async function run(tx: TxInput, expected: Expected, circuits: Fact<string>, rpcUrls: readonly string[], now?: bigint): Promise<Report> {
   const { lines: first, call } = calldataLines(tx, expected);
   const rpc = connect(rpcUrls, { timeout: 20000, retries: 1 });
-  const facts = await readChain(rpc, tx, call, circuits, now ?? BigInt(Math.floor(Date.now() / 1000)), expected.kernelFactory);
+  const facts = await readChain(rpc, tx, call, circuits, now ?? BigInt(Math.floor(Date.now() / 1000)), expected.kernelFactory, expected.generation);
   const lines = [...first, ...chainLines(tx, call, expected, facts)];
   return { lines, ...verdict(lines) };
 }
@@ -128,9 +131,15 @@ async function main(argv: readonly string[]): Promise<number> {
       console.log('VERDICT: FAIL. Nothing can be approved without the deployed kernel. DO NOT SIGN this transaction.');
       return 1;
     }
-    expected = loadExpected(flags.get('expected'));
-    if (deployment) expected = withDeployment(expected, deployment);
-    tx = readTx(flags, expected.kernel);
+    const base = loadExpected(flags.get('expected'));
+    let chosen: Expected = base;
+    // kernel v1 or v2 follows from the launch's quote (chooseGeneration); the default kernel is that generation's
+    tx = readTx(flags, (data) => {
+      const generation = chooseGeneration(base, deployment, data);
+      chosen = deployment ? (generation === 'v2' ? withDeploymentV2(base, deployment) : withDeployment(base, deployment)) : base;
+      return chosen.kernel;
+    });
+    expected = chosen;
     circuits = pickCircuits(expected, flags.get('circuits'));
   } catch (e) {
     if (!(e instanceof UsageError) && !(e instanceof Error)) throw e;

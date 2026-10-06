@@ -1,4 +1,7 @@
 // The only contract surface the keeper touches. Kernel ABI: chips/INTERFACE.md section 10.
+// Kernel v2 (USD₮0 quote, contracts/core-v2, chips/INTERFACE-V2.md) declares the same five functions and the same
+// Settled event (IKernelV2.sol inherits chipId() and settle() from IKernelMin), so one ABI settles both
+// generations; test/kernel-v2.test.ts compares it with both sources.
 
 import { decodeEventLog, encodeFunctionData, parseAbi, parseAbiItem, toEventSelector, toFunctionSelector } from 'viem';
 import type { AbiEvent, Address, Hex } from 'viem';
@@ -41,7 +44,7 @@ export const remainingOfCalldata = (chipId: bigint): Hex =>
  * selector. Names only: an unknown selector is still reported as "custom error 0x........".
  */
 const KNOWN_ERRORS = [
-  // contracts/core/src/Kernel.sol
+  // contracts/core/src/Kernel.sol and contracts/core-v2/src/KernelV2.sol (the same errors)
   'OnlyClone()',
   'AlreadyBound()',
   'NotBound()',
@@ -52,6 +55,7 @@ const KNOWN_ERRORS = [
   'PayFailed()',
   'NotAccepted()',
   'NotGraduated()',
+  'LockHeld()',
   // contracts/issuance/src/KeeperTank.sol
   'KernelDoesNotHoldChip()',
   'RefundFailed()',

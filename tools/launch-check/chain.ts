@@ -2,7 +2,7 @@
 // (eth_chainId, eth_getBlockByNumber, eth_call, eth_getCode, eth_getBalance). Nothing is ever sent.
 
 import { RpcError, createRpc, revertReason, type Rpc, type RpcOptions } from '../../packages/chain/src/index.ts';
-import { TAPEOUT_FACTORY, got, missing, type ChainFacts, type Fact, type TxInput } from './checks.ts';
+import { TAPEOUT_FACTORY, USDT0, got, missing, type ChainFacts, type Fact, type Generation, type TxInput } from './checks.ts';
 import { MANAGER, selectorOf, type CreateTokenCall } from './decode.ts';
 import { addressWord, strip0x, word } from './hex.ts';
 import { kernelFactory as factoryCalls, kernel as kernelCalls, type Call } from './kernel-abi.ts';
@@ -93,6 +93,8 @@ function unread(rpcUrl: string, chainId: Fact<bigint>, block: ChainFacts['block'
     kernelChipId: missing(why),
     kernelEnvelope: missing(why),
     kernelGlobals: missing(why),
+    launcherQuoteBalance: missing(why),
+    launcherQuoteAllowance: missing(why),
     circuits,
     circuitsCodeSize: missing(why),
     circuitsIsProcessor: missing(why),
@@ -108,8 +110,10 @@ export async function readChain(
   call: CreateTokenCall | null,
   circuits: Fact<string>,
   localTime: bigint = BigInt(Math.floor(Date.now() / 1000)),
-  /** The deployment's KernelFactory, or null when none was given. */
+  /** The deployment's KernelFactory (the KernelFactoryV2 for a v2 launch), or null when none was given. */
   kernelFactory: string | null = null,
+  /** The kernel generation the launch is checked against: v2 reads GlobalsV2 and the launcher's USD₮0. */
+  generation: Generation = 'v1',
 ): Promise<ChainFacts> {
   // 1. which chain, which block
   const [rChain, rBlock] = await batch(rpc, [
@@ -142,7 +146,7 @@ export async function readChain(
     viaCall(k.token()), // 7
     viaCall(k.chipId()), // 8
     viaCall(k.envelope()), // 9
-    viaCall(k.globals()), // 10
+    viaCall(generation === 'v2' ? k.globalsV2() : k.globals()), // 10
   ];
   if (circuits.ok) {
     reqs.push(['eth_getCode', [circuits.value, at]]); // 11
@@ -151,6 +155,11 @@ export async function readChain(
   }
   const isKernelAt = reqs.length;
   if (kernelFactory !== null) reqs.push(viaCall(factoryCalls(kernelFactory).isKernel(tx.kernel)));
+  const quoteAt = reqs.length;
+  if (generation === 'v2') {
+    reqs.push(ethCall(USDT0, selectorOf('balanceOf(address)') + addressWord(tx.from)));
+    reqs.push(ethCall(USDT0, selectorOf('allowance(address,address)') + addressWord(tx.from) + addressWord(MANAGER)));
+  }
   const r = await batch(rpc, reqs);
   facts.rpcUrl = rpc.current();
 
@@ -164,7 +173,15 @@ export async function readChain(
   facts.kernelToken = fact(r[7], 'kernel.token()', (x) => k.token().decode(x as string));
   facts.kernelChipId = fact(r[8], 'kernel.chipId()', (x) => k.chipId().decode(x as string));
   facts.kernelEnvelope = fact(r[9], 'kernel.envelope()', (x) => k.envelope().decode(x as string));
-  facts.kernelGlobals = fact(r[10], 'kernel.globals()', (x) => k.globals().decode(x as string));
+  facts.kernelGlobals =
+    generation === 'v2' ? fact(r[10], 'kernel.globals() (GlobalsV2)', (x) => k.globalsV2().decode(x as string)) : fact(r[10], 'kernel.globals()', (x) => k.globals().decode(x as string));
+  if (generation === 'v2') {
+    facts.launcherQuoteBalance = fact(r[quoteAt], 'USD₮0.balanceOf(launcher)', (x) => oneWord(x, 'USD₮0.balanceOf(launcher)'));
+    facts.launcherQuoteAllowance = fact(r[quoteAt + 1], 'USD₮0.allowance(launcher, IgnixManager)', (x) => oneWord(x, 'USD₮0.allowance(launcher, IgnixManager)'));
+  } else {
+    facts.launcherQuoteBalance = missing('kernel v1: the launch is quoted in OKB');
+    facts.launcherQuoteAllowance = missing('kernel v1: the launch is quoted in OKB');
+  }
   if (circuits.ok) {
     facts.circuitsCodeSize = fact(r[11], 'eth_getCode(Circuits)', codeSize);
     facts.circuitsIsProcessor = fact(r[12], 'TapeOutFactory.isCPU(Circuits)', (x) => oneWord(x, 'TapeOutFactory.isCPU(Circuits)') !== 0n);

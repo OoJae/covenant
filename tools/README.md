@@ -11,6 +11,7 @@ holds a key, signs or sends a transaction to a real network.
 | [`deweb/`](deweb/NOTES.md) | Publishes the site (web/) into the DeWEB container of the probe circuit, so that https://1-2-283.tapekit.org/ serves it from the chain. `plan.ts` prints the transactions and their cost from the live chain; `verify.ts` reads the site back and compares it with the build, a second node operator and what the gateway serves; `deploy/publish-site.sh` builds, rehearses on a fork and sends (see "Publishing the site" below). |
 
 Tests: `cd tools && node --test launch-check/test/*.test.ts audit-team/test/*.test.ts`
+(kernel v2: `launch-check/test/usdt0.test.ts`, `audit-team/test/usdt0.test.ts`, offline)
 (`OFFLINE=1` skips everything that needs the network; `REHEARSE=1` adds the full launch-day rehearsal against the
 real contracts, see "Rehearsal" below).
 
@@ -23,6 +24,14 @@ once `deploy/launch-kernel.sh` (signing session 2) has run, `evaluator` (SealedV
 Kernel implementation, Lens) and `flagship` (chip id, kernel). The flat file `deploy/rehearse.sh` writes to
 `deploy/rehearsal.json` is read the same way. Keys the tools do not use are ignored; a key they use with the wrong
 type is refused.
+
+Kernel v2 (USD₮0 quote, `contracts/core-v2`) is signing session 3, `deploy/launch-kernel-v2.sh`; it adds `coreV2`
+(KernelFactoryV2, its KernelV2 implementation, LensV2, the quote USD₮0 and its 33-bit code shift) and `flagshipV2`
+(the v2 chip and kernel). `deploy/rehearse-v2.sh` writes the same in the flat format (`kernelFactoryV2`, `lensV2`,
+`kernelV2`, `chipIdV2`, `quoteV2`, `quoteShiftV2`). A launch quoted in USD₮0 is checked against that v2 kernel, and
+only when the file names one (`launch-check/NOTES.md`, "Kernel v2"); `audit-team` treats v2 kernels as kernels and
+flags USD₮0 sent to any kernel from a team wallet; `launch-check/payto-check.ts` checks an address proposed as the
+Architect's x402 `PAY_TO` (only the deployment's bound v2 kernel passes).
 
 Until session 2 is recorded, `launch-check` and `simulate` refuse with
 `signing session 2 is not deployed yet: deployments/xlayer.json records no evaluator (...), core (...), flagship (...)`
@@ -152,3 +161,9 @@ separate flags), corrupts each field one at a time (each must be refused), sends
 binds, runs both commands again (refused: the kernel is bound) and runs `audit-team` against the fork. It restores
 `deploy/rehearsal.json` and kills the node at the end, and writes a transcript of every command; see
 `launch-check/NOTES.md`.
+
+`REHEARSE=1 node --test tools/launch-check/test/rehearsal-v2.test.ts` does the same for kernel v2: `deploy/rehearse-v2.sh`
+deploys KernelFactoryV2, LensV2 and the Flow Governor's v2 kernel (its plan goes to a scratch file), both commands must
+pass on a USD₮0-quoted launch and refuse the refusal matrix of the new quote, the launch is sent to the fork and bound,
+an unrelated buyer and an unrelated payer move USD₮0, the keeper (dry run) and the live KeeperTank settle the v2
+kernel, and `audit-team` runs against the fork. It needs `services/keeper/node_modules` (`pnpm install`).

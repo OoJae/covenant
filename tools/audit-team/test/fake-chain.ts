@@ -20,6 +20,7 @@ export const known = (over: Partial<Known> = {}): Known => ({
   tapeoutFactory: TAPEOUT,
   router: ROUTER,
   wokb: WOKB,
+  usdt0: null,
   deployer: null,
   keeper: null,
   agentWallet: null,
@@ -32,6 +33,8 @@ export const known = (over: Partial<Known> = {}): Known => ({
   fab: null,
   kernelFactory: null,
   lens: null,
+  kernelFactoryV2: null,
+  lensV2: null,
   kernels: [],
   other: {},
   smartWallets: {},
@@ -75,6 +78,8 @@ export class FakeChain {
   private readonly uses: { address: string; block: number }[] = [];
   private readonly nonces = new Map<string, number>();
   readonly code = new Map<string, string>();
+  /** address -> the first block at which it has its code (default: every block). */
+  readonly codeFrom = new Map<string, number>();
   /** address -> creator, for IgnixManager.creatorOf / vaultOf */
   readonly ignixTokens = new Map<string, { creator: string; vault: string }>();
   /** `${to}:${selector}` -> return data, or a function of the calldata; null reverts */
@@ -168,15 +173,18 @@ export class FakeChain {
         if (!t) return null;
         return { status: t.reverted ? '0x0' : '0x1', gasUsed: '0x5208', contractAddress: null, blockNumber: '0x' + t.blockNumber.toString(16), logs: t.reverted ? [] : t.logs };
       }
-      case 'eth_getCode':
-        return this.code.get((params[0] as string).toLowerCase()) ?? '0x';
+      case 'eth_getCode': {
+        const a = (params[0] as string).toLowerCase();
+        if (blockOf(params[1] ?? 'latest') < (this.codeFrom.get(a) ?? 0)) return '0x';
+        return this.code.get(a) ?? '0x';
+      }
       case 'eth_getTransactionByHash': {
         const t = this.byHash.get(params[0] as string);
         return t ? { hash: t.hash, from: t.from, to: t.to, nonce: '0x' + t.nonce.toString(16), blockNumber: '0x' + t.blockNumber.toString(16), input: t.input, value: t.value, type: t.type } : null;
       }
       case 'eth_getLogs': {
         // like the public X Layer endpoint: at most 100 blocks per query
-        const f = params[0] as { address?: string; topics?: (string | null)[]; fromBlock: string; toBlock: string };
+        const f = params[0] as { address?: string; topics?: (string | string[] | null)[]; fromBlock: string; toBlock: string };
         const from = blockOf(f.fromBlock);
         const to = Math.min(blockOf(f.toBlock), this.head);
         if (to - from + 1 > 100) return new RpcError({ code: -32602, message: 'block range greater than 100 max' });
@@ -188,7 +196,9 @@ export class FakeChain {
             for (const l of t.logs) {
               const i = logIndex++;
               if (f.address && l.address.toLowerCase() !== f.address.toLowerCase()) continue;
-              if ((f.topics ?? []).some((want, k) => want !== null && want !== undefined && l.topics[k]?.toLowerCase() !== want.toLowerCase())) continue;
+              const fits = (want: string | string[] | null | undefined, got: string | undefined): boolean =>
+                want === null || want === undefined || (Array.isArray(want) ? want.some((w) => w.toLowerCase() === got?.toLowerCase()) : want.toLowerCase() === got?.toLowerCase());
+              if (!(f.topics ?? []).every((want, k) => fits(want, l.topics[k]))) continue;
               out.push({ address: l.address, topics: l.topics, data: l.data, blockNumber: '0x' + b.toString(16), transactionHash: t.hash, logIndex: '0x' + i.toString(16), removed: false });
             }
           }

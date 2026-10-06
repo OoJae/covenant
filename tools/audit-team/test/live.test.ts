@@ -115,7 +115,7 @@ test('the creator of the OB token: all 11 transactions are found, and its first 
   assert.equal(r.unknownTargets, 9);
 
   const counts = Object.fromEntries(r.rules.map((x) => [x.id, x.count]));
-  assert.deepEqual(counts, { 'ignix-call': 0, 'first-buy': 1, 'dex-call': 0, 'ignix-token-call': 1, 'ignix-activity': 1, 'kernel-value': 0, 'transistor-transfer': 0, delegation: 0, 'unexplained-nonce': 0 });
+  assert.deepEqual(counts, { 'ignix-call': 0, 'first-buy': 1, 'dex-call': 0, 'ignix-token-call': 1, 'ignix-activity': 1, 'kernel-value': 0, 'kernel-usdt0': 0, 'transistor-transfer': 0, delegation: 0, 'unexplained-nonce': 0 });
   assert.equal(r.exitCode, 1);
   assert.ok(w.walk.probes < 400, `${w.walk.probes} count queries for 11 transactions`);
 

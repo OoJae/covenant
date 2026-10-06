@@ -8,6 +8,9 @@
 //   ignix-activity       an IGNIX trade or token movement inside a transaction to some other contract,
 //                        seen in the receipt's logs (for example a sale through a DEX aggregator)
 //   kernel-value         native value sent to a kernel or to its vault
+//   kernel-usdt0         USD₮0 sent from the wallet to a kernel or to its vault (a v2 kernel routes it as tax: a team
+//                        payment would fund buys of the team's token), seen in the receipt's Transfer logs, or a
+//                        USD₮0 transfer / transferFrom / transferWithAuthorization call naming one (also when reverted)
 //   transistor-transfer  an ERC-1155 safeTransferFrom / safeBatchTransferFrom of Covenant transistors
 // WARNING (listed, not a flag):
 //   unknown target       the target is not in the known list
@@ -17,7 +20,7 @@ import { createAddress } from '../launch-check/rlp.ts';
 import type { Receipt, RpcLog, Tx } from './chain.ts';
 import { SEL, TOPIC, selectorName, type Kind } from './known.ts';
 
-export type Flag = 'ignix-call' | 'first-buy' | 'dex-call' | 'ignix-token-call' | 'ignix-activity' | 'kernel-value' | 'transistor-transfer';
+export type Flag = 'ignix-call' | 'first-buy' | 'dex-call' | 'ignix-token-call' | 'ignix-activity' | 'kernel-value' | 'kernel-usdt0' | 'transistor-transfer';
 
 export interface Target {
   kind: Kind | 'ignixToken' | 'ignixVault' | 'unknown';
@@ -36,6 +39,37 @@ export interface Context {
   transistors: string | null;
   /** True when at least one kernel, or the KernelFactory, is configured. */
   kernelsKnown: boolean;
+  /** USD₮0 (lower case), or null when addresses.json does not name it: then the kernel-usdt0 rule is not applied. */
+  usdt0?: string | null;
+}
+
+/** A kernel (v1 or v2) or a kernel's vault, as far as the audit knows its targets. */
+export const isKernelish = (ctx: Context, a: string): boolean => {
+  const k = ctx.targets.get(a)?.kind;
+  return k === 'kernel' || k === 'kernelVault';
+};
+
+/** The recipient (and the payer, when the call names one) of a USD₮0 transfer call, or null for any other call. */
+export function usdt0CallParties(input: string): { from: string | null; to: string } | null {
+  const sel = input.slice(0, 10).toLowerCase();
+  const arg = (i: number): string => '0x' + input.slice(10 + 64 * i + 24, 10 + 64 * i + 64).toLowerCase();
+  if (input.length < 10 + 64 * 2) return null;
+  if (sel === SEL.transfer) return { from: null, to: arg(0) };
+  if (sel === SEL.transferFrom || sel === SEL.transferWithAuthorization || sel === SEL.transferWithAuthorizationBytes) return { from: arg(0), to: arg(1) };
+  return null;
+}
+
+/** USD₮0 Transfer logs, among `logs`, that move USD₮0 from `wallet` to a kernel or a kernel's vault. */
+export function usdt0IntoKernels(logs: readonly RpcLog[], ctx: Context, wallet: string): RpcLog[] {
+  if (!ctx.usdt0) return [];
+  return logs.filter((l) => l.address === ctx.usdt0 && l.topics[0] === TOPIC.transfer && l.topics.length === 3 && addrOfTopic(l.topics[1]) === wallet && isKernelish(ctx, addrOfTopic(l.topics[2])));
+}
+
+/** A USD₮0 amount (6 decimals) from a Transfer log's data. */
+export function usdt0Amount(data: string): string {
+  const v = BigInt(data.length > 2 ? '0x' + data.slice(2, 66) : '0x0');
+  const frac = (v % 1_000_000n).toString().padStart(6, '0').replace(/0+$/, '');
+  return `${v / 1_000_000n}${frac ? '.' + frac : ''} USD₮0`;
 }
 
 export interface Classified {
@@ -179,6 +213,23 @@ export function classify(tx: Tx, receipt: Receipt, ctx: Context): Classified {
     } else if (!expectedHere && (trades.length || tokenLogs.length)) {
       flags.push('ignix-activity');
       text += `; AN IGNIX TRADE OR TOKEN TRANSFER happened inside this transaction (${trades.length} Trade event(s), ${tokenLogs.length} token event(s))`;
+    }
+  }
+
+  // ── USD₮0 into a kernel or a kernel's vault: what the receipt's logs show, and, also for a reverted call, what a
+  //    USD₮0 transfer call names
+  if (ctx.usdt0) {
+    const moved = reverted ? [] : usdt0IntoKernels(receipt.logs, ctx, wallet);
+    const parties = tx.to === ctx.usdt0 ? usdt0CallParties(tx.input) : null;
+    const named = parties !== null && isKernelish(ctx, parties.to);
+    if (moved.length) {
+      flags.push('kernel-usdt0');
+      const where = moved.map((l) => `${usdt0Amount(l.data)} to ${ctx.targets.get(addrOfTopic(l.topics[2]))?.label ?? addrOfTopic(l.topics[2])}`).join(', ');
+      text += `; USD₮0 SENT FROM THE WALLET TO A KERNEL (${where}): a kernel routes it as tax, so a team payment funds buys of the team's token`;
+    } else if (named) {
+      flags.push('kernel-usdt0');
+      const p = parties as { from: string | null; to: string };
+      text += `; THE WALLET CALLED A USD₮0 TRANSFER INTO A KERNEL (payer ${p.from === null || p.from === wallet ? 'the wallet' : p.from}, recipient ${ctx.targets.get(p.to)?.label ?? p.to})`;
     }
   }
 

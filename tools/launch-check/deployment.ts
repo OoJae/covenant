@@ -8,9 +8,14 @@
 //             "core":      { "kernelFactory", "kernelImpl", "lens", "txs" },                               session 2
 //             "flagship":  { "chipId", "kernel", "netlistKeccak256", "manifestHash", "allowancePayee", ... } }
 //           deploy/launch-kernel.sh adds evaluator, core and flagship when signing session 2 is done.
+//           deploy/launch-kernel-v2.sh adds kernel v2 (USD₮0 quote, contracts/core-v2) when session 3 is done:
+//             "coreV2":     { "kernelFactory", "kernelImpl", "lens", "quote", "quoteShift", "txs" },          session 3
+//             "flagshipV2": { "chipId", "kernel", "allowancePayee", "quote", "quoteShift", ... }               session 3
 //   FLAT    deploy/rehearsal.json, what deploy/rehearse.sh writes after rehearsing on a local fork:
 //           { "deployer", "splitter", "circuits", "transistors", "keeperTank", "teamRegistry", "sealedVM", "fab",
 //             "kernelFactory", "kernelImpl", "lens", "chipId", "kernel", ... }
+//           deploy/rehearsal-v2.json (deploy/rehearse-v2.sh) has the same keys for the live kernel v1 contracts plus
+//           "kernelFactoryV2", "kernelImplV2", "lensV2", "kernelV2", "chipIdV2", "quoteV2", "quoteShiftV2".
 //
 // Both files are written by scripts that may gain keys, so keys this module does not use are ignored. Every key it
 // does use must hold the right type: an address string (or null / absent), a whole number for chipId, 196 for
@@ -43,6 +48,16 @@ export interface Deployment {
   kernel: string | null;
   /** The kernel's chip in `circuits`, or null. */
   chipId: bigint | null;
+  /** Kernel v2 (USD₮0 quote): its KernelFactoryV2, implementation, LensV2 and flagship kernel, or null. */
+  kernelFactoryV2: string | null;
+  kernelImplV2: string | null;
+  lensV2: string | null;
+  kernelV2: string | null;
+  /** The v2 kernel's chip in `circuits`, or null. */
+  chipIdV2: bigint | null;
+  /** The quote asset the KernelFactoryV2 pins (USD₮0), and its code shift in bits, or null. */
+  quoteV2: string | null;
+  quoteShiftV2: bigint | null;
 }
 
 export class DeploymentError extends Error {
@@ -52,7 +67,7 @@ export class DeploymentError extends Error {
   }
 }
 
-export const DEPLOYMENT_ADDRESS_KEYS = ['deployer', 'keeper', 'agentWallet', 'splitter', 'circuits', 'transistors', 'keeperTank', 'teamRegistry', 'sealedVM', 'fab', 'kernelFactory', 'kernelImpl', 'lens', 'kernel'] as const;
+export const DEPLOYMENT_ADDRESS_KEYS = ['deployer', 'keeper', 'agentWallet', 'splitter', 'circuits', 'transistors', 'keeperTank', 'teamRegistry', 'sealedVM', 'fab', 'kernelFactory', 'kernelImpl', 'lens', 'kernel', 'kernelFactoryV2', 'kernelImplV2', 'lensV2', 'kernelV2', 'quoteV2'] as const;
 type AddressKey = (typeof DEPLOYMENT_ADDRESS_KEYS)[number];
 
 /** Where each address sits in the nested format. */
@@ -71,6 +86,11 @@ const NESTED: Record<AddressKey, readonly [section: string | null, key: string]>
   kernelImpl: ['core', 'kernelImpl'],
   lens: ['core', 'lens'],
   kernel: ['flagship', 'kernel'],
+  kernelFactoryV2: ['coreV2', 'kernelFactory'],
+  kernelImplV2: ['coreV2', 'kernelImpl'],
+  lensV2: ['coreV2', 'lens'],
+  kernelV2: ['flagshipV2', 'kernel'],
+  quoteV2: ['coreV2', 'quote'],
 };
 
 /** The parts of signing session 2, and the addresses each one must provide. */
@@ -78,6 +98,12 @@ export const SESSION_TWO = [
   { part: 'evaluator', what: 'the SealedVM and the Fab', keys: ['sealedVM', 'fab'] },
   { part: 'core', what: 'the KernelFactory and the Lens', keys: ['kernelFactory', 'lens'] },
   { part: 'flagship', what: 'the flagship chip and its kernel', keys: ['kernel', 'chipId'] },
+] as const;
+
+/** Signing session 3, kernel v2 (USD₮0 quote): the parts a USD₮0 launch needs. */
+export const SESSION_THREE = [
+  { part: 'coreV2', what: 'the KernelFactoryV2 and the LensV2', keys: ['kernelFactoryV2', 'lensV2'] },
+  { part: 'flagshipV2', what: 'the v2 flagship chip and its kernel', keys: ['kernelV2', 'chipIdV2'] },
 ] as const;
 
 const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -91,7 +117,7 @@ export function parseDeployment(text: string, where: string = 'deployment file')
   }
   if (!isObject(o)) throw new DeploymentError(`${where}: must be a JSON object`);
   if (o.chainId !== undefined && o.chainId !== 196) throw new DeploymentError(`${where}: chainId is ${JSON.stringify(o.chainId)}, not 196 (X Layer)`);
-  const nested = ['issuance', 'probe', 'evaluator', 'core', 'flagship', 'architect'].some((k) => isObject(o[k]));
+  const nested = ['issuance', 'probe', 'evaluator', 'core', 'flagship', 'architect', 'coreV2', 'flagshipV2'].some((k) => isObject(o[k]));
   const out: Deployment = {
     source: where,
     format: nested ? 'nested' : 'flat',
@@ -110,6 +136,13 @@ export function parseDeployment(text: string, where: string = 'deployment file')
     lens: null,
     kernel: null,
     chipId: null,
+    kernelFactoryV2: null,
+    kernelImplV2: null,
+    lensV2: null,
+    kernelV2: null,
+    chipIdV2: null,
+    quoteV2: null,
+    quoteShiftV2: null,
   };
   const sectionOf = (name: string | null): Record<string, unknown> => {
     if (name === null) return o;
@@ -130,16 +163,30 @@ export function parseDeployment(text: string, where: string = 'deployment file')
       throw new DeploymentError(`${where}: ${(e as Error).message}`);
     }
   }
-  const id = sectionOf(nested ? 'flagship' : null).chipId;
-  if (id !== undefined && id !== null) {
-    if (!(typeof id === 'number' && Number.isSafeInteger(id) && id >= 0) && !(typeof id === 'string' && /^[0-9]+$/.test(id))) {
-      throw new DeploymentError(`${where}: ${nested ? 'flagship.' : ''}chipId must be a whole number or null`);
+  const whole = (section: string | null, key: string): bigint | null => {
+    const v = sectionOf(section)[key];
+    if (v === undefined || v === null) return null;
+    if (!(typeof v === 'number' && Number.isSafeInteger(v) && v >= 0) && !(typeof v === 'string' && /^[0-9]+$/.test(v))) {
+      throw new DeploymentError(`${where}: ${section ? section + '.' : ''}${key} must be a whole number or null`);
     }
-    out.chipId = BigInt(id);
-  }
+    return BigInt(v);
+  };
+  out.chipId = whole(nested ? 'flagship' : null, 'chipId');
+  out.chipIdV2 = nested ? whole('flagshipV2', 'chipId') : whole(null, 'chipIdV2');
+  out.quoteShiftV2 = nested ? whole('coreV2', 'quoteShift') : whole(null, 'quoteShiftV2');
   if (out.kernel !== null && out.chipId === null) throw new DeploymentError(`${where}: names a kernel but not its chipId`);
+  if (out.kernelV2 !== null && out.chipIdV2 === null) throw new DeploymentError(`${where}: names a v2 kernel but not its chipId`);
+  if (out.kernelV2 !== null && out.kernelFactoryV2 === null) throw new DeploymentError(`${where}: names a v2 kernel but not its KernelFactoryV2`);
   return out;
 }
+
+/** The parts of signing session 3 (kernel v2) the file does not record (empty when it is complete). */
+export function missingPartsV2(d: Deployment): (typeof SESSION_THREE)[number][] {
+  return SESSION_THREE.filter((s) => s.keys.some((k) => d[k] === null));
+}
+
+/** True when the file names a complete kernel v2 deployment (KernelFactoryV2, LensV2, the v2 kernel and its chip). */
+export const hasKernelV2 = (d: Deployment | null): boolean => d !== null && missingPartsV2(d).length === 0;
 
 /** The parts of signing session 2 the file does not record (empty when it is complete). */
 export function missingParts(d: Deployment): (typeof SESSION_TWO)[number][] {

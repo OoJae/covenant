@@ -9,6 +9,9 @@ A small worker that keeps every Covenant kernel settled. For each kernel in `KER
    EIP-1559 fee capped by `MAX_FEE_GWEI`;
 4. log one JSON line with the kernel, epoch, transaction hash, gas used and the tank's refund.
 
+Kernel v1 and kernel v2 (USD₮0 quote, `contracts/core-v2`) have the same settle surface, so `KERNELS` may list
+both; `TANK` refunds each from its own chip's allowance (NOTES.md, "Kernel v2").
+
 It is **liveness only**. `settle()` is permissionless: anyone can call it, and a kernel does the same thing whoever
 calls. If this process stops, nothing is lost; the next caller settles with a larger "epochs elapsed" input.
 
@@ -23,7 +26,7 @@ anything else stops the process.
 | `src/chain.ts`, `src/pool.ts` | JSON-RPC client; RPC switching and backoff |
 | `src/config.ts`, `src/signer.ts` | Environment parsing; the only use of the private key |
 | `src/state.ts` | The small file that remembers, across restarts, which epoch was already sent |
-| `test/` | 105 tests: scheduling against a scripted chain, plus end-to-end runs against a local JSON-RPC server |
+| `test/` | 109 tests: scheduling against a scripted chain, end-to-end runs against a local JSON-RPC server, the ABI against kernel v1's and kernel v2's sources |
 | `Dockerfile`, `railway.json` | Worker image and Railway settings |
 | `keeper-backup.yml.example` | GitHub Actions cron template for a backup keeper |
 

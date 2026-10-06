@@ -17,9 +17,10 @@ test('addresses.json names the fixed contracts and the deployer, and leaves the 
   assert.equal(k.tapeoutFactory, '0x1f09daefa827f02cbb40967cc91b259763760761');
   assert.equal(k.router, '0x182a927119d56008d921126764bf884221b10f59');
   assert.equal(k.wokb, '0xe538905cf8410324e03a5a23c1c177a474d59b2b');
+  assert.equal(k.usdt0, '0x779ded0c9e1022225f8e0630b35a9b54be713736', 'USD₮0 on X Layer, the quote of kernel v2');
   assert.equal(k.deployer, '0x84ce7bae1b788c7ad985d57721ca428b401ae34d');
   for (const c of COVENANT_CONTRACTS) assert.equal(k[c], null, `covenant.${c} is filled in after deployment`);
-  assert.deepEqual([...COVENANT_CONTRACTS], ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits', 'sealedVM', 'fab', 'kernelFactory', 'lens']);
+  assert.deepEqual([...COVENANT_CONTRACTS], ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits', 'sealedVM', 'fab', 'kernelFactory', 'lens', 'kernelFactoryV2', 'lensV2']);
   assert.deepEqual(k.kernels, []);
   assert.deepEqual(Object.values(k.other), ['0x8004a169fb4a3325136eb29fa0ceb6d2e539a432']);
   // ERC-4337 EntryPoints and the known smart-wallet implementation (OKX Agentic Wallet)

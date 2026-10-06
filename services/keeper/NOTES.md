@@ -7,7 +7,7 @@ Decisions, what was checked against the live chain, and what is still assumed. W
 ```sh
 pnpm install                 # repository root
 cd services/keeper
-pnpm test                    # 105 tests, about 4 s
+pnpm test                    # 109 tests, about 4 s
 pnpm typecheck
 KERNELS=0x... TANK=0x... KEEPER_ADDRESS=0x... node src/index.ts --once --dry-run
 docker build -f services/keeper/Dockerfile -t covenant-keeper .   # from the repository root
@@ -70,7 +70,7 @@ docker build -f services/keeper/Dockerfile -t covenant-keeper .   # from the rep
 
 ## Verified locally
 
-- 105 tests pass (`pnpm test`), `tsc --noEmit` is clean.
+- 109 tests pass (`pnpm test`; 105 before kernel v2), `tsc --noEmit` is clean.
 - The Docker image builds from the repository root (Docker 29, linux/arm64; context under 1 kB thanks to
   `Dockerfile.dockerignore`; 503 MB). The container runs as the unprivileged `node` user, exits 2 without
   `KERNELS`, and in dry-run mode reaches the live RPC from inside the container.
@@ -97,6 +97,39 @@ docker build -f services/keeper/Dockerfile -t covenant-keeper .   # from the rep
 - `minSettleGas()` already includes the 63/64 margins for the clone and for a calling contract and the transaction
   base cost; `* 1.1` on top is plain headroom.
 - The first `settleAndRefund` for a chip also scans its netlist in the tank (more gas, once). The estimate covers it.
+
+## Kernel v2 (USD₮0 quote, contracts/core-v2), checked 2026-10-06
+
+The keeper settles v2 kernels with no change to its logic: put their addresses in `KERNELS` next to v1 kernels.
+
+- **ABI.** `IKernelV2` inherits `chipId()` and `settle()` from kernel v1's `IKernelMin` (the two selectors the tank is
+  frozen to) and declares `epochNow()`, `lastEpoch()`, `minSettleGas()` and the `Settled` event exactly as kernel v1
+  does. `KernelV2.sol` declares the same errors as `Kernel.sol`; `LockHeld()` (a settle inside a lock the kernel
+  refuses to buy through) was missing from the names the keeper logs and is added. Pinned against both sources by
+  `test/kernel-v2.test.ts`.
+- **Gas.** A v2 settle needs more than v1's for the same chip (the ERC-20 approvals and the larger per-call gas):
+  `minSettleGas()` is 11,814,581 for the Flow Governor; for the largest chip `KernelFactoryV2` accepts (3,400 gates,
+  256 latches) it is 16,266,418 (17.9M with the 1.1 margin). The keeper's limit `max(estimate * 1.25, minSettleGas * 1.1)` stays under the
+  default `MAX_GAS_LIMIT` of 30M in both cases (the test recomputes `minSettleGas` from the constants in KernelV2.sol).
+  The first `settleAndRefund` of a chip also scans its netlist in the tank (once); the estimate covers it.
+- **KeeperTank.** `settleAndRefund(kernel)` reads `kernel.chipId()`, requires `Circuits.ownerOf(chipId) == kernel`,
+  and refunds from that chip's own allowance: (NAND + LATCH records of the chip's netlist) x `mintPrice` x 85% +
+  top-ups, in OKB from the tank's balance. Nothing in it depends on the kernel's quote asset, so a v2 kernel's chip
+  (taped out through the Fab on the same processor) is treated like any other: the Flow Governor taped out again for
+  kernel v2 burns 1,952 transistors, an allowance of 1,952 x 0.00002 OKB x 85% = 0.033184 OKB, its own and never
+  shared with chip 2 of kernel v1. A v2 kernel never sends OKB to the tank (it has no OKB path), so `receive()`'s
+  attribution never runs for it; top-ups go through `topUp(chipId)`.
+- **Refunds need OKB in the tank (kernel v1 and v2 alike).** The tank pays `min(gas x price, the chip's remaining
+  allowance, the tank's balance)`. Mint proceeds reach it only when someone calls `Splitter.pull()` (anyone may;
+  85% to the tank): read-only at block 72,547,001, the KeeperTank held 0 OKB and the Transistors contract 0.05124 OKB of
+  unpulled proceeds, so every settle through the tank would succeed and refund 0. The first fork run of the
+  rehearsal showed exactly that (refund 0 wei, the settle done); the test now pulls first, on the fork, and requires a
+  refund. Calling `pull()` on mainnet is a transaction for the user to decide on.
+- **Verified on a fork** (`REHEARSE=1 node --test tools/launch-check/test/rehearsal-v2.test.ts`): against the real
+  v2 kernel deployed by `deploy/rehearse-v2.sh`, launched, bound, traded by an unrelated buyer and paid by an
+  unrelated payer, `node src/index.ts --once --dry-run` plans the settle through the live KeeperTank
+  (`tankFailure: null`), and `settleAndRefund` then settles it: one record whose inflow is the claimed tax plus the
+  payment, and a `Refunded` event for the v2 chip charged to that chip's allowance.
 
 ## Open assumptions
 
