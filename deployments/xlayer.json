@@ -78,7 +78,7 @@
     "listing": "submitted for OKX.AI review 2026-10-06"
   },
   "site": {
-    "commit": "a97b90a02dd063762593bdde37e340d024f12c0e",
+    "commit": "c6da510eee0dfb038481a7d2f826c5b2b6090d1a",
     "processor": "0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b",
     "processorNumber": 283,
     "circuitId": 1,
@@ -88,42 +88,42 @@
     "status": "https://1-2-283.tapekit.org/.tape/status",
     "paidUntil": 1793903418,
     "build": "web/package.json build script at the commit, deployments/xlayer.json minus .site",
-    "buildDigest": "7649b9670eb64b8addeab9c39dacc55c25cfb0c603e36d1d7f1f15b7717d2c71",
+    "buildDigest": "96bce59decc93ebeb929515fc471369a1d7e69c5a5c6723a545ccd064c587ccb",
     "files": [
       {
-        "path": "assets/Circuit-BKZqZWLt.js",
-        "bytes": 14776,
-        "sha256": "0xc256a9d839af602bbabac4ab5bc54a502de26a02cae566910a633db13cf9d0bb",
+        "path": "assets/Circuit-C5u-ZYMd.js",
+        "bytes": 14777,
+        "sha256": "0x9f025ab7e2d249af3b2a08446a5f62cdba136821b1e3f716eb3d4d2745dcab7c",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/Die-DyMoofhs.js",
-        "bytes": 13568,
-        "sha256": "0x99b28cfb8000ef431c0a4d03e77b2492f024789fa353b3cd9d8b4408939bd000",
+        "path": "assets/Die-BbWCsQtF.js",
+        "bytes": 13569,
+        "sha256": "0x752f4e58940141e59f1ca2ca72d00900b46ca48ffc2da6fad29db049a62d9589",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/guidePages-CK9CiSSS.js",
-        "bytes": 19798,
-        "sha256": "0x130bebdde48a8f269fb3b4d9b1b5ed99e37adec7a8bd1a9da4bd85579c25dea2",
+        "path": "assets/guidePages-CS_ZSzQA.js",
+        "bytes": 26888,
+        "sha256": "0xff76d50a62a68450b71db2b812de08304e79aaf538abc492ab066f866facb98a",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/index-D3RASePi.js",
-        "bytes": 66854,
-        "sha256": "0x975a135fba216828805d9eb689ccc77247813ded3e6c50e1966fd4a89e74d530",
+        "path": "assets/index-CMPcJXnf.js",
+        "bytes": 70377,
+        "sha256": "0xca02c8fd670b009eedc8eb23ac9112281e647017748129caee347982ecf0edb3",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/kernel-SoqfKK0t.js",
-        "bytes": 6957,
-        "sha256": "0x2a1562d1fcd75ad51a1df4e7764bf5ba2838ccf4c5a2439f699a7ac50910f80b",
+        "path": "assets/kernel-BmIAzVgc.js",
+        "bytes": 9108,
+        "sha256": "0x5bf7afa9523dddb4ea8e6356d54b81082c12424c37bfe7fe54decc287b666263",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/kernelPages-C1QvNpE0.js",
-        "bytes": 36883,
-        "sha256": "0xd5046af2708438ab248c7f4a604aca12080eab0784ecce6a21dfb2327713ec97",
+        "path": "assets/kernelPages-cSh_OtsD.js",
+        "bytes": 49845,
+        "sha256": "0xb11a4af9df0c4ba594b8fd9a3cef3b4bd9d5762223716f43d385db6d9856a0bc",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
@@ -139,21 +139,21 @@
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/sim-CvyqDsA8.js",
-        "bytes": 31567,
-        "sha256": "0xb4a9676bd5056374d91b2d2ead311ee5962c8cd68a56b96ff3ae3406a97b3778",
+        "path": "assets/sim-MeFOM-kQ.js",
+        "bytes": 31583,
+        "sha256": "0x56ecccc14343c5e1cbe0ef94bee3f1f0252c7bbc523a7661776266502c408212",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/style-C9KWL3wo.css",
-        "bytes": 14027,
-        "sha256": "0x8bd43dba8b5c9e511962c381b4a1ebcb50c7c570a9cdf9d46f04695c75fa08d9",
+        "path": "assets/style-CxUChFQT.css",
+        "bytes": 14230,
+        "sha256": "0x938625ffef9035f24767641fcf0922ac63b87210811a549a8461d2581fb3c00e",
         "contentType": "text/css; charset=utf-8"
       },
       {
         "path": "index.html",
         "bytes": 1039,
-        "sha256": "0x7171abfddf70cbf5011793461809900094fb5acab4ccc8ac7dca93ed19c5d85b",
+        "sha256": "0x66b15d28e4338d28cfe2ceeded553d5872d602b64d6ecf1c1c8d4eef00ad397d",
         "contentType": "text/html; charset=utf-8"
       }
     ],
@@ -174,7 +174,30 @@
       "0x9f866b91ccb99c5eec3c627eca506e41d3edeeac856f75167460b857564e4c6a",
       "0xb63f25e6fb13c94f97258e175a1f451be2f4bfd5ab58fde54bad08c06dd5956e",
       "0x01f48853db11914ff2f2db4d0a5ab341d0790e82d4391e7aff0dbdcb77fd4c70",
-      "0xff250483cfb3cee5a073828dd6ef7ddbe42ec05e65ee186217384d13d306c478"
+      "0xff250483cfb3cee5a073828dd6ef7ddbe42ec05e65ee186217384d13d306c478",
+      "0x2c8ee73163f9ce6dc0c223a62b3cc867460db16382ce645daeae5c0719ee69de",
+      "0xe4df953cb1566a9f65dcf2fc9f47b7203c3f4d8fabcddedd63260d02cc0c5e0b",
+      "0x514e6bd93ffdf2bc4441fbd69570ed457a07bf3304d10821256992a2b40fa81c",
+      "0x26396600c413f485c5201a97c0396b4be58b86c15069fefc90454283d12eef6d",
+      "0x844fe1971eae21b913ca02cd9152dca9e386372eea92ee97ebebecfc88b2128c",
+      "0x60c25ef6adc314191efad94534e55a6bda4f7b833c6b772a8ec52fee56321d13",
+      "0x5e34c3c2f6e7bae0bacf4c5e315f0502c506ebe02af01508a46c947f7a67686d",
+      "0xe85df8170ca95ff246581b79b02cc103f39079a3b1290133a5eadb90b7b43588",
+      "0x6714038590cf65fecd7749bf08aad0f60201fafa6b0a262c5adab27e0d3a997b",
+      "0xaae8f5001c16d82a83da60e5a68c4324f8c4a69cdea33b8d2dca79493d53cbe5",
+      "0xa80095251d1384443209e263172288432386c4151a71bd705e2de50f32374981",
+      "0xd0de31d5fb9b99a5ed15a040e1f02be35a16901fc59265e92dd5bbf101c0028b",
+      "0x86892f2ade891cf3ddde496ccf4717d01b12102241001d5f111784ae14c5239e",
+      "0x762f7df804c88e02b0e13e35b6c0742ffd21d22747d4a1e2aea98613f8c8d09b",
+      "0x458fb2bcbf6593b0b9f355fb8c290307e1e33d94b2364c326df5a6dbd0ac0935",
+      "0x29b7c499a436cf001edb60a86b4fdb0e479ad40f3949d94ceeb4037927165fa2",
+      "0x1d1ae26bcd31e15980534b7b6bc21acb11ac519a40f82069bcb1572a65bef990",
+      "0x2168f18a8be5ce75c9b55e7c07ab41210ea1052ada3322682c9c6106704e6b94",
+      "0xa9dce095cf389895af80f351b976f3e95a2b50047f5b6b5108c407879b9ae7eb",
+      "0x95159d23094483e113b723008ae9e98942b02bff3806eed7b687b718fdf1cb7c",
+      "0x0e7e1da4fbf6111c06c6a818dc220f1ea84086f2f7c98541241eb7a90aa1cb96",
+      "0x4713499bad61a724d3555174db4e594d304838188e173544ccbb1ee91d35e498",
+      "0xf3f461c18238bac5320aa487e5abaa868c9a7424377ab62f2186fafa3903d539"
     ]
   },
   "coreV2": {
