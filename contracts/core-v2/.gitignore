@@ -1,0 +1,4 @@
+out/
+cache/
+# broadcast/ is not ignored: the records of the real mainnet signing session (deploy/launch-kernel-v2.sh) are
+# committed, as kernel v1's are. Rehearsals run in scratch copies; the root .gitignore drops dry-run and 31337 records.

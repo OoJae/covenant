@@ -1,0 +1,23 @@
+# The throwaway x402 payee for the contract-payTo live check (docs/design/kernel-v2-live-checks.md, check 1).
+# Fork tests only here: no scripts, no broadcast, no keys. The user deploys it by hand (see the doc).
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+cache_path = "cache"
+libs = []
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+auto_detect_remappings = false
+# forge-std is shared with the launch-check simulation (installed there once, see tools/README.md)
+remappings = ["forge-std/=../launch-check/sim/lib/forge-std/src/"]
+allow_paths = ["../launch-check/sim/lib"]
+
+[fmt]
+line_length = 120
+
+[lint]
+lint_on_build = false

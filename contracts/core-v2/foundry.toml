@@ -1,0 +1,64 @@
+# Covenant kernel v2: a kernel for IGNIX Directed tokens quoted in USD₮0 (chips/INTERFACE-V2.md).
+# Kernel v1 (contracts/core) is deployed and is not edited: its libraries, interfaces and test doubles that
+# apply unchanged are compiled from there through the remappings below.
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+cache_path = "cache"
+libs = ["../core/lib"]
+solc = "0.8.28"
+evm_version = "cancun"          # X Layer has no Osaka opcodes (no CLZ)
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+bytecode_hash = "none"
+gas_limit = "18446744073709551615"
+memory_limit = 1073741824
+# Forge 1.8 links tests dynamically by default, turning a `new` in a test into vm.deployCode; a reverting
+# `vm.expectRevert(); new X(...)` then ends the test function, so the lines after it never run (review B-F1).
+# Off here; test_canary_an_expected_revert_of_new_does_not_end_the_test fails if it is ever switched back on.
+dynamic_test_linking = false
+fs_permissions = [
+  { access = "read", path = "../../chips/golden" },
+  { access = "read", path = "../../chips/out" },
+]
+auto_detect_remappings = false
+remappings = [
+  "forge-std/=../core/lib/forge-std/src/",
+  "@openzeppelin/contracts/=../core/lib/openzeppelin-contracts/contracts/",
+  # kernel v1 sources, read only: KernelMath, TradeMath, SafeCall and the v1 interfaces apply unchanged
+  "core/=../core/src/",
+  # test tree only: v1's test doubles that do not depend on the quote asset (TapeOut, Fab, sealed evaluator,
+  # the project token and the V2 pair), the real SealedVM and Fab (contracts/evaluator)
+  "core-test/=../core/test/",
+  "evaluator/=../evaluator/src/",
+]
+allow_paths = ["../core", "../evaluator", "../vendor"]
+
+[fuzz]
+runs = 1000
+
+[invariant]
+runs = 64
+depth = 100
+fail_on_revert = false
+
+[profile.deep.fuzz]
+runs = 20000
+
+[profile.deep.invariant]
+runs = 256
+depth = 300
+fail_on_revert = false
+
+[lint]
+lint_on_build = false
+
+[rpc_endpoints]
+xlayer = "https://rpc.xlayer.tech" # fork tests read XLAYER_RPC_URL themselves
+xlayer_fallback = "https://xlayerrpc.okx.com"
+
+[fmt]
+line_length = 120
