@@ -100,7 +100,14 @@ export function createRpc(urls: readonly string[], opts: RpcOptions = {}): Rpc {
           res = await ask();
         }
         if (!res.ok) throw new Error(`HTTP ${res.status} from ${urls[i]}`);
-        const json: unknown = await res.json();
+        let json: unknown = await res.json();
+        // Some nodes (anvil, for one) answer the text/plain form with HTTP 200 and a request-level error
+        // ("invalid request" or "parse error", no id) instead of a non-2xx status: ask once more as JSON.
+        const e = (json as Reply | null)?.error;
+        if (simple[i] && e && (e.code === -32600 || e.code === -32700) && (json as Reply).id == null) {
+          simple[i] = false;
+          json = await (await ask()).json();
+        }
         if (Array.isArray(body) && !Array.isArray(json)) throw new RpcError((json as Reply | null)?.error);
         cur = i;
         return json;

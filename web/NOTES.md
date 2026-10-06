@@ -1,6 +1,6 @@
 # Web and packages: notes
 
-Scope: `packages/tap20`, `packages/chain`, `packages/dieshot`, `web`. Written 2026-10-04.
+Scope: `packages/tap20`, `packages/chain`, `packages/dieshot`, `web`. Written 2026-10-04; kernel pages, judge guide, trust model and design pass added 2026-10-06.
 Everything here reads X Layer mainnet (chain 196) with `eth_call` only. Nothing sends a transaction, holds a key or loads a wallet library.
 
 ## 1. What exists
@@ -8,21 +8,27 @@ Everything here reads X Layer mainnet (chain 196) with `eth_call` only. Nothing 
 | Path | What it is |
 |---|---|
 | `packages/tap20` | TAP-20 parser, well-formedness check (section 3), one-beat simulator, LSB-first bit packing, REF support (sync resolver, plus `load()` that fetches a REF closure asynchronously). No runtime dependencies. |
-| `packages/chain` | JSON-RPC client over `fetch` (failover, batches of at most 10), hand-written ABI codec for the TapeOut read calls and Multicall3 `aggregate3`, typed call descriptors, `readAll` (many calls in one request). keccak256 and EIP-55 in a separate entry, `@covenant/chain/keccak`. No runtime dependencies. |
+| `packages/chain` | JSON-RPC client over `fetch` (failover, batches of at most 10), hand-written ABI codec for the TapeOut read calls and Multicall3 `aggregate3`, typed call descriptors, `readAll` (many calls in one request). keccak256 and EIP-55 in a separate entry, `@covenant/chain/keccak`. Covenant's own read surface (Kernel, KernelFactory, Lens, Fab, IGNIX Manager/vault/token, TeamRegistry, Safe owners, Multicall3 timestamp and balance) in a third entry, `@covenant/chain/kernel`. No runtime dependencies. |
 | `packages/dieshot` | Deterministic floorplan (`layout`, `layoutHash`), optional block map packed by a squarified treemap (`decodeBlockMap`), Canvas 2D renderer with `animate(previousSignals, signals, stateBefore, stateAfter)`. No runtime dependencies. |
-| `web` | Vite + Preact + TypeScript site, hash routes: `#/`, `#/p/:processor`, `#/c/:processor/:id`, `#/judge`, `#/trust`. Only runtime dependency: `preact`. |
+| `web` | Vite + Preact + TypeScript site, hash routes: `#/`, `#/p/:processor`, `#/c/:processor/:id`, `#/k/:kernel` (vault), `#/k/:kernel/:n` (audit one settle), `#/hostile`, `#/judge`, `#/trust`. Only runtime dependency: `preact`. |
 
 The three packages are consumed as TypeScript source (`exports` point at `src/index.ts`; relative imports carry the `.ts` extension). Vite, vitest and plain `node file.ts` (Node 26 strips types) all run them without a build step. The code uses erasable syntax only (no enums, no parameter properties), which `tsc` enforces.
 
 Files worth knowing in `web/`:
 
-- `src/addresses.json`: `{factory, processor, probeCircuitId, rpc}`. Exactly these four keys (a test checks it). Set `processor` and `probeCircuitId` when Covenant's processor exists: the landing page then shows it instead of the public examples, and the judge page uses the probe circuit as its sample.
-- `src/config.ts`: reads that file; holds the example circuits and the explorer URL.
-- `src/data/processor.ts`, `src/data/circuit.ts`: the data path, with no DOM. The pages, `scripts/verify-live.ts` and `test/live.test.ts` all call the same functions.
-- `src/routes/Circuit.tsx`: the circuit bench. Loaded on demand (see 3.4).
-- `src/routes/Judge.tsx`, `src/routes/Trust.tsx`: placeholders. The text lives in arrays at the top of each file.
-- `scripts/check-budget.mjs`: fails the build if the output breaks the size budget or is not self-contained.
-- `scripts/verify-live.ts`: the page's RPC calls and simulator from a terminal; prints MATCH or MISMATCH.
+- `src/config.ts`: every Covenant address comes from `../deployments/xlayer.json` (written by the deploy scripts after reading each contract back from the chain), so a contract appears on the site the moment that file names it. `COVENANT` holds them (null until deployed); `ADDR` keeps the old shape for the circuit reader. With `COVENANT_FORK` set at build or dev time, the fork fixture's file replaces it, the fork's RPC replaces the public endpoints, and `SIMULATION` is non-null (every page then shows a SIMULATION banner).
+- `src/addresses.json`: only what is not a deployment: `{factory, rpc, gluttonChipId}` (a test checks the keys). `gluttonChipId` stays null unless a Glutton is taped out on mainnet next to the flagship chip; it switches the hostile page's on-chain shadow run on.
+- `src/kernel/model.ts`: the kernel's arithmetic in TypeScript (lg8/exp8, word layouts, the routing with clamps K1T..K5, the fallback word). A port of `chips/golden/kernel_model.py`; passes every vector of `chips/golden/vectors.json`.
+- `src/kernel/chip.ts`: what an output word means in human terms; the Flow Governor's state fields, modes and flags (copied from `chips/out/fg.fields.json`, a test checks the copy); `chips/out/fg.witness.json` (imported).
+- `src/kernel/sim.ts` (on demand): `chips/out/fg.hex` and the two Glutton netlists bundled and stepped by `@covenant/tap20`; `shadowRun` ports `Lens._shadowOne`.
+- `src/kernel/code.ts`: what a browser can prove from `eth_getCode`: the kernel is an ERC-1167 clone with immutable arguments; a scan of the implementation for DELEGATECALL/CALLCODE/SELFDESTRUCT and owner/upgrade/pause/approve/transfer selectors.
+- `src/data/kernel.ts`: the kernel pages' data path, with no DOM (`loadVault`, `loadRecords`, `loadCounterfactual`, `loadNetlist`, `loadAudit`, `loadShadowChip`). Pages, `scripts/verify-kernel.ts`, `test/fork.test.ts` call the same functions.
+- `src/components/TwoStates.tsx`: the landing page's demonstration (same inputs, two reachable states, two routes).
+- `src/routes/Vault.tsx`, `Audit.tsx`, `Hostile.tsx` (on demand, one chunk); `Judge.tsx`, `Trust.tsx` (on demand, another chunk).
+- `src/data/processor.ts`, `src/data/circuit.ts`, `src/routes/Circuit.tsx`: the circuit reader, unchanged in substance.
+- `scripts/check-budget.mjs`: fails the build if the output breaks the size budget or is not self-contained. Now also counts every script the entry imports statically (see 3.5).
+- `scripts/verify-live.ts`: the circuit reader from a terminal. `scripts/verify-kernel.ts`: the landing demonstration and every record of a kernel, four ways, from a terminal.
+- `scripts/fork-fixture.sh`: the local fork with a kernel that has records (section 2).
 
 ## 2. How to run
 
@@ -31,13 +37,13 @@ From the repository root, after `pnpm install` has been run once:
 ```
 pnpm --filter web dev                  # http://localhost:5173
 pnpm --filter web build                # typecheck, vite build, budget check; output in web/dist
-pnpm --filter web test                 # 25 tests, 9 of them live against X Layer
+pnpm --filter web test                 # 56 tests: 42 offline, 10 live against X Layer, 4 against the fork fixture (skipped unless COVENANT_FORK is set)
 pnpm --filter web test:offline         # SKIP_LIVE=1
 pnpm --filter web verify:live          # node scripts/verify-live.ts; prints MATCH per beat
 pnpm --filter web verify:live -- 0xProcessor 3     # one circuit of your choice
 
 pnpm --filter @covenant/tap20 test     # 67 tests, 11 live
-pnpm --filter @covenant/chain test     # 90 tests, 11 live
+pnpm --filter @covenant/chain test     # 97 tests, 11 live
 pnpm --filter @covenant/chain size     # minified sizes, fails above the ceiling
 pnpm --filter @covenant/dieshot test   # 42 tests, none need the network
 # all four at once, no network
@@ -47,11 +53,19 @@ pnpm --filter @covenant/tap20 --filter @covenant/chain --filter @covenant/diesho
 
 (`--filter "@covenant/*"` also matches the services, which share the scope.)
 
-To look at the production build: `python3 -m http.server 4173 --directory web/dist` (any static server works; all URLs are relative).
+Kernel pages:
 
-`SKIP_LIVE=1` skips every test that talks to the chain. Without it the live tests run and fail loudly if both RPC endpoints are unreachable.
+```
+pnpm --filter web verify:kernel                   # node scripts/verify-kernel.ts: two-state demo on chip #2 + every record, MATCH or MISMATCH
+pnpm --filter web verify:kernel -- 0xKernel        # another kernel of the same factory
 
-Note on pnpm 11: `pnpm run` and `pnpm exec` first check that `node_modules` matches the manifests and run an install if it does not. To run a script without that, add `--config.verify-deps-before-run=false`, or call the binaries directly (`web/node_modules/.bin/vite`, `.../vitest`, `.../tsc`).
+web/scripts/fork-fixture.sh                        # build the fork fixture (about 3 minutes); anvil keeps running
+pnpm --filter web dev:fork                         # the site against it (COVENANT_FORK=web/.fork/deployment.json), SIMULATION banner on
+pnpm --filter web test:fork                        # the data path against it: every record four ways, shadow run vs Lens, counterfactual
+web/scripts/fork-fixture.sh stop                   # stop its anvil
+```
+
+The fork fixture: anvil forks X Layer at the latest block on a free port (refuses a port that already answers, and checks its own anvil process is alive); runs the signing steps that `deployments/xlayer.json` does not record yet (`forge script ... --unlocked` from the deployer, impersonated, in a scratch copy of `contracts/`; nothing under `contracts/` or `deploy/` is written); tapes out the Glutton through the Fab from an unrelated address; replaces IgnixManager's platform signer (storage slot 5) with anvil's public test key 0 and signs a Directed launch whose recipient is the kernel, sent from the deployer (the envelope's launcher), first buy 0, tax 3% / 3%; binds from an unrelated address; then 12 epochs of buys (and some sells) by anvil test accounts with a two-epoch surge, a quiet spell and one skipped epoch, each closed by `settle()` from an unrelated address. It writes `web/.fork/deployment.json` (git-ignored): the deployment file's shape plus `fork: {rpc, block, token, records}` and `glutton: {chipId}`. A fork build cannot be published by accident: `check-budget.mjs` rejects its RPC host.
 
 ## 3. Decisions
 
@@ -88,14 +102,28 @@ Note on pnpm 11: `pnpm run` and `pnpm exec` first check that `node_modules` matc
 ### 3.4 web
 
 - No router library: `parseRoute` plus a `hashchange` listener.
-- The circuit bench (tap20 + dieshot + its page) is a second script fetched on demand, and prefetched 1.2 s after first paint. Without the split the entry was 78 KB of the 96 KB allowed, with the kernel pages still to come. `data/processor.ts` and `data/circuit.ts` are separate modules for the same reason.
+- Only the landing page is in the entry. The circuit bench, the kernel pages (with the Flow Governor's netlist) and the two guides are scripts fetched on demand and prefetched 1.2 s after first paint (see 3.5 for the chunk accounting).
 - The die shows the last beat that was run. Toggling an input or a state bit updates its pad or strip cell at once; the logic is recomputed when Clock is pressed. That keeps the picture equal to the plate.
 - After a beat the new state becomes the state for the next beat. Pressing Clock twice with the same inputs is the "same inputs, two states" demonstration. A row of the beats table can be loaded back into the editors.
 - The plate shows MATCH only when both the outputs and the new state returned by the chain equal the local ones. If the chain cannot be asked the plate says NOT CHECKED, never MATCH.
 - "Not found" (the chain answered that the circuit or processor does not exist) is shown differently from "could not read the chain".
-- Colours: page follows `prefers-color-scheme`; the die has a dark and a light palette and switches live. `prefers-reduced-motion` skips the animation.
+- Colours: page follows `prefers-color-scheme` unless the header toggle chose light or dark (a `data-theme` attribute, remembered in localStorage when allowed); the die has a dark and a light palette and switches live with either. `prefers-reduced-motion` skips the animation.
 - All strings read from the chain (names, story) are rendered as text. Links are built only from addresses that passed a hex check.
 - The icon is an inline `data:` SVG so no `/favicon.ico` request is made.
+
+### 3.5 kernel pages
+
+- **One source of truth for addresses**: `deployments/xlayer.json`. The site never names a Covenant address of its own; `addresses.json` lost `processor` and `probeCircuitId` (they are derived) and gained `gluttonChipId`. The Pages workflow now also runs when that file or a bundled chip file changes.
+- **History** is `records(n)` and `cums(n)` through Multicall3, newest first, 20 per page; never `eth_getLogs`.
+- **The three-way MATCH** of an audit page: the kernel's record, `Lens.replayOn(kernel, n, false)` (TapeOut's `Circuits.step`), `Lens.replayOn(kernel, n, true)` (SealedVM), and this browser's TAP-20 step of the netlist read from the chain (TapeOut's copy, the Fab's snapshot if that fails) from the previous record's state. The routed amounts are recomputed with `kernel/model.ts` from the stored outputs, inflow, reserve and totals (allowance room = `cums(n).allowPaidCum - allow`, as the Lens does). The replays are direct `eth_call`s, exactly what the printed `cast` lines ask.
+- **The landing demonstration** is `chips/out/fg.witness.json`: input word `x`, states A (after 4 epochs) and B (after 6), both reached from zero by real kernel input words. The browser steps both and replays both histories; when the deployment file names the chip it also asks `Circuits.step` twice and shows MATCH only if outputs and new states equal the local ones. Before that it says the on-chain check runs once the chip is taped out.
+- **"Nobody can change this" is stated only where code proves it**: the kernel's runtime code is checked to be the ERC-1167 proxy to the factory's `kernelImpl` followed by exactly `abi.encode(globals(), envelope())`; the implementation's code is walked opcode by opcode (push data and the CBOR metadata skipped) for DELEGATECALL, CALLCODE and SELFDESTRUCT, and searched (byte-aligned) for the selectors of owner(), transferOwnership, renounceOwnership, upgradeTo, upgradeToAndCall, pause(), unpause(), approve, transferFrom, both safeTransferFrom and setApprovalForAll. Live implementation 0x72e6…EDF1: 20,413 bytes, none found.
+- **Trust page** reads the owners live: TapeOut's factory owner (a Safe, threshold and owner count read with `getThreshold()`/`getOwners()`), the beacon's owner, IgnixManager's owner, `KernelFactory.pinsLive()`. Every other statement is from `chips/INTERFACE.md` sections 7, 8, 12, 13 and `contracts/core/NOTES.md`.
+- **Hostile page**: the Glutton's raw demand (its bytes stepped here), what the envelope lets through (shares after K2/K3, the per-settle and lifetime caps), a one-settle table with selectable tax and reserve for Glutton, Glutton512 and the Flow Governor, and a shadow run over every record of the flagship kernel. The shadow run is local (`shadowRun`, labelled "local simulation of the kernel's clip, tested against the golden vectors") and, when `COVENANT.gluttonChipId` is set, also `Lens.shadowChip`, compared step by step (MATCH plate).
+- **Counterfactual** is `Lens.counterfactual` over records 1..count, paged with `counterfactualFrom` in pages of 400 so no `eth_call` grows too large.
+- **Chunk accounting**: Vite 8 (rolldown) splits a module that the entry imports statically into its own chunk when a lazy chunk also imports it, so the entry is index.js plus the scripts it imports. `check-budget.mjs` used to count only the files index.html names; it now follows `import … from "./x.js"` through every script reached. That raised the measured entry (honestly) and is why the judge and trust pages moved behind `import()`.
+- **RPC**: `createRpc` now also falls back to `application/json` when an endpoint answers the `text/plain` form with HTTP 200 and a request-level error (`-32600` / `-32700`, no id). Anvil does that; it closes the open item of 5 below for such endpoints.
+- **Design**: a die-shot palette (logic gold = buy and lock, wire blue = allowance, latch teal = reserve) on a faint routing grid; chip-package cards; numbered section pins; one-sentence lede on every page; light and dark; every page checked at 360 px.
 
 ## 4. Verified
 
@@ -148,27 +176,46 @@ Chromium driven through Playwright, production build served as static files by `
 
 ### 4.5 Sizes
 
-`web/dist` (bytes on disk):
+`web/dist` on 2026-10-06 (bytes on disk):
 
 | File | Bytes | gzip |
 |---|---|---|
-| `assets/index-*.js` (entry) | 41,306 | 16,114 |
-| `assets/Circuit-*.js` (on demand) | 33,314 | 13,311 |
-| `assets/style-*.css` (entry) | 5,969 | 2,126 |
+| `assets/index-*.js` (entry) | 66,322 | 26,219 |
+| `assets/style-*.css` (entry) | 14,027 | 4,005 |
 | `index.html` (entry) | 1,039 | 590 |
-| **Total** | **81,628** of 240,000 (34.0%) | |
-| **Entry** (html + script + stylesheet) | **48,314** of 96,000 (50.3%) | |
+| `assets/kernelPages-*.js` (vault, audit, hostile) | 36,883 | 11,879 |
+| `assets/sim-*.js` (tap20 step + fg.hex + Gluttons) | 31,567 | 8,770 |
+| `assets/guidePages-*.js` (judge, trust) | 19,798 | 7,608 |
+| `assets/Circuit-*.js` | 14,776 | 5,543 |
+| `assets/Die-*.js` (dieshot) | 13,568 | 6,213 |
+| `assets/kernel-*.js` (data/kernel, code checks) | 6,957 | 3,138 |
+| other two chunks | 5,317 | |
+| **Total** | **210,254** of 240,000 (87.6%) | |
+| **Entry** (html + stylesheet + index.js and every script it imports statically) | **81,388** of 96,000 (84.8%) | |
 
-`packages/chain`, minified: RPC client 1,648 bytes, ABI codec 1,615 bytes (3,263 together), whole main entry with the call table and Multicall3 reader 4,978 bytes (2,555 gzip), keccak module 1,833 bytes.
+`packages/chain`, minified: client + codec 3,367 bytes, whole main entry 5,082 bytes (ceiling 5,120), keccak module 1,833 bytes. The `kernel` entry is separate and is not counted in that ceiling.
 
-`check-budget.mjs` was run against tampered copies of the build and failed each one: an external script, an external font, a total above 240,000, an entry above 96,000, an analytics host in the code, a source map, an absolute path.
+`check-budget.mjs` was run against tampered copies of the build and failed each one: an external script, an external font, a total above 240,000, an entry above 96,000, an analytics host in the code, a source map, an absolute path (2026-10-04). On 2026-10-06 it also rejected a build whose entry was within budget only because a static import had been split out (99,599 bytes once counted).
+
+### 4.6 Kernel pages
+
+- **Golden vectors**: `kernel/model.ts` passes every vector of `chips/golden/vectors.json` (format `covenant-golden/2`): 3,623 + 6 lg8, 1,024 exp8, 64 input and 60 output words, 400 routing, 67 boundary routing, 120 graduated routing, 3 fallback words, the graduated fallback, 6 state encodings (`test/model.test.ts`).
+- **Chip files**: the bundled `fg.hex` has the keccak and size of `chips/out/fg.proofs.json`; this site's simulator reproduces `fg.witness.json` (both routes, both new states, both reach paths, and all 19 steps of the mode tour) and every 7th beat of `fg.vectors.json` (the model's vectors); the Glutton bytes have the keccaks of their README and clamp as it says (K2+K3, K2+K2C+K3 on 3 OKB, Glutton512 K1T+K3) (`test/chip.test.ts`).
+- **Codec**: every new selector equals keccak256 by viem and by our keccak; calldata equals viem's `encodeFunctionData` and decoders equal viem's `encodeFunctionResult` for records, envelope, globals, replay, counterfactual, stateMatters, preflight, shadow pages of 0–6 steps, chipInfo, tokens, team entries, Safe owners (`packages/chain/test/kernel.test.ts`).
+- **On the fork fixture** (fork of block 72,521,930, 12 records whose modes run CRUISE, BANK, DEFEND, REST; one record with DT = 2): every record MATCHes four ways and its amounts equal the TypeScript clip; no clamp fired on any record; the local Glutton shadow run equals `Lens.shadowChip` on every step (allowance 18.74% of the tax vs the real chip's 5.77%); the counterfactual chip column equals the sums of the records and paging does not change it (`test/fork.test.ts`, 4 tests). In Chromium against that fork: landing, vault, audit (#9, a DEFEND settle after a skipped epoch: MATCH, stateMatters yes), hostile (on-chain shadow MATCH), judge (7 of 7 passed), trust.
+- **On X Layer mainnet**, after the flagship chip was taped out (chip #2, kernel 0xB722…d356, not yet bound): the landing page's two `Circuits.step` calls MATCH the browser (`0xa000…060b` and `0x0001…0e11`, routes differ in T_BUY, T_ALLOW, T_RES, REL); `node scripts/verify-kernel.ts` prints the same; the vault page shows the kernel as a clean clone of the factory's implementation, holding chip #2, pins holding (TapeOut evaluator), envelope as in `LaunchChip.referenceEnvelope`, no records; judge checks 1, 2, 3, 5, 7 pass, 4 and 6 say there is nothing to check yet (no settle, no token). `test/live.test.ts` gained a check of the deployment (processor, transistors, Fab, factory, Lens agree with each other).
+- **Phone width**: at 360 px no route scrolls sideways (`scrollWidth == clientWidth`) on landing, vault, audit, hostile, judge, trust and the circuit page; tables scroll inside their own box. Console: no errors or warnings on the production build.
+- Screenshots: `.playwright-mcp/shots/` (git-ignored): `landing-fork.png`, `landing-mainnet.png`, `landing-phone-dark-fork.png`, `vault-fork.png`, `vault-die-anim.png`, `audit-fork.png`, `hostile-fork.png`, `hostile-dark-fork.png`, `trust-dark-fork.png`.
 
 ## 5. Open assumptions and things not verified
 
 - Browsers: only Chromium was driven. Not tried in Safari or Firefox. The code needs `AbortSignal.timeout` (Chrome 103, Firefox 100, Safari 16).
 - Smoothness was measured on one machine. On a slow phone the per-frame work is one image copy plus about 5,000 `rect` calls; not measured there.
 - The TapeKit gateway (`*.tapekit.org`) was not tried. Per the design notes its CSP allows same-origin scripts and `connect-src https:`. The site uses a module script, one dynamically imported same-origin chunk and an inline `data:` icon; none was tested under that CSP.
-- The `text/plain` request form works on both endpoints today. If an endpoint starts answering it with an error inside a 200 response rather than a non-2xx status, the fallback will not trigger for it.
+- The `text/plain` request form works on both endpoints today. An endpoint that answers it with HTTP 200 and a request-level `-32600`/`-32700` is now asked again as JSON (3.5); any other in-band error form would not trigger the fallback.
+- The kernel pages were exercised with real records only on the fork. On mainnet the kernel has no record yet: the history, audit, counterfactual and shadow sections were seen in their empty state only.
+- The code scan proves absence of selectors and opcodes in the implementation's bytes; it does not prove the implementation equals `contracts/core/src/Kernel.sol` (source verification on OKLink was not run by this work).
+- The TeamRegistry on mainnet lists one wallet (the deployer). `docs/WALLETS.md` also names the keeper; the judge check says it is not declared in the registry yet.
 - Both endpoints are OKX's. The page has no second operator to compare against; the trust page says so.
 - The rate limit header says 7 per second; a burst of 14 requests was not throttled. The real limit was not found.
 - The block-map file format (`decodeBlockMap`: 7-byte runs of `firstRecord u24, count u24, blockId u8`) follows our design notes. `chips/INTERFACE.md` does not define it yet. No real block map exists, so the treemap path is covered by tests only and is not wired into a page.
@@ -176,21 +223,23 @@ Chromium driven through Playwright, production build served as static files by `
 - The gas-per-gate figure comes from two circuits.
 - Preact 11.0.0, Vite 8.3.2, vitest 5.0.3 and TypeScript 7.0.2 are the versions pnpm resolved today; nothing older was tried.
 
-## 6. Stubs
+## 6. Stubs and open items
 
-- `#/judge` and `#/trust` are placeholders with the section titles from the design document. The three "fixed statements" on the trust page are copied from `chips/INTERFACE.md` section 13.
-- No kernel pages: no vault page, settle history, audit-this-epoch, hostile chip, builder. They wait for the kernel ABI.
-- Input and output bits are not named. When the pin manifest exists, the bit editor can group bits into the interface's fields.
+- No builder page (compose a chip, tape it out): out of scope here.
+- The die has no block map: `chips/out/fg.map.json` has `blocks: []` (records carry cones, not blocks), so the vault and audit dies are one block. The state is shown field by field next to the die instead.
 - A REF is drawn as plain cells (one per signal it produces) with a link to the referenced circuit; there is no drill-down into the sub-circuit on the die.
+- The landing demonstration uses the witness of `chips/out/fg.witness.json`. If the chip is rebuilt, regenerate the witness with it, or the page will show the local and on-chain answers disagreeing (by design it then says so).
+- Graduated-regime display (token units, burn leg, native pot) is implemented from the interface but was not seen with data: the fixture does not graduate its token.
 
 ## 7. Differences from the brief
 
 1. `packages/chain` is 4,978 bytes minified as a whole, against a target of about 3 KB. The client and codec alone are 3,263; the rest is the typed call table for 20 functions, the Multicall3 reader and revert decoding. `pnpm --filter @covenant/chain size` fails above 5,120.
 2. Two calls beyond the list were added: `factory.isCPU(address)` (the "registered" tag, and required to resolve a REF per TAP-20 section 3.6) and Multicall3 `getBlockNumber()` (the "read at block" line).
-3. The site is two scripts, not one: see 3.4.
+3. The site is several scripts, not one: the entry and four on-demand chunks (see 3.4, 3.5).
 4. RPC requests are sent as `text/plain`: see 3.2.
 5. The sweep is not linear in level number: see 3.3.
-6. `addresses.json` is imported with `with { type: 'json' }` so the same module loads in Node and in Vite.
+6. `addresses.json` and `deployments/xlayer.json` are imported with `with { type: 'json' }` so the same module loads in Node and in Vite.
+8. `addresses.json` no longer has `processor` and `probeCircuitId`: both come from `deployments/xlayer.json` (3.5). `github.com` was added to the hosts the bundle may mention, for plain links to the source files (never fetched).
 7. `nextId()` is treated as the circuit count: see 4.1.
 
 ## 8. Shared-repository incidents
@@ -199,9 +248,8 @@ Chromium driven through Playwright, production build served as static files by `
 - `pnpm exec` triggered a full workspace install once (see the note in section 2). After that I ran binaries directly or with `--config.verify-deps-before-run=false`.
 - The browser tool wrote its page snapshots and console logs into the root `.playwright-mcp/` folder (already present and git-ignored).
 
-## 9. For the next task (kernel pages)
+## 9. Notes for whoever continues
 
-- New read calls: build descriptors with the exported helpers in `@covenant/chain` (`word`, `addressWord`, `bytesTail`, `decUint`, ...) and read them with `readAll`. Keep one direct `read` for anything a judge should be able to reproduce with `cast`.
-- Put each new heavy page behind `import()` like the circuit bench; the entry has 47 KB of room.
-- The die shot for a vault is `createDieShot(canvas, netlist, { blocks })` and, per settle, `animate(previousSignals, signals, stateBefore, stateAfter)` with `signals` from `step(netlist, stateBefore, inputs).signals`.
-- `chainBeat` and `sameBeat` in `src/data/circuit.ts` are the two legs of the three-way match; the third leg is the kernel record.
+- New read calls go into `packages/chain/src/kernel.ts` with a literal selector, an entry in `KERNEL_SIGNATURES`, and a viem check in `test/kernel.test.ts`.
+- A page that needs the netlist simulator goes behind `import()`; `kernel/sim.ts` is the only module that bundles netlist bytes (`?raw` imports, so it cannot be loaded by plain Node; `scripts/verify-kernel.ts` reads the files with `fs` instead).
+- After the reference token is bound and settles start, run `pnpm --filter web verify:kernel`: every record should print MATCH.

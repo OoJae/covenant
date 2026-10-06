@@ -9,7 +9,7 @@
 //   node scripts/check-budget.mjs some/dir   checks another build output
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
@@ -20,9 +20,10 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = process.argv[2] ? resolve(process.argv[2]) : join(root, 'dist');
 const addresses = JSON.parse(readFileSync(join(root, 'src/addresses.json'), 'utf8'));
 
-// Hosts the code may mention: the RPC endpoints it calls, the explorer it links to, and the
-// XML namespace identifiers Preact needs to create SVG and MathML nodes (never fetched).
-const allowedHosts = new Set([...addresses.rpc.map((u) => new URL(u).host), 'www.oklink.com', 'www.w3.org']);
+// Hosts the code may mention: the RPC endpoints it calls, the explorer it links to, the public repository it
+// links source files on (plain links, never fetched), and the XML namespace identifiers Preact needs to create SVG
+// and MathML nodes (never fetched).
+const allowedHosts = new Set([...addresses.rpc.map((u) => new URL(u).host), 'www.oklink.com', 'github.com', 'www.w3.org']);
 
 const walk = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
@@ -50,6 +51,24 @@ for (const ref of refs) {
   if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(ref)) problems.push(`index.html loads ${ref} from another origin`);
   else if (ref.startsWith('/')) problems.push(`index.html uses the absolute path ${ref}; paths must be relative so the site works from any folder`);
   else entry.add(ref.replace(/^\.\//, ''));
+}
+// A script the entry imports statically is loaded at startup too: follow `import … from "./x.js"` and
+// `import "./x.js"` (not `import("./x.js")`, which is on demand) through every script reached.
+for (const queue = [...entry].filter((f) => /\.m?js$/.test(f)); queue.length > 0; ) {
+  const f = queue.pop();
+  let text;
+  try {
+    text = readFileSync(join(dist, f), 'utf8');
+  } catch {
+    continue;
+  }
+  for (const m of text.matchAll(/(?:\bfrom|\bimport)\s*["'](\.{1,2}\/[^"']+)["']/g)) {
+    const dep = join(dirname(f), m[1]).replace(/^\.\//, '');
+    if (!entry.has(dep)) {
+      entry.add(dep);
+      queue.push(dep);
+    }
+  }
 }
 const entryBytes = rows.filter((r) => entry.has(r.path)).reduce((n, r) => n + r.bytes, 0);
 for (const name of entry) if (!rows.some((r) => r.path === name)) problems.push(`index.html refers to ${name}, which is not in dist`);

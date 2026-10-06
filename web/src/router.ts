@@ -7,6 +7,9 @@ export type Route =
   | { page: 'landing' }
   | { page: 'processor'; processor: string }
   | { page: 'circuit'; processor: string; id: string }
+  | { page: 'vault'; kernel: string }
+  | { page: 'audit'; kernel: string; n: number }
+  | { page: 'hostile' }
   | { page: 'judge' }
   | { page: 'trust' }
   | { page: 'notfound'; hash: string };
@@ -28,6 +31,9 @@ export function parseRoute(hash: string): Route {
   if (head === 'c' && parts.length === 3 && isAddress(a) && /^\d{1,20}$/.test(b)) {
     return { page: 'circuit', processor: a, id: BigInt(b).toString() };
   }
+  if (head === 'k' && parts.length === 2 && isAddress(a)) return { page: 'vault', kernel: a };
+  if (head === 'k' && parts.length === 3 && isAddress(a) && /^\d{1,9}$/.test(b) && Number(b) <= 0xffffffff) return { page: 'audit', kernel: a, n: Number(b) };
+  if (head === 'hostile' && parts.length === 1) return { page: 'hostile' };
   if (head === 'judge' && parts.length === 1) return { page: 'judge' };
   if (head === 'trust' && parts.length === 1) return { page: 'trust' };
   return { page: 'notfound', hash };

@@ -1,11 +1,22 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 // The production build must be self-contained static files (it will be stored on chain):
 // relative URLs, no module-preload helper, and index.html naming one script and one stylesheet.
-// The circuit bench is a second script fetched on demand (see src/app.tsx).
+// The circuit bench and the kernel pages are further scripts fetched on demand (see src/app.tsx).
+//
+// COVENANT_FORK=web/.fork/deployment.json points the site at the local fork that scripts/fork-fixture.sh builds:
+// its addresses replace deployments/xlayer.json and its RPC replaces the public endpoints, and every page carries
+// a SIMULATION banner. A build made that way also fails scripts/check-budget.mjs (its RPC host is not allowed), so
+// it cannot be published by accident.
+const forkPath = process.env.COVENANT_FORK;
+const fork = forkPath ? JSON.parse(readFileSync(resolve(process.cwd(), forkPath.replace(/^web\//, '')), 'utf8')) : null;
+
 export default defineConfig({
   base: './',
   oxc: { jsx: { runtime: 'automatic', importSource: 'preact' } },
+  define: { __COVENANT_FORK__: JSON.stringify(fork) },
   build: {
     target: 'es2022',
     cssCodeSplit: false,

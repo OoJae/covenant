@@ -9,6 +9,14 @@ on:
     paths:
       - "web/**"
       - "packages/**"
+      # the site reads its addresses from the deployment file and bundles the chips it simulates
+      - "deployments/xlayer.json"
+      - "chips/out/fg.hex"
+      - "chips/out/fg.witness.json"
+      - "chips/out/fg.fields.json"
+      - "chips/out/fg.proofs.json"
+      - "chips/cells/glutton/*.hex"
+      - "chips/golden/vectors.json"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"

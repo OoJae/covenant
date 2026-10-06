@@ -1,126 +1,203 @@
 // #/
-// The one sentence, a short honest explanation, and a box that opens any TapeOut processor or
-// circuit on X Layer.
+// The one sentence, the demonstration that the chip decides, what is live today, and where to check it.
 
 import { useState } from 'preact/hooks';
+import { readAll } from '@covenant/chain';
+import { erc20, kernel } from '@covenant/chain/kernel';
 import { Address } from '../components/common.tsx';
-import { ADDR, CHAIN, EXAMPLES } from '../config.ts';
+import { Mark, SimBanner } from '../components/kit.tsx';
+import { TwoStates } from '../components/TwoStates.tsx';
+import { CHAIN, COVENANT, EXAMPLES, rpc, SIMULATION } from '../config.ts';
 import { parseTarget, targetHash } from '../format.ts';
+import { useAsync } from '../router.ts';
+
+const ZERO = '0x0000000000000000000000000000000000000000';
+
+/** Bound token and settle count of the flagship kernel, if there is one. */
+async function kernelStatus(): Promise<{ token: string | null; symbol: string | null; count: number | null } | null> {
+  if (!COVENANT.kernel) return null;
+  const k = kernel(COVENANT.kernel);
+  const [token, count] = await readAll(rpc, [k.token(), k.count()] as const);
+  const t = token instanceof Error || token.toLowerCase() === ZERO ? null : token;
+  let symbol: string | null = null;
+  if (t) {
+    const [s] = await readAll(rpc, [erc20(t).symbol()] as const);
+    symbol = s instanceof Error ? null : s;
+  }
+  return { token: t, symbol, count: count instanceof Error ? null : count };
+}
 
 export function Landing() {
+  const status = useAsync(kernelStatus, []);
+  const ks = status.data;
+  const P = COVENANT.processor;
+  const rows: { label: string; addr: string | null; href?: string; note?: string }[] = [
+    { label: 'Processor Covenant (CVNT)', addr: P, href: P ? `#/p/${P}` : undefined, note: 'TapeOut processor: transistors and circuits' },
+    { label: `Probe circuit #${COVENANT.probeCircuitId ?? '?'}`, addr: COVENANT.probeCircuitId !== null ? P : null, href: P && COVENANT.probeCircuitId !== null ? `#/c/${P}/${COVENANT.probeCircuitId}` : undefined, note: 'a 118-gate test chip' },
+    { label: 'SealedVM and Fab', addr: COVENANT.fab, note: 'fallback evaluator; chip tape-out and netlist snapshots' },
+    { label: 'KernelFactory and Lens', addr: COVENANT.kernelFactory, note: 'creates kernels; free audit views' },
+    {
+      label: `Flow Governor chip${COVENANT.chipId !== null ? ` #${COVENANT.chipId}` : ''}`,
+      addr: COVENANT.chipId !== null ? P : null,
+      href: P && COVENANT.chipId !== null ? `#/c/${P}/${COVENANT.chipId}` : undefined,
+      note: '1,888 NAND + 64 latches',
+    },
+    { label: 'Its kernel', addr: COVENANT.kernel, href: COVENANT.kernel ? `#/k/${COVENANT.kernel}` : undefined, note: 'holds the chip; no owner' },
+  ];
+
+  return (
+    <article class="landing">
+      <SimBanner />
+      <header class="hero">
+        <h1 class="pitch">A token's trading tax, routed by a chip anyone can read and nobody can change.</h1>
+        <p class="lede">
+          An IGNIX token's tax goes to a Covenant <b>kernel</b> instead of a wallet. Once per epoch anyone may call{' '}
+          <span class="mono">settle()</span>: the kernel asks one TapeOut circuit, the <b>chip</b>, how to split it, and carries out that
+          split inside an <b>envelope</b> of limits fixed when the kernel was created.
+        </p>
+        <div class="flow" aria-label="tax flows to the kernel, which asks the chip, then routes to buy and lock, allowance or reserve">
+          <span class="node">trading tax</span>
+          <span class="arrow">→</span>
+          <span class="node strong">kernel</span>
+          <span class="arrow">⇄</span>
+          <span class="node chip">chip · 1,952 gates</span>
+          <span class="arrow">→</span>
+          <span class="dests">
+            <span class="node buy">buy &amp; lock</span>
+            <span class="node allow">allowance, capped</span>
+            <span class="node res">reserve, released later</span>
+          </span>
+        </div>
+      </header>
+
+      <TwoStates />
+
+      <section>
+        <h2>{SIMULATION ? 'On the local fork' : `On ${CHAIN.name} today`}</h2>
+        <ul class="live">
+          {rows.map((r) => (
+            <li key={r.label}>
+              <Mark ok={r.addr ? true : null} />
+              <span>
+                {r.href ? <a href={r.href}>{r.label}</a> : r.label}
+                {r.addr ? (
+                  <>
+                    {' '}
+                    <Address value={r.addr} />
+                  </>
+                ) : (
+                  <span class="tag wait">not deployed yet</span>
+                )}
+                <span class="muted"> {r.note}</span>
+              </span>
+            </li>
+          ))}
+          <li>
+            <Mark ok={ks?.token ? true : null} />
+            <span>
+              Reference token bound to the kernel{' '}
+              {ks?.token ? (
+                <>
+                  <Address value={ks.token} /> {ks.symbol && <span class="mono">{ks.symbol}</span>}{' '}
+                  <a href={`#/k/${COVENANT.kernel}`}>
+                    vault page, {ks.count ?? '?'} settle{ks.count === 1 ? '' : 's'}
+                  </a>
+                </>
+              ) : (
+                <span class="tag wait">{status.loading && COVENANT.kernel ? 'reading…' : 'not launched yet'}</span>
+              )}
+            </span>
+          </li>
+        </ul>
+        <p class="muted">
+          Every address comes from <span class="mono">deployments/xlayer.json</span>, which the deploy scripts write only after reading
+          each contract back from the chain. Adoption is zero today: the only token a chip routes, or will route, is the team's own
+          reference token, and its flows are small. Unaudited.
+        </p>
+      </section>
+
+      <section>
+        <h2>Check it yourself</h2>
+        <div class="tiles">
+          <a class="tile" href="#/judge">
+            <b>Judge guide</b>
+            <span>Seven checks, each runnable here and from a terminal.</span>
+          </a>
+          {COVENANT.kernel ? (
+            <a class="tile" href={`#/k/${COVENANT.kernel}`}>
+              <b>The vault</b>
+              <span>Envelope, chip state on the die, settle history, chip vs a fixed split.</span>
+            </a>
+          ) : (
+            <span class="tile off">
+              <b>The vault</b>
+              <span>Opens when the flagship kernel is deployed.</span>
+            </span>
+          )}
+          <a class="tile" href="#/hostile">
+            <b>A hostile chip</b>
+            <span>A chip that asks for everything, and what the envelope lets through.</span>
+          </a>
+          <a class="tile" href="#/trust">
+            <b>Trust model</b>
+            <span>Who can change what, read from the code.</span>
+          </a>
+        </div>
+      </section>
+
+      <OpenBox />
+    </article>
+  );
+}
+
+function OpenBox() {
   const [text, setText] = useState('');
   const [bad, setBad] = useState(false);
-  const own = ADDR.processor;
-
   const open = (e: Event): void => {
     e.preventDefault();
     const t = parseTarget(text);
     if (!t) return setBad(true);
     location.hash = targetHash(t);
   };
-
   return (
-    <article>
-      <h1 class="pitch">Your token's tax, routed by a chip anyone can read and nobody can change.</h1>
-      <p class="lede">
-        Covenant is a prototype of vault mechanics for tokens launched on IGNIX, built on TapeOut circuits on {CHAIN.name}.
+    <section>
+      <h2>Read any TapeOut circuit</h2>
+      <p class="muted">
+        The site's circuit reader works on every processor on {CHAIN.name}: it draws the die from the netlist bytes, runs a beat in your
+        browser and compares it with the chain's own evaluator.
       </p>
-
-      <section>
-        <h2>The idea</h2>
-        <ol class="steps">
-          <li>A token's trading tax goes to a small contract, the kernel, instead of to a wallet.</li>
-          <li>
-            The kernel holds one TapeOut circuit, a vault chip: a list of NAND gates and latches stored on chain. Once per epoch anyone
-            may call <span class="mono">settle()</span>. The kernel hands the chip its inputs and carries out the split the chip
-            returns, inside limits fixed when the kernel was created.
-          </li>
-          <li>
-            A chip is not a program. It cannot call another contract, write storage, or run longer than its gate count. Every step it
-            takes can be replayed by anyone with a free read call and no wallet. That replay is what this site does.
-          </li>
-        </ol>
-      </section>
-
-      <section>
-        <h2>Where this stands</h2>
-        {own ? (
-          <p>
-            Covenant's processor is <Address value={own} full />.{' '}
-            <a href={`#/p/${own}`}>Open the processor</a>
-            {ADDR.probeCircuitId !== null && (
-              <>
-                {' '}or go straight to <a href={`#/c/${own}/${ADDR.probeCircuitId}`}>circuit {String(ADDR.probeCircuitId)}</a>
-              </>
-            )}
-            . The pages for a token's vault and its settle history are still to come.
-          </p>
-        ) : (
-          <p>
-            Covenant's own processor and kernel are not connected to this page yet, so no token's tax is routed by a chip today. What
-            works now is the part you can check without trusting us: read any TapeOut circuit from {CHAIN.name}, see it drawn from its
-            bytes, run one beat in your browser, and compare the result with the chain's own evaluator.
-          </p>
-        )}
-        <p class="muted">
-          Unaudited. "Nobody can change" is about the stored netlist, which has no setter. It rests on TapeOut's contracts, which their
-          owners can still upgrade; the <a href="#/trust">trust page</a> lists what you rely on.
-        </p>
-      </section>
-
-      <section>
-        <h2>Open a processor or a circuit</h2>
-        <form class="open" onSubmit={open}>
-          <label for="target">Processor address, optionally followed by a circuit id</label>
-          <div class="row">
-            <input
-              id="target"
-              class={`mono${bad ? ' bad' : ''}`}
-              placeholder="0x… 1"
-              value={text}
-              spellcheck={false}
-              autocomplete="off"
-              autocapitalize="off"
-              aria-invalid={bad}
-              onInput={(e) => {
-                setText((e.target as HTMLInputElement).value);
-                setBad(false);
-              }}
-            />
-            <button type="submit" class="primary">
-              Open
-            </button>
-          </div>
-          {bad && <div class="warn">That does not contain an address (0x followed by 40 hex digits).</div>}
-          <p class="muted">
-            Examples of what works: <span class="mono">0x933F…Db5a</span> opens the processor; <span class="mono">0x933F…Db5a 1</span> or{' '}
-            <span class="mono">0x933F…Db5a/1</span> opens its circuit 1. A pasted explorer link works too.
-          </p>
-        </form>
-
-        {!own && (
-          <>
-            <h3>Live circuits to try</h3>
-            <p class="muted">Taped out by other people on TapeOut ({CHAIN.name}). They are here to show the reader on real chain data.</p>
-            <ul class="examples">
-              {EXAMPLES.map((x) => (
-                <li key={`${x.processor}/${x.id}`}>
-                  <a href={`#/c/${x.processor}/${x.id}`}>{x.label}</a>
-                  <span class="muted"> {x.note}. </span>
-                  <a href={`#/p/${x.processor}`}>processor</a>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
-
-      <section>
-        <h2>For judges</h2>
-        <p>
-          The <a href="#/judge">judge guide</a> lists the checks and which of them already run. No wallet is needed for any page here.
-        </p>
-      </section>
-    </article>
+      <form class="open" onSubmit={open}>
+        <label for="target">Processor address, optionally followed by a circuit id</label>
+        <div class="row">
+          <input
+            id="target"
+            class={`mono${bad ? ' bad' : ''}`}
+            placeholder="0x… 1"
+            value={text}
+            spellcheck={false}
+            autocomplete="off"
+            autocapitalize="off"
+            aria-invalid={bad}
+            onInput={(e) => {
+              setText((e.target as HTMLInputElement).value);
+              setBad(false);
+            }}
+          />
+          <button type="submit" class="primary">
+            Open
+          </button>
+        </div>
+        {bad && <div class="warn">That does not contain an address (0x followed by 40 hex digits).</div>}
+      </form>
+      <p class="muted small">
+        Circuits other people taped out:{' '}
+        {EXAMPLES.map((x, i) => (
+          <span key={`${x.processor}/${x.id}`}>
+            {i > 0 && ' · '}
+            <a href={`#/c/${x.processor}/${x.id}`}>{x.label}</a>
+          </span>
+        ))}
+      </p>
+    </section>
   );
 }

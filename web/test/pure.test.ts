@@ -1,22 +1,37 @@
 // The parts of the site that need neither a browser nor the network.
 
 import { describe, expect, test } from 'vitest';
+import live from '../../deployments/xlayer.json' with { type: 'json' };
 import addresses from '../src/addresses.json' with { type: 'json' };
-import { EXAMPLES } from '../src/config.ts';
+import { ADDR, COVENANT, EXAMPLES, SIMULATION } from '../src/config.ts';
 import { beatMethod, castFacts, castLine, packedFromHex } from '../src/data/circuit.ts';
 import { cleanHex, fmtInt, fmtUnits, isAddress, parseTarget, shortAddress, shortHex, targetHash } from '../src/format.ts';
 import { parseRoute } from '../src/router.ts';
 
 const TRIVIUM = '0x933FC3AA0c387CB8B6B1D22a2Ec3E2B5eeCfDb5a';
 
-describe('addresses.json', () => {
-  test('has exactly the agreed keys, so another team can write it by script', () => {
-    expect(Object.keys(addresses).sort()).toEqual(['factory', 'probeCircuitId', 'processor', 'rpc']);
+describe('addresses.json and deployments/xlayer.json', () => {
+  test('addresses.json holds only what is not a deployment', () => {
+    expect(Object.keys(addresses).sort()).toEqual(['factory', 'gluttonChipId', 'rpc']);
     expect(isAddress(addresses.factory)).toBe(true);
     expect(addresses.factory.toLowerCase()).toBe('0x1f09daefa827f02cbb40967cc91b259763760761');
     expect(addresses.rpc).toEqual(['https://rpc.xlayer.tech', 'https://xlayerrpc.okx.com']);
-    const processor: string | null = addresses.processor;
-    expect(processor === null || isAddress(processor)).toBe(true);
+    const g: number | null = addresses.gluttonChipId;
+    expect(g === null || (Number.isInteger(g) && g > 0)).toBe(true);
+  });
+
+  test('Covenant addresses come from deployments/xlayer.json', () => {
+    expect(SIMULATION).toBeNull(); // tests run against the real deployment file
+    expect(ADDR.processor).toBe(live.issuance.circuits);
+    expect(ADDR.processor).toBe('0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b');
+    expect(ADDR.probeCircuitId).toBe(1);
+    expect(COVENANT.teamRegistry).toBe(live.issuance.teamRegistry);
+    const l = live as { core?: { lens: string }; flagship?: { kernel: string; chipId: number } };
+    expect(COVENANT.lens).toBe(l.core?.lens ?? null);
+    expect(COVENANT.kernel).toBe(l.flagship?.kernel ?? null);
+    expect(COVENANT.chipId).toBe(l.flagship?.chipId ?? null);
+    for (const v of Object.values(COVENANT)) if (typeof v === 'string' && v.length === 42) expect(isAddress(v)).toBe(true);
+    expect(ADDR.rpc).toEqual(addresses.rpc);
   });
 
   test('the examples offered while processor is null are well-formed', () => {
@@ -41,10 +56,14 @@ describe('routes', () => {
     expect(parseRoute('#/judge')).toEqual({ page: 'judge' });
     expect(parseRoute('#/trust')).toEqual({ page: 'trust' });
     expect(parseRoute('#/trust/')).toEqual({ page: 'trust' });
+    expect(parseRoute('#/hostile')).toEqual({ page: 'hostile' });
+    expect(parseRoute(`#/k/${TRIVIUM}`)).toEqual({ page: 'vault', kernel: TRIVIUM });
+    expect(parseRoute(`#/k/${TRIVIUM}/12`)).toEqual({ page: 'audit', kernel: TRIVIUM, n: 12 });
+    expect(parseRoute(`#/k/${TRIVIUM}/0`)).toEqual({ page: 'audit', kernel: TRIVIUM, n: 0 });
   });
 
   test('anything else is "not found", never an exception', () => {
-    for (const h of ['#/p/0x123', '#/p/', `#/c/${TRIVIUM}`, `#/c/${TRIVIUM}/x`, `#/c/${TRIVIUM}/-1`, `#/c/${TRIVIUM}/1/2`, '#/judge/x', '#/%E0%A4%A', '#/whatever', `#/p/${TRIVIUM}/1`]) {
+    for (const h of ['#/p/0x123', '#/p/', `#/c/${TRIVIUM}`, `#/c/${TRIVIUM}/x`, `#/c/${TRIVIUM}/-1`, `#/c/${TRIVIUM}/1/2`, '#/judge/x', '#/%E0%A4%A', '#/whatever', `#/p/${TRIVIUM}/1`, `#/k/${TRIVIUM}/x`, `#/k/${TRIVIUM}/1/2`, `#/k/${TRIVIUM}/9999999999`, '#/k/0x12', '#/hostile/1']) {
       expect(parseRoute(h)).toEqual({ page: 'notfound', hash: h });
     }
   });

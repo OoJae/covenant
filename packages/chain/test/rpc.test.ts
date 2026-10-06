@@ -35,6 +35,23 @@ const echo = (body: Msg | Msg[]): Response => answer(body, (m) => m.params[0]);
 
 const REVERT = encodeErrorResult({ abi: parseAbi(['error Error(string)']), errorName: 'Error', args: ['has latch: use step'] });
 
+describe('the text/plain form', () => {
+  test('an endpoint that answers it with HTTP 200 and "invalid request" is asked again as JSON, and from then on only so', async () => {
+    const types: (string | null)[] = [];
+    const fn = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const h = new Headers(init?.headers);
+      types.push(h.get('content-type'));
+      const body = JSON.parse(String(init?.body)) as Msg | Msg[];
+      if (h.get('content-type') !== 'application/json') return json({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid request' } });
+      return echo(body);
+    }) as typeof fetch;
+    const rpc = createRpc([A], { fetch: fn });
+    expect(await rpc.batch([['m', [1]], ['m', [2]]])).toEqual([1, 2]);
+    expect(await rpc.send('m', [3])).toBe(3);
+    expect(types).toEqual([null, 'application/json', 'application/json']);
+  });
+});
+
 describe('batching', () => {
   test('25 calls go out as HTTP requests of 10, 10 and 5, results in call order', async () => {
     const { fn, log } = scripted((_u, body) => echo(body));

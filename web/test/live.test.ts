@@ -119,6 +119,31 @@ live('data path on X Layer mainnet', { timeout: 180_000 }, () => {
     expect(seen).toEqual(['0x01/0x01', '0x00/0x02', '0x00/0x00', '0x01/0x01']);
   });
 
+  test("Covenant's deployment as deployments/xlayer.json records it: processor, probe, Fab, factory, Lens", async () => {
+    const { processor } = await import('@covenant/chain');
+    const { fab, kernelFactory, lens } = await import('@covenant/chain/kernel');
+    const { readAll } = await import('@covenant/chain');
+    const { COVENANT } = await import('../src/config.ts');
+    const p = await loadProcessor(rpc, ADDR.factory, COVENANT.processor!);
+    expect(p.registered).toBe(true);
+    expect(p.name).toBe('Covenant');
+    expect(p.transistors).toBe(COVENANT.transistors);
+    const [owner] = await readAll(rpc, [processor(COVENANT.processor!).ownerOf(COVENANT.probeCircuitId!)] as const);
+    expect(owner).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    if (COVENANT.kernelFactory && COVENANT.lens && COVENANT.fab) {
+      const [pins, fabOf, lensFactory, fabCircuits] = await readAll(rpc, [
+        kernelFactory(COVENANT.kernelFactory).pinsLive(),
+        kernelFactory(COVENANT.kernelFactory).fab(),
+        lens(COVENANT.lens).factory(),
+        fab(COVENANT.fab).circuits(),
+      ] as const);
+      expect(typeof pins).toBe('boolean'); // false only if TapeOut was upgraded since the pins were taken
+      expect(String(fabOf).toLowerCase()).toBe(COVENANT.fab.toLowerCase());
+      expect(String(lensFactory).toLowerCase()).toBe(COVENANT.kernelFactory.toLowerCase());
+      expect(String(fabCircuits).toLowerCase()).toBe(COVENANT.processor!.toLowerCase());
+    }
+  });
+
   test('every example on the landing page opens', async () => {
     for (const x of EXAMPLES) {
       const c = await loadCircuit(rpc, ADDR.factory, x.processor, BigInt(x.id));

@@ -13,7 +13,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:offline": "SKIP_LIVE=1 vitest run",
-    "verify:live": "node scripts/verify-live.ts"
+    "verify:live": "node scripts/verify-live.ts",
+    "verify:kernel": "node scripts/verify-kernel.ts",
+    "test:fork": "COVENANT_FORK=web/.fork/deployment.json vitest run test/fork.test.ts",
+    "dev:fork": "COVENANT_FORK=web/.fork/deployment.json vite",
+    "fork:fixture": "bash scripts/fork-fixture.sh"
   },
   "dependencies": {
     "@covenant/chain": "workspace:*",
