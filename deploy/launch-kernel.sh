@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Covenant, signing session 2: the Fab, the kernel factory, and the flagship chip with its kernel.
+# Covenant, signing session 2: the Fab, the kernel factory, the flagship chip with its kernel, and the last
+# transactions before the reference token is launched.
 #
 #   deploy/launch-kernel.sh               rehearse on a local fork of X Layer. Nothing is sent and no key is touched.
 #   deploy/launch-kernel.sh --broadcast   rehearse, then SEND each step, signed by keystore 'covenant-deployer'.
@@ -9,6 +10,9 @@
 #   4. DeployCore       KernelFactory (which creates the Kernel implementation), Lens     2 transactions
 #   5. LaunchChip       the Flow Governor taped out through the Fab, its kernel created,
 #                       the chip handed to the kernel                                    3 transactions
+#   6. Prelaunch        the two hostile Glutton chips taped out through the Fab (they stay with the deployer;
+#                       Lens.shadowChip runs them over the kernel's records), the keeper invited into the
+#                       TeamRegistry                                                     3 transactions
 #
 # forge asks for the keystore password once per step. That prompt is the last point at which the step can be
 # stopped (Ctrl-C). Before a step is sent, this script checks that:
@@ -63,7 +67,8 @@ trap 'rm -f "$PLAN"' EXIT
 # ---- 1. The working tree is the commit, and the commit is public.
 SOURCES=(contracts/evaluator/src contracts/evaluator/script contracts/evaluator/foundry.toml
   contracts/core/src contracts/core/script contracts/core/foundry.toml
-  chips/out/fg.hex chips/out/fg.pins.json deploy)
+  chips/out/fg.hex chips/out/fg.pins.json chips/cells/glutton/glutton.hex chips/cells/glutton/glutton512.hex
+  chips/cells/glutton/glutton.pins.json deploy)
 changes=$(git status --porcelain -- "${SOURCES[@]}" | grep -v ' deploy/rehearsal.json$' || true)
 [ -z "$changes" ] || refuse "the deployed sources differ from HEAD. Commit them first:"$'\n'"$changes"
 for f in contracts/evaluator/src/Fab.sol contracts/evaluator/src/SealedVM.sol contracts/core/src/Kernel.sol \
@@ -96,6 +101,9 @@ export REHEARSAL=false
 CIRCUITS=$(jq -r .issuance.circuits "$LIVE")
 TRANSISTORS=$(jq -r .issuance.transistors "$LIVE")
 TANK=$(jq -r .issuance.keeperTank "$LIVE")
+REGISTRY=$(jq -r .issuance.teamRegistry "$LIVE")
+KEEPER=$(jq -r '.keeper // empty' "$LIVE")
+[ -n "$KEEPER" ] || refuse "$LIVE names no keeper wallet"
 [ "$(cast call $TAPEOUT_FACTORY "isCPU(address)(bool)" "$CIRCUITS" --rpc-url "$RPC_URL")" = "true" ] \
   || refuse "$CIRCUITS is not a TapeOut processor"
 
@@ -201,14 +209,48 @@ write_flagship() {
     '{commit: $c, chip: "Flow Governor", chipId: $id, kernel: $k, netlistKeccak256: $n, manifestHash: $m,
       allowancePayee: $p, envelope: "LaunchChip.referenceEnvelope (contracts/core/script/LaunchChip.s.sol)", txs: $t}')"
 }
+# The circuit NFT a tape-out transaction sent to the deployer (ERC-721 Transfer from the processor), as a decimal id.
+chip_sent_by() {
+  local id
+  id=$(cast rpc eth_getTransactionReceipt "$1" --rpc-url "$RPC_URL" | jq -r --arg c "$(lower "$CIRCUITS")" \
+    --arg to "0x000000000000000000000000$(lower "${DEPLOYER#0x}")" \
+    '.logs[] | select((.address | ascii_downcase) == $c
+      and .topics[0] == "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+      and (.topics[2] | ascii_downcase) == $to) | .topics[3]' | head -1)
+  [ -n "$id" ] || refuse "transaction $1 sent no circuit to the deployer"
+  cast to-dec "$id"
+}
+write_prelaunch() {
+  local hashes id id512 h
+  hashes=$(jq -r '.transactions[] | select((.function // "") | startswith("tapeoutChip")) | .hash' "$1")
+  [ "$(wc -l <<<"$hashes" | tr -d ' ')" = "2" ] || refuse "$1 does not hold exactly two tape-outs"
+  id=$(chip_sent_by "$(sed -n 1p <<<"$hashes")")
+  id512=$(chip_sent_by "$(sed -n 2p <<<"$hashes")")
+  for pair in "$id glutton" "$id512 glutton512"; do
+    read -r h name <<<"$pair"
+    [ "$(lower "$(cast call "$CIRCUITS" "ownerOf(uint256)(address)" "$h" --rpc-url "$RPC_URL")")" = "$(lower "$DEPLOYER")" ] \
+      || refuse "chip $h is not held by the deployer"
+    [ "$(cast keccak "$(cast call "$CIRCUITS" "netlist(uint256)(bytes)" "$h" --rpc-url "$RPC_URL")")" = \
+      "$(cast keccak "$(cat "chips/cells/glutton/$name.hex")")" ] || refuse "chip $h's netlist is not chips/cells/glutton/$name.hex"
+  done
+  [ "$(cast call "$REGISTRY" "isInvited(address)(bool)" "$KEEPER" --rpc-url "$RPC_URL")" = "true" ] \
+    || [ "$(cast call "$REGISTRY" "isTeam(address)(bool)" "$KEEPER" --rpc-url "$RPC_URL")" = "true" ] \
+    || refuse "the keeper $KEEPER is not invited into the TeamRegistry"
+  set_live '.prelaunch = $v' "$(jq -nc --arg c "$COMMIT" --argjson g "$id" --argjson g5 "$id512" \
+    --arg m "0x$(shasum -a 256 chips/cells/glutton/glutton.pins.json | awk '{print $1}')" --arg k "$KEEPER" \
+    --argjson t "$(txs_json "$(read_record "$1")")" \
+    '{commit: $c, gluttonChipId: $g, glutton512ChipId: $g5, gluttonManifestHash: $m, keeperInvited: $k,
+      holder: "deployer (never bound to a kernel; run with Lens.shadowChip)", txs: $t}')"
+}
 
-STEPS=(evaluator core flagship)
+STEPS=(evaluator core flagship prelaunch)
 step_project() { case $1 in evaluator) echo evaluator ;; *) echo core ;; esac; }
 step_script() {
   case $1 in
     evaluator) echo DeployEvaluator.s.sol ;;
     core) echo DeployCore.s.sol ;;
     flagship) echo LaunchChip.s.sol ;;
+    prelaunch) echo Prelaunch.s.sol ;;
   esac
 }
 step_done() {
@@ -216,6 +258,8 @@ step_done() {
     evaluator) has_code "$(live .evaluator.fab)" ;;
     core) has_code "$(live .core.lens)" ;;
     flagship) has_code "$(live .flagship.kernel)" ;;
+    prelaunch) [ -n "$(live .prelaunch.glutton512ChipId)" ] &&
+      cast call "$CIRCUITS" "ownerOf(uint256)(address)" "$(live .prelaunch.glutton512ChipId)" --rpc-url "$RPC_URL" >/dev/null 2>&1 ;;
   esac
 }
 step_write() { "write_$1" "$2"; }
@@ -293,13 +337,13 @@ send() { # step, human description, forge script arguments...
 
 if ! step_done evaluator; then
   COVENANT_CIRCUITS=$CIRCUITS COVENANT_TRANSISTORS=$TRANSISTORS \
-    send evaluator "step 3 of 5, SealedVM and Fab (2 transactions)" -s "run()"
+    send evaluator "step 3 of 6, SealedVM and Fab (2 transactions)" -s "run()"
   expect_same SealedVM "$(live .evaluator.sealedVM)" "$(planned .sealedVM)"
   expect_same Fab "$(live .evaluator.fab)" "$(planned .fab)"
 fi
 if ! step_done core; then
   COVENANT_CIRCUITS=$CIRCUITS COVENANT_FAB=$(live .evaluator.fab) COVENANT_SEALED_VM=$(live .evaluator.sealedVM) \
-    send core "step 4 of 5, KernelFactory and Lens (2 transactions)" -s "run()"
+    send core "step 4 of 6, KernelFactory and Lens (2 transactions)" -s "run()"
   expect_same KernelFactory "$(live .core.kernelFactory)" "$(planned .kernelFactory)"
   expect_same Lens "$(live .core.lens)" "$(planned .lens)"
 fi
@@ -307,14 +351,20 @@ if ! step_done flagship; then
   COVENANT_FAB=$(live .evaluator.fab) COVENANT_FACTORY=$(live .core.kernelFactory) COVENANT_LENS=$(live .core.lens) \
     NETLIST_HEX=$(cat chips/out/fg.hex) MANIFEST_HASH=0x$(shasum -a 256 chips/out/fg.pins.json | awk '{print $1}') \
     ALLOWANCE_PAYEE=$TANK \
-    send flagship "step 5 of 5, the Flow Governor taped out, its kernel created, the chip handed over (3 transactions)" -s "run()"
+    send flagship "step 5 of 6, the Flow Governor taped out, its kernel created, the chip handed over (3 transactions)" -s "run()"
   # Anyone may tape out on the processor, so the chip id (and with it the kernel address) can differ from the
   # rehearsal's without anything being wrong; write_flagship has checked the kernel holds the right chip.
   [ "$(live .flagship.chipId)" = "$(planned .chipId)" ] \
     || say "note: chip id $(live .flagship.chipId), the rehearsal had $(planned .chipId) (someone else taped out in between)"
 fi
+if ! step_done prelaunch; then
+  COVENANT_FAB=$(live .evaluator.fab) COVENANT_REGISTRY=$REGISTRY KEEPER=$KEEPER \
+    GLUTTON_HEX=$(cat chips/cells/glutton/glutton.hex) GLUTTON512_HEX=$(cat chips/cells/glutton/glutton512.hex) \
+    GLUTTON_MANIFEST_HASH=0x$(shasum -a 256 chips/cells/glutton/glutton.pins.json | awk '{print $1}') \
+    send prelaunch "step 6 of 6, the two Glutton chips taped out and the keeper invited (3 transactions)" -s "run()"
+fi
 
 echo
 say "DONE. Everything is recorded in $LIVE:"
-jq '{evaluator, core, flagship}' "$LIVE"
+jq '{evaluator, core, flagship, prelaunch}' "$LIVE"
 say "Tell Claude 'done': it checks every address on chain before the token launch."

@@ -11,6 +11,7 @@
 #   3. DeployEvaluator contracts/evaluator SealedVM, Fab                                             2 transactions
 #   4. DeployCore      contracts/core      KernelFactory (+ Kernel implementation), Lens             2 transactions
 #   5. LaunchChip      contracts/core      Fab tape-out of the Flow Governor, kernel, chip -> kernel 3 transactions
+#   6. Prelaunch       contracts/core      Fab tape-outs of the two Glutton chips, keeper invite      3 transactions
 #
 # A step whose contracts deployments/xlayer.json records, and which exist on the fork, is not rehearsed: the
 # recorded addresses are used instead. On today's chain the rehearsal therefore covers the steps still to be signed.
@@ -44,7 +45,7 @@ mkdir -p "$WORK/contracts" "$WORK/chips"
 for p in issuance evaluator core vendor; do
   rsync -a --exclude 'broadcast/' "$ROOT/contracts/$p" "$WORK/contracts/"
 done
-for d in out probe golden; do
+for d in out probe golden cells; do
   rsync -a "$ROOT/chips/$d" "$WORK/chips/"
 done
 
@@ -163,9 +164,29 @@ else
 fi
 echo "   chip $CHIP_ID kernel $KERNEL (manifest $MANIFEST_HASH)"
 
+echo "== 6. Prelaunch (two hostile chips, keeper invite)"
+KEEPER=$(recorded .keeper)
+[ -n "$KEEPER" ] || { echo "rehearse.sh: deployments/xlayer.json names no keeper" >&2; exit 1; }
+GLUTTON_MANIFEST=0x$(shasum -a 256 "$WORK/chips/cells/glutton/glutton.pins.json" | awk '{print $1}')
+GLUTTON_ID=$(recorded .prelaunch.gluttonChipId)
+GLUTTON512_ID=$(recorded .prelaunch.glutton512ChipId)
+if [ -n "$GLUTTON512_ID" ] && cast call "$CIRCUITS" "ownerOf(uint256)(address)" "$GLUTTON512_ID" --rpc-url "$RPC" >/dev/null 2>&1; then
+  echo "   on chain already (deployments/xlayer.json)"
+else
+  NONCES+=("prelaunch=$(nonce)")
+  COVENANT_FAB=$FAB COVENANT_REGISTRY=$REGISTRY KEEPER=$KEEPER \
+    GLUTTON_HEX=$(cat "$WORK/chips/cells/glutton/glutton.hex") GLUTTON512_HEX=$(cat "$WORK/chips/cells/glutton/glutton512.hex") \
+    GLUTTON_MANIFEST_HASH=$GLUTTON_MANIFEST run core script/Prelaunch.s.sol
+  GLUTTON512_ID=$(cast call "$CIRCUITS" "nextId()(uint256)" --rpc-url "$RPC")
+  GLUTTON_ID=$((GLUTTON512_ID - 1))
+  REHEARSED+=(prelaunch)
+fi
+echo "   Glutton chip $GLUTTON_ID, Glutton512 chip $GLUTTON512_ID; keeper $KEEPER invited: $(cast call "$REGISTRY" "isInvited(address)(bool)" "$KEEPER" --rpc-url "$RPC")"
+
 FORK_BLOCK_OUT=$BLOCK DEPLOYER=$DEPLOYER COMMIT=$COMMIT SPLITTER=$SPLITTER CIRCUITS=$CIRCUITS TRANSISTORS=$TRANSISTORS \
   TANK=$TANK REGISTRY=$REGISTRY PROBE_ID=$PROBE_ID SEALED_VM=$SEALED_VM FAB=$FAB FACTORY=$FACTORY \
   KERNEL_IMPL=$KERNEL_IMPL LENS=$LENS CHIP_ID=$CHIP_ID KERNEL=$KERNEL MANIFEST_HASH=$MANIFEST_HASH \
+  KEEPER=$KEEPER GLUTTON_ID=$GLUTTON_ID GLUTTON512_ID=$GLUTTON512_ID GLUTTON_MANIFEST=$GLUTTON_MANIFEST \
   REHEARSED="${REHEARSED[*]:-}" NONCES="${NONCES[*]:-}" NONCE_AFTER=$(nonce) \
   BALANCE_AFTER=$(cast balance $DEPLOYER --rpc-url "$RPC" --ether) \
   python3 - "$OUT" <<'EOF'
@@ -178,6 +199,8 @@ json.dump({
     "keeperTank": e["TANK"], "teamRegistry": e["REGISTRY"], "probeCircuitId": int(e["PROBE_ID"]),
     "sealedVM": e["SEALED_VM"], "fab": e["FAB"], "kernelFactory": e["FACTORY"], "kernelImpl": e["KERNEL_IMPL"],
     "lens": e["LENS"], "chipId": int(e["CHIP_ID"]), "kernel": e["KERNEL"], "manifestHash": e["MANIFEST_HASH"],
+    "keeper": e["KEEPER"], "gluttonChipId": int(e["GLUTTON_ID"]), "glutton512ChipId": int(e["GLUTTON512_ID"]),
+    "gluttonManifestHash": e["GLUTTON_MANIFEST"],
     "deployerNonceAfter": int(e["NONCE_AFTER"]), "deployerBalanceAfter": e["BALANCE_AFTER"],
 }, open(sys.argv[1], "w"), indent=1)
 EOF
