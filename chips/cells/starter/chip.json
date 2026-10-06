@@ -1,0 +1,36 @@
+{
+ "kit": "covenant-kit/1",
+ "name": "starter",
+ "top": "starter_core",
+ "sources": ["starter_core.v"],
+ "props": {
+  "sources": ["starter_props.v"],
+  "top": "starter_props",
+  "tapModule": "starter_tap"
+ },
+ "description": "Starter, a Covenant vault chip (interface v1). Once per epoch a kernel contract builds the 96 input bits from chain state and runs one beat. The chip sends 75% of the epoch's tax to buy-and-lock, an allowance share of 32, 16, 8 or 0 (of 256) by tier, and the rest to the reserve, which it releases at 4/256 per settle. The tier is kept in two latches and is the larger of the old tier and the tier that cumulative tax has earned (from about 0.94, 9.2 and 92 OKB; tier 3 at graduation), so it never decreases. The reset state is zero.",
+ "state": [
+  {"name": "TIER", "offset": 0, "width": 2, "encoding": "uint", "min": 0, "max": 3,
+   "description": "Allowance tier: 0, 1, 2 or 3 for an allowance share of 32, 16, 8 or 0 out of 256. It never decreases."}
+ ],
+ "outputs": {
+  "MODE": {"encoding": "zero", "description": "Always 0 in the Starter."},
+  "TIER": {"encoding": "uint", "min": 0, "max": 3, "description": "Allowance tier after this beat; equal to the TIER latch."},
+  "FLAGS": {"encoding": "flags", "bits": ["tierup", null, null, null, null, null, null, null],
+            "description": "tierup: the tier stepped up in this beat."},
+  "AUX": {"encoding": "zero", "description": "Always 0 in the Starter."}
+ },
+ "envelope": {
+  "epochLen": 900,
+  "capT": 32,
+  "capV": 0,
+  "allowCumBps": 1250,
+  "ceilMax": 440,
+  "relMax": 16,
+  "floorRel": 2,
+  "floorMin": 1,
+  "fallbackEpochs": 16,
+  "fbAllow": 8,
+  "buyEnabled": true
+ }
+}

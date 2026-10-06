@@ -1,0 +1,1256 @@
+{
+ "format": "tapc-manifest/1",
+ "name": "starter",
+ "standard": "TAP-20 draft (updated 2026-09-30)",
+ "nIn": 96,
+ "nOut": 112,
+ "nState": 2,
+ "nNand": 178,
+ "nLatch": 2,
+ "nRef": 0,
+ "gateCount": 180,
+ "signals": 278,
+ "depth": 17,
+ "bytes": 1254,
+ "keccak256": "0xac8a37a27bf4f86d790b03d543d161d8ba20c66d4458b44e9f6edebe05f4ffe4",
+ "latchesFirst": true,
+ "layout": {
+  "const0": 0,
+  "const1": 1,
+  "firstInput": 2,
+  "firstLatch": 98,
+  "firstNand": 100,
+  "firstOutput": 166,
+  "outputDuplicates": 103,
+  "outputBuffers": 0,
+  "outputConstants": 102
+ },
+ "inputs": [
+  {
+   "bit": 0,
+   "name": "TAX[0]",
+   "signal": 2
+  },
+  {
+   "bit": 1,
+   "name": "TAX[1]",
+   "signal": 3
+  },
+  {
+   "bit": 2,
+   "name": "TAX[2]",
+   "signal": 4
+  },
+  {
+   "bit": 3,
+   "name": "TAX[3]",
+   "signal": 5
+  },
+  {
+   "bit": 4,
+   "name": "TAX[4]",
+   "signal": 6
+  },
+  {
+   "bit": 5,
+   "name": "TAX[5]",
+   "signal": 7
+  },
+  {
+   "bit": 6,
+   "name": "TAX[6]",
+   "signal": 8
+  },
+  {
+   "bit": 7,
+   "name": "TAX[7]",
+   "signal": 9
+  },
+  {
+   "bit": 8,
+   "name": "TAX[8]",
+   "signal": 10
+  },
+  {
+   "bit": 9,
+   "name": "TAX[9]",
+   "signal": 11
+  },
+  {
+   "bit": 10,
+   "name": "TAXCUM[0]",
+   "signal": 12
+  },
+  {
+   "bit": 11,
+   "name": "TAXCUM[1]",
+   "signal": 13
+  },
+  {
+   "bit": 12,
+   "name": "TAXCUM[2]",
+   "signal": 14
+  },
+  {
+   "bit": 13,
+   "name": "TAXCUM[3]",
+   "signal": 15
+  },
+  {
+   "bit": 14,
+   "name": "TAXCUM[4]",
+   "signal": 16
+  },
+  {
+   "bit": 15,
+   "name": "TAXCUM[5]",
+   "signal": 17
+  },
+  {
+   "bit": 16,
+   "name": "TAXCUM[6]",
+   "signal": 18
+  },
+  {
+   "bit": 17,
+   "name": "TAXCUM[7]",
+   "signal": 19
+  },
+  {
+   "bit": 18,
+   "name": "TAXCUM[8]",
+   "signal": 20
+  },
+  {
+   "bit": 19,
+   "name": "TAXCUM[9]",
+   "signal": 21
+  },
+  {
+   "bit": 20,
+   "name": "REV[0]",
+   "signal": 22
+  },
+  {
+   "bit": 21,
+   "name": "REV[1]",
+   "signal": 23
+  },
+  {
+   "bit": 22,
+   "name": "REV[2]",
+   "signal": 24
+  },
+  {
+   "bit": 23,
+   "name": "REV[3]",
+   "signal": 25
+  },
+  {
+   "bit": 24,
+   "name": "REV[4]",
+   "signal": 26
+  },
+  {
+   "bit": 25,
+   "name": "REV[5]",
+   "signal": 27
+  },
+  {
+   "bit": 26,
+   "name": "REV[6]",
+   "signal": 28
+  },
+  {
+   "bit": 27,
+   "name": "REV[7]",
+   "signal": 29
+  },
+  {
+   "bit": 28,
+   "name": "REV[8]",
+   "signal": 30
+  },
+  {
+   "bit": 29,
+   "name": "REV[9]",
+   "signal": 31
+  },
+  {
+   "bit": 30,
+   "name": "REVCUM[0]",
+   "signal": 32
+  },
+  {
+   "bit": 31,
+   "name": "REVCUM[1]",
+   "signal": 33
+  },
+  {
+   "bit": 32,
+   "name": "REVCUM[2]",
+   "signal": 34
+  },
+  {
+   "bit": 33,
+   "name": "REVCUM[3]",
+   "signal": 35
+  },
+  {
+   "bit": 34,
+   "name": "REVCUM[4]",
+   "signal": 36
+  },
+  {
+   "bit": 35,
+   "name": "REVCUM[5]",
+   "signal": 37
+  },
+  {
+   "bit": 36,
+   "name": "REVCUM[6]",
+   "signal": 38
+  },
+  {
+   "bit": 37,
+   "name": "REVCUM[7]",
+   "signal": 39
+  },
+  {
+   "bit": 38,
+   "name": "REVCUM[8]",
+   "signal": 40
+  },
+  {
+   "bit": 39,
+   "name": "REVCUM[9]",
+   "signal": 41
+  },
+  {
+   "bit": 40,
+   "name": "RES[0]",
+   "signal": 42
+  },
+  {
+   "bit": 41,
+   "name": "RES[1]",
+   "signal": 43
+  },
+  {
+   "bit": 42,
+   "name": "RES[2]",
+   "signal": 44
+  },
+  {
+   "bit": 43,
+   "name": "RES[3]",
+   "signal": 45
+  },
+  {
+   "bit": 44,
+   "name": "RES[4]",
+   "signal": 46
+  },
+  {
+   "bit": 45,
+   "name": "RES[5]",
+   "signal": 47
+  },
+  {
+   "bit": 46,
+   "name": "RES[6]",
+   "signal": 48
+  },
+  {
+   "bit": 47,
+   "name": "RES[7]",
+   "signal": 49
+  },
+  {
+   "bit": 48,
+   "name": "RES[8]",
+   "signal": 50
+  },
+  {
+   "bit": 49,
+   "name": "RES[9]",
+   "signal": 51
+  },
+  {
+   "bit": 50,
+   "name": "ESC[0]",
+   "signal": 52
+  },
+  {
+   "bit": 51,
+   "name": "ESC[1]",
+   "signal": 53
+  },
+  {
+   "bit": 52,
+   "name": "ESC[2]",
+   "signal": 54
+  },
+  {
+   "bit": 53,
+   "name": "ESC[3]",
+   "signal": 55
+  },
+  {
+   "bit": 54,
+   "name": "ESC[4]",
+   "signal": 56
+  },
+  {
+   "bit": 55,
+   "name": "ESC[5]",
+   "signal": 57
+  },
+  {
+   "bit": 56,
+   "name": "ESC[6]",
+   "signal": 58
+  },
+  {
+   "bit": 57,
+   "name": "ESC[7]",
+   "signal": 59
+  },
+  {
+   "bit": 58,
+   "name": "ESC[8]",
+   "signal": 60
+  },
+  {
+   "bit": 59,
+   "name": "ESC[9]",
+   "signal": 61
+  },
+  {
+   "bit": 60,
+   "name": "PROG[0]",
+   "signal": 62
+  },
+  {
+   "bit": 61,
+   "name": "PROG[1]",
+   "signal": 63
+  },
+  {
+   "bit": 62,
+   "name": "PROG[2]",
+   "signal": 64
+  },
+  {
+   "bit": 63,
+   "name": "PROG[3]",
+   "signal": 65
+  },
+  {
+   "bit": 64,
+   "name": "PROG[4]",
+   "signal": 66
+  },
+  {
+   "bit": 65,
+   "name": "PROG[5]",
+   "signal": 67
+  },
+  {
+   "bit": 66,
+   "name": "PROG[6]",
+   "signal": 68
+  },
+  {
+   "bit": 67,
+   "name": "PROG[7]",
+   "signal": 69
+  },
+  {
+   "bit": 68,
+   "name": "LOCK[0]",
+   "signal": 70
+  },
+  {
+   "bit": 69,
+   "name": "LOCK[1]",
+   "signal": 71
+  },
+  {
+   "bit": 70,
+   "name": "LOCK[2]",
+   "signal": 72
+  },
+  {
+   "bit": 71,
+   "name": "LOCK[3]",
+   "signal": 73
+  },
+  {
+   "bit": 72,
+   "name": "LOCK[4]",
+   "signal": 74
+  },
+  {
+   "bit": 73,
+   "name": "LOCK[5]",
+   "signal": 75
+  },
+  {
+   "bit": 74,
+   "name": "LOCK[6]",
+   "signal": 76
+  },
+  {
+   "bit": 75,
+   "name": "LOCK[7]",
+   "signal": 77
+  },
+  {
+   "bit": 76,
+   "name": "DT[0]",
+   "signal": 78
+  },
+  {
+   "bit": 77,
+   "name": "DT[1]",
+   "signal": 79
+  },
+  {
+   "bit": 78,
+   "name": "DT[2]",
+   "signal": 80
+  },
+  {
+   "bit": 79,
+   "name": "DT[3]",
+   "signal": 81
+  },
+  {
+   "bit": 80,
+   "name": "GRAD",
+   "signal": 82
+  },
+  {
+   "bit": 81,
+   "name": "ZERO[0]",
+   "signal": 83
+  },
+  {
+   "bit": 82,
+   "name": "ZERO[1]",
+   "signal": 84
+  },
+  {
+   "bit": 83,
+   "name": "ZERO[2]",
+   "signal": 85
+  },
+  {
+   "bit": 84,
+   "name": "ZERO[3]",
+   "signal": 86
+  },
+  {
+   "bit": 85,
+   "name": "ZERO[4]",
+   "signal": 87
+  },
+  {
+   "bit": 86,
+   "name": "ZERO[5]",
+   "signal": 88
+  },
+  {
+   "bit": 87,
+   "name": "ZERO[6]",
+   "signal": 89
+  },
+  {
+   "bit": 88,
+   "name": "ZERO[7]",
+   "signal": 90
+  },
+  {
+   "bit": 89,
+   "name": "ZERO[8]",
+   "signal": 91
+  },
+  {
+   "bit": 90,
+   "name": "ZERO[9]",
+   "signal": 92
+  },
+  {
+   "bit": 91,
+   "name": "ZERO[10]",
+   "signal": 93
+  },
+  {
+   "bit": 92,
+   "name": "ZERO[11]",
+   "signal": 94
+  },
+  {
+   "bit": 93,
+   "name": "ZERO[12]",
+   "signal": 95
+  },
+  {
+   "bit": 94,
+   "name": "ZERO[13]",
+   "signal": 96
+  },
+  {
+   "bit": 95,
+   "name": "ZERO[14]",
+   "signal": 97
+  }
+ ],
+ "outputs": [
+  {
+   "bit": 0,
+   "name": "T_BUY[0]",
+   "signal": 166
+  },
+  {
+   "bit": 1,
+   "name": "T_BUY[1]",
+   "signal": 167
+  },
+  {
+   "bit": 2,
+   "name": "T_BUY[2]",
+   "signal": 168
+  },
+  {
+   "bit": 3,
+   "name": "T_BUY[3]",
+   "signal": 169
+  },
+  {
+   "bit": 4,
+   "name": "T_BUY[4]",
+   "signal": 170
+  },
+  {
+   "bit": 5,
+   "name": "T_BUY[5]",
+   "signal": 171
+  },
+  {
+   "bit": 6,
+   "name": "T_BUY[6]",
+   "signal": 172
+  },
+  {
+   "bit": 7,
+   "name": "T_BUY[7]",
+   "signal": 173
+  },
+  {
+   "bit": 8,
+   "name": "T_BUY[8]",
+   "signal": 174
+  },
+  {
+   "bit": 9,
+   "name": "T_HOLD[0]",
+   "signal": 175
+  },
+  {
+   "bit": 10,
+   "name": "T_HOLD[1]",
+   "signal": 176
+  },
+  {
+   "bit": 11,
+   "name": "T_HOLD[2]",
+   "signal": 177
+  },
+  {
+   "bit": 12,
+   "name": "T_HOLD[3]",
+   "signal": 178
+  },
+  {
+   "bit": 13,
+   "name": "T_HOLD[4]",
+   "signal": 179
+  },
+  {
+   "bit": 14,
+   "name": "T_HOLD[5]",
+   "signal": 180
+  },
+  {
+   "bit": 15,
+   "name": "T_HOLD[6]",
+   "signal": 181
+  },
+  {
+   "bit": 16,
+   "name": "T_HOLD[7]",
+   "signal": 182
+  },
+  {
+   "bit": 17,
+   "name": "T_HOLD[8]",
+   "signal": 183
+  },
+  {
+   "bit": 18,
+   "name": "T_ALLOW[0]",
+   "signal": 184
+  },
+  {
+   "bit": 19,
+   "name": "T_ALLOW[1]",
+   "signal": 185
+  },
+  {
+   "bit": 20,
+   "name": "T_ALLOW[2]",
+   "signal": 186
+  },
+  {
+   "bit": 21,
+   "name": "T_ALLOW[3]",
+   "signal": 187
+  },
+  {
+   "bit": 22,
+   "name": "T_ALLOW[4]",
+   "signal": 188
+  },
+  {
+   "bit": 23,
+   "name": "T_ALLOW[5]",
+   "signal": 189
+  },
+  {
+   "bit": 24,
+   "name": "T_ALLOW[6]",
+   "signal": 190
+  },
+  {
+   "bit": 25,
+   "name": "T_ALLOW[7]",
+   "signal": 191
+  },
+  {
+   "bit": 26,
+   "name": "T_ALLOW[8]",
+   "signal": 192
+  },
+  {
+   "bit": 27,
+   "name": "T_RES[0]",
+   "signal": 193
+  },
+  {
+   "bit": 28,
+   "name": "T_RES[1]",
+   "signal": 194
+  },
+  {
+   "bit": 29,
+   "name": "T_RES[2]",
+   "signal": 195
+  },
+  {
+   "bit": 30,
+   "name": "T_RES[3]",
+   "signal": 196
+  },
+  {
+   "bit": 31,
+   "name": "T_RES[4]",
+   "signal": 197
+  },
+  {
+   "bit": 32,
+   "name": "T_RES[5]",
+   "signal": 198
+  },
+  {
+   "bit": 33,
+   "name": "T_RES[6]",
+   "signal": 199
+  },
+  {
+   "bit": 34,
+   "name": "T_RES[7]",
+   "signal": 200
+  },
+  {
+   "bit": 35,
+   "name": "T_RES[8]",
+   "signal": 201
+  },
+  {
+   "bit": 36,
+   "name": "V_BUY[0]",
+   "signal": 202
+  },
+  {
+   "bit": 37,
+   "name": "V_BUY[1]",
+   "signal": 203
+  },
+  {
+   "bit": 38,
+   "name": "V_BUY[2]",
+   "signal": 204
+  },
+  {
+   "bit": 39,
+   "name": "V_BUY[3]",
+   "signal": 205
+  },
+  {
+   "bit": 40,
+   "name": "V_BUY[4]",
+   "signal": 206
+  },
+  {
+   "bit": 41,
+   "name": "V_BUY[5]",
+   "signal": 207
+  },
+  {
+   "bit": 42,
+   "name": "V_BUY[6]",
+   "signal": 208
+  },
+  {
+   "bit": 43,
+   "name": "V_BUY[7]",
+   "signal": 209
+  },
+  {
+   "bit": 44,
+   "name": "V_BUY[8]",
+   "signal": 210
+  },
+  {
+   "bit": 45,
+   "name": "V_HOLD[0]",
+   "signal": 211
+  },
+  {
+   "bit": 46,
+   "name": "V_HOLD[1]",
+   "signal": 212
+  },
+  {
+   "bit": 47,
+   "name": "V_HOLD[2]",
+   "signal": 213
+  },
+  {
+   "bit": 48,
+   "name": "V_HOLD[3]",
+   "signal": 214
+  },
+  {
+   "bit": 49,
+   "name": "V_HOLD[4]",
+   "signal": 215
+  },
+  {
+   "bit": 50,
+   "name": "V_HOLD[5]",
+   "signal": 216
+  },
+  {
+   "bit": 51,
+   "name": "V_HOLD[6]",
+   "signal": 217
+  },
+  {
+   "bit": 52,
+   "name": "V_HOLD[7]",
+   "signal": 218
+  },
+  {
+   "bit": 53,
+   "name": "V_HOLD[8]",
+   "signal": 219
+  },
+  {
+   "bit": 54,
+   "name": "V_ALLOW[0]",
+   "signal": 220
+  },
+  {
+   "bit": 55,
+   "name": "V_ALLOW[1]",
+   "signal": 221
+  },
+  {
+   "bit": 56,
+   "name": "V_ALLOW[2]",
+   "signal": 222
+  },
+  {
+   "bit": 57,
+   "name": "V_ALLOW[3]",
+   "signal": 223
+  },
+  {
+   "bit": 58,
+   "name": "V_ALLOW[4]",
+   "signal": 224
+  },
+  {
+   "bit": 59,
+   "name": "V_ALLOW[5]",
+   "signal": 225
+  },
+  {
+   "bit": 60,
+   "name": "V_ALLOW[6]",
+   "signal": 226
+  },
+  {
+   "bit": 61,
+   "name": "V_ALLOW[7]",
+   "signal": 227
+  },
+  {
+   "bit": 62,
+   "name": "V_ALLOW[8]",
+   "signal": 228
+  },
+  {
+   "bit": 63,
+   "name": "V_RES[0]",
+   "signal": 229
+  },
+  {
+   "bit": 64,
+   "name": "V_RES[1]",
+   "signal": 230
+  },
+  {
+   "bit": 65,
+   "name": "V_RES[2]",
+   "signal": 231
+  },
+  {
+   "bit": 66,
+   "name": "V_RES[3]",
+   "signal": 232
+  },
+  {
+   "bit": 67,
+   "name": "V_RES[4]",
+   "signal": 233
+  },
+  {
+   "bit": 68,
+   "name": "V_RES[5]",
+   "signal": 234
+  },
+  {
+   "bit": 69,
+   "name": "V_RES[6]",
+   "signal": 235
+  },
+  {
+   "bit": 70,
+   "name": "V_RES[7]",
+   "signal": 236
+  },
+  {
+   "bit": 71,
+   "name": "V_RES[8]",
+   "signal": 237
+  },
+  {
+   "bit": 72,
+   "name": "REL[0]",
+   "signal": 238
+  },
+  {
+   "bit": 73,
+   "name": "REL[1]",
+   "signal": 239
+  },
+  {
+   "bit": 74,
+   "name": "REL[2]",
+   "signal": 240
+  },
+  {
+   "bit": 75,
+   "name": "REL[3]",
+   "signal": 241
+  },
+  {
+   "bit": 76,
+   "name": "REL[4]",
+   "signal": 242
+  },
+  {
+   "bit": 77,
+   "name": "REL[5]",
+   "signal": 243
+  },
+  {
+   "bit": 78,
+   "name": "REL[6]",
+   "signal": 244
+  },
+  {
+   "bit": 79,
+   "name": "REL[7]",
+   "signal": 245
+  },
+  {
+   "bit": 80,
+   "name": "REL[8]",
+   "signal": 246
+  },
+  {
+   "bit": 81,
+   "name": "CEIL[0]",
+   "signal": 247
+  },
+  {
+   "bit": 82,
+   "name": "CEIL[1]",
+   "signal": 248
+  },
+  {
+   "bit": 83,
+   "name": "CEIL[2]",
+   "signal": 249
+  },
+  {
+   "bit": 84,
+   "name": "CEIL[3]",
+   "signal": 250
+  },
+  {
+   "bit": 85,
+   "name": "CEIL[4]",
+   "signal": 251
+  },
+  {
+   "bit": 86,
+   "name": "CEIL[5]",
+   "signal": 252
+  },
+  {
+   "bit": 87,
+   "name": "CEIL[6]",
+   "signal": 253
+  },
+  {
+   "bit": 88,
+   "name": "CEIL[7]",
+   "signal": 254
+  },
+  {
+   "bit": 89,
+   "name": "CEIL[8]",
+   "signal": 255
+  },
+  {
+   "bit": 90,
+   "name": "CEIL[9]",
+   "signal": 256
+  },
+  {
+   "bit": 91,
+   "name": "MODE[0]",
+   "signal": 257
+  },
+  {
+   "bit": 92,
+   "name": "MODE[1]",
+   "signal": 258
+  },
+  {
+   "bit": 93,
+   "name": "MODE[2]",
+   "signal": 259
+  },
+  {
+   "bit": 94,
+   "name": "TIER[0]",
+   "signal": 260
+  },
+  {
+   "bit": 95,
+   "name": "TIER[1]",
+   "signal": 261
+  },
+  {
+   "bit": 96,
+   "name": "FLAGS[0]",
+   "signal": 262
+  },
+  {
+   "bit": 97,
+   "name": "FLAGS[1]",
+   "signal": 263
+  },
+  {
+   "bit": 98,
+   "name": "FLAGS[2]",
+   "signal": 264
+  },
+  {
+   "bit": 99,
+   "name": "FLAGS[3]",
+   "signal": 265
+  },
+  {
+   "bit": 100,
+   "name": "FLAGS[4]",
+   "signal": 266
+  },
+  {
+   "bit": 101,
+   "name": "FLAGS[5]",
+   "signal": 267
+  },
+  {
+   "bit": 102,
+   "name": "FLAGS[6]",
+   "signal": 268
+  },
+  {
+   "bit": 103,
+   "name": "FLAGS[7]",
+   "signal": 269
+  },
+  {
+   "bit": 104,
+   "name": "AUX[0]",
+   "signal": 270
+  },
+  {
+   "bit": 105,
+   "name": "AUX[1]",
+   "signal": 271
+  },
+  {
+   "bit": 106,
+   "name": "AUX[2]",
+   "signal": 272
+  },
+  {
+   "bit": 107,
+   "name": "AUX[3]",
+   "signal": 273
+  },
+  {
+   "bit": 108,
+   "name": "AUX[4]",
+   "signal": 274
+  },
+  {
+   "bit": 109,
+   "name": "AUX[5]",
+   "signal": 275
+  },
+  {
+   "bit": 110,
+   "name": "AUX[6]",
+   "signal": 276
+  },
+  {
+   "bit": 111,
+   "name": "AUX[7]",
+   "signal": 277
+  }
+ ],
+ "latches": [
+  {
+   "bit": 0,
+   "name": "TIER[0]",
+   "record": 0,
+   "signal": 98,
+   "d": 156
+  },
+  {
+   "bit": 1,
+   "name": "TIER[1]",
+   "record": 1,
+   "signal": 99,
+   "d": 157
+  }
+ ],
+ "fields": {
+  "inputs": [
+   {
+    "name": "TAX",
+    "lsb": 0,
+    "width": 10
+   },
+   {
+    "name": "TAXCUM",
+    "lsb": 10,
+    "width": 10
+   },
+   {
+    "name": "REV",
+    "lsb": 20,
+    "width": 10
+   },
+   {
+    "name": "REVCUM",
+    "lsb": 30,
+    "width": 10
+   },
+   {
+    "name": "RES",
+    "lsb": 40,
+    "width": 10
+   },
+   {
+    "name": "ESC",
+    "lsb": 50,
+    "width": 10
+   },
+   {
+    "name": "PROG",
+    "lsb": 60,
+    "width": 8
+   },
+   {
+    "name": "LOCK",
+    "lsb": 68,
+    "width": 8
+   },
+   {
+    "name": "DT",
+    "lsb": 76,
+    "width": 4
+   },
+   {
+    "name": "GRAD",
+    "lsb": 80,
+    "width": 1
+   },
+   {
+    "name": "ZERO",
+    "lsb": 81,
+    "width": 15
+   }
+  ],
+  "outputs": [
+   {
+    "name": "T_BUY",
+    "lsb": 0,
+    "width": 9
+   },
+   {
+    "name": "T_HOLD",
+    "lsb": 9,
+    "width": 9
+   },
+   {
+    "name": "T_ALLOW",
+    "lsb": 18,
+    "width": 9
+   },
+   {
+    "name": "T_RES",
+    "lsb": 27,
+    "width": 9
+   },
+   {
+    "name": "V_BUY",
+    "lsb": 36,
+    "width": 9
+   },
+   {
+    "name": "V_HOLD",
+    "lsb": 45,
+    "width": 9
+   },
+   {
+    "name": "V_ALLOW",
+    "lsb": 54,
+    "width": 9
+   },
+   {
+    "name": "V_RES",
+    "lsb": 63,
+    "width": 9
+   },
+   {
+    "name": "REL",
+    "lsb": 72,
+    "width": 9
+   },
+   {
+    "name": "CEIL",
+    "lsb": 81,
+    "width": 10
+   },
+   {
+    "name": "MODE",
+    "lsb": 91,
+    "width": 3
+   },
+   {
+    "name": "TIER",
+    "lsb": 94,
+    "width": 2
+   },
+   {
+    "name": "FLAGS",
+    "lsb": 96,
+    "width": 8
+   },
+   {
+    "name": "AUX",
+    "lsb": 104,
+    "width": 8
+   }
+  ],
+  "state": [
+   {
+    "name": "TIER",
+    "lsb": 0,
+    "width": 2
+   }
+  ]
+ },
+ "tapeout": {
+  "nIn": 96,
+  "nOut": 112,
+  "burnNand": 178,
+  "burnLatch": 2
+ },
+ "tool": {
+  "tapc": "0.1.0"
+ },
+ "build": {
+  "top": "starter_core",
+  "recipe": "xor-area",
+  "library": "xor",
+  "abcScript": "strash; ifraig; dc2; dc2; dch -f; map -a; topo",
+  "ripple": true,
+  "hier": false,
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "packages": {
+   "yowasp-yosys": "0.69.0.0.post1233",
+   "yowasp-runtime": "1.96",
+   "wasmtime": "47.0.1",
+   "z3-solver": "5.1.0.0"
+  },
+  "sources": [
+   {
+    "file": "starter_core.v",
+    "sha256": "8c411bea4a886d9ef9501d58e582c01f564a291fa94f074cde807cd4dede1146"
+   }
+  ]
+ }
+}

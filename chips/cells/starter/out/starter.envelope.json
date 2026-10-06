@@ -1,0 +1,16 @@
+{
+ "launcher": "0xe766dd64fe4f5f49f7f413596355081e16f2d9ec",
+ "epochLen": 900,
+ "allowancePayee": "0xe766dd64fe4f5f49f7f413596355081e16f2d9ec",
+ "capT": 32,
+ "capV": 0,
+ "allowCumBps": 1250,
+ "ceilMax": 440,
+ "relMax": 16,
+ "floorRel": 2,
+ "floorMin": 1,
+ "fallbackEpochs": 16,
+ "fbAllow": 8,
+ "buyEnabled": true,
+ "sink": "0x0000000000000000000000000000000000000000"
+}

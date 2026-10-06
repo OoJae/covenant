@@ -1,0 +1,127 @@
+{
+ "format": "tapc-proofs/1",
+ "name": "starter",
+ "keccak256": "0xac8a37a27bf4f86d790b03d543d161d8ba20c66d4458b44e9f6edebe05f4ffe4",
+ "bytes": 1254,
+ "nIn": 96,
+ "nOut": 112,
+ "nState": 2,
+ "nNand": 178,
+ "nLatch": 2,
+ "ok": true,
+ "tool": {
+  "tapc": "0.1.0",
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "z3": "5.1.0"
+ },
+ "proofs": [
+  {
+   "name": "starter_core == netlist",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_core == netlist",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_tshares_256",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_vshares_256",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_ratchet",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_never_loosens",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_allow_by_tier",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_grad_no_allow",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_reference_envelope",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_telemetry",
+   "engine": "yosys-sat",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_tshares_256",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_vshares_256",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_ratchet",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_never_loosens",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_allow_by_tier",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_grad_no_allow",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_reference_envelope",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  },
+  {
+   "name": "starter_props.p_telemetry",
+   "engine": "z3",
+   "status": "proved",
+   "space": "every state and every input"
+  }
+ ]
+}

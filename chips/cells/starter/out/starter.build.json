@@ -1,0 +1,40 @@
+{
+ "format": "covenant-kit-build/1",
+ "name": "starter",
+ "config": "chips/cells/starter/chip.json",
+ "netlist": {
+  "file": "starter.tap",
+  "hex": "starter.hex",
+  "keccak256": "0xac8a37a27bf4f86d790b03d543d161d8ba20c66d4458b44e9f6edebe05f4ffe4",
+  "bytes": 1254,
+  "nIn": 96,
+  "nOut": 112,
+  "nState": 2,
+  "nNand": 178,
+  "nLatch": 2,
+  "gateCount": 180,
+  "depth": 17,
+  "recipe": "xor-area"
+ },
+ "manifest": {
+  "file": "starter.tape-pins.json",
+  "sha256": "0x2e6238e68dda7326985c3e5a4649784bf3df5939e99074ddb558a144c192bdc2",
+  "note": "the manifestHash for Fab.tapeoutChip; publish the file as .well-known/tape-pins.json"
+ },
+ "proofs": {
+  "file": "starter.proofs.json",
+  "proved": 18,
+  "total": 18,
+  "ok": true
+ },
+ "gas": {
+  "stepFloor": 669600,
+  "sealedFloor": 76400,
+  "note": "gas the kernel gives each evaluator per beat (KernelFactory: 200,000 + 2,600 per gate + 800 per latch for TapeOut's step; 40,000 + 200 per NAND + 400 per latch for the sealed one)"
+ },
+ "sources": {
+  "chips/cells/starter/chip.json": "0xe563afb4825b8453cd27cc4283ded6a17e0dc5767cb15bd10ddc9bc16a632b01",
+  "chips/cells/starter/starter_core.v": "0x8c411bea4a886d9ef9501d58e582c01f564a291fa94f074cde807cd4dede1146",
+  "chips/cells/starter/starter_props.v": "0xa9806aa85f786f83b763a1260fb89a28f292eaebe3a59c0913301bfd65fa05f5"
+ }
+}

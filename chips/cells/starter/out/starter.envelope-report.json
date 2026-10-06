@@ -1,0 +1,140 @@
+{
+ "format": "covenant-kit-envelope/1",
+ "chip": "starter",
+ "netlistKeccak256": "0xac8a37a27bf4f86d790b03d543d161d8ba20c66d4458b44e9f6edebe05f4ffe4",
+ "envelope": {
+  "launcher": "0xe766dd64fe4f5f49f7f413596355081e16f2d9ec",
+  "epochLen": 900,
+  "allowancePayee": "0xe766dd64fe4f5f49f7f413596355081e16f2d9ec",
+  "capT": 32,
+  "capV": 0,
+  "allowCumBps": 1250,
+  "ceilMax": 440,
+  "relMax": 16,
+  "floorRel": 2,
+  "floorMin": 1,
+  "fallbackEpochs": 16,
+  "fbAllow": 8,
+  "buyEnabled": true,
+  "sink": "0x0000000000000000000000000000000000000000"
+ },
+ "factoryChecks": [
+  {
+   "code": 1,
+   "ok": true,
+   "rule": "launcher is not the zero address"
+  },
+  {
+   "code": 2,
+   "ok": true,
+   "rule": "epochLen is 300 .. 86400 s"
+  },
+  {
+   "code": 3,
+   "ok": true,
+   "rule": "allowancePayee is not the zero address"
+  },
+  {
+   "code": 4,
+   "ok": true,
+   "rule": "capT <= 128"
+  },
+  {
+   "code": 5,
+   "ok": true,
+   "rule": "capV <= 255"
+  },
+  {
+   "code": 6,
+   "ok": true,
+   "rule": "allowCumBps <= 5000"
+  },
+  {
+   "code": 7,
+   "ok": true,
+   "rule": "ceilMax <= 1023"
+  },
+  {
+   "code": 8,
+   "ok": true,
+   "rule": "relMax is 1 .. 256"
+  },
+  {
+   "code": 9,
+   "ok": true,
+   "rule": "floorRel is 1 .. relMax"
+  },
+  {
+   "code": 10,
+   "ok": true,
+   "rule": "floorMin is 1 .. 425"
+  },
+  {
+   "code": 11,
+   "ok": true,
+   "rule": "fallbackEpochs >= 2"
+  },
+  {
+   "code": 12,
+   "ok": true,
+   "rule": "fbAllow <= capT"
+  },
+  {
+   "code": 13,
+   "ok": true,
+   "rule": "buyEnabled is true"
+  },
+  {
+   "code": 14,
+   "ok": true,
+   "rule": "epochLen * fallbackEpochs <= 30 days"
+  },
+  {
+   "code": 15,
+   "ok": true,
+   "rule": "epochLen * 178 <= 30 days * floorRel"
+  }
+ ],
+ "guarantees": [
+  "allowance: at most 12.50% of the OKB that reaches the kernel (capT 32/256, lifetime allowCumBps 1250/10000), at most 0.033777 OKB in one settle, paid to 0xe766dd64fe4f5f49f7f413596355081e16f2d9ec only, and nothing after graduation",
+  "everything else can only be bought and locked, burned, or wait in the reserve",
+  "reserve: at or above 1 wei at least 2/256 of it is offered to the buy leg each settle (half of it within 89 settles, 22.2 h at one settle per 900 s epoch); at most 16/256 per settle",
+  "fallback: if neither evaluator answers for 16 epochs (4.0 h), settles apply the fallback word: 248/256 bought, 8/256 allowance"
+ ],
+ "onchain": {
+  "ok": true,
+  "chipId": 2,
+  "predicted": "0x41d73c0764bf36e767b40348e9e7a22ba83ef4ab"
+ },
+ "clamps": {
+  "K1T": {
+   "verdict": "never",
+   "why": "proved for every state and input (z3, on the netlist bytes)"
+  },
+  "K2": {
+   "verdict": "never",
+   "why": "proved for every state and input (z3, on the netlist bytes)"
+  },
+  "K3": {
+   "verdict": "never",
+   "why": "proved for every state and input (z3, on the netlist bytes)"
+  },
+  "K5": {
+   "verdict": "never",
+   "why": "proved for every state and input (z3, on the netlist bytes)"
+  },
+  "K2C": {
+   "verdict": "never",
+   "why": "proved for every state and input (z3, on the netlist bytes)"
+  },
+  "K2L": {
+   "verdict": "never",
+   "why": "proved for every state and input (z3, on the netlist bytes)"
+  }
+ },
+ "outputRanges": {
+  "T_ALLOW max (well-formed groups, on the curve)": 32,
+  "REL min": 4,
+  "REL max": 4
+ }
+}

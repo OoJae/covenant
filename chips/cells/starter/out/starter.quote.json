@@ -1,0 +1,19 @@
+{
+ "block": 72524201,
+ "nNand": 178,
+ "nLatch": 2,
+ "transistors": 180,
+ "costWei": 6220000000000000,
+ "mintPriceWei": 20000000000000,
+ "protocolFeeWei": 660000000000000,
+ "mintCalls": 2,
+ "tapeoutFeeWei": 1300000000000000,
+ "supplyCap": 67108864,
+ "minted": 2298,
+ "remaining": 67106566,
+ "tankAllowanceWei": 3060000000000000,
+ "chip": "starter",
+ "keccak256": "0xac8a37a27bf4f86d790b03d543d161d8ba20c66d4458b44e9f6edebe05f4ffe4",
+ "fab": "0xdcac8c47af534dc0cde30f60056bce7d63a79afe",
+ "readAt": "2026-10-06T13:27:17Z"
+}

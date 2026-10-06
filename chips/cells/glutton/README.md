@@ -80,3 +80,23 @@ On the local fork (block 72373000, `chips/out/fg.fork.json`): tape-out of Glutto
 ## Shadow-running Glutton on the reference token
 
 `step` is a free read call and the kernel records every settle, so anyone can ask "what would Glutton have done with this token's real flows?" without a wallet. `RES`, `TAXCUM` and even `TAX` depend on the chip's own past decisions (what it bought comes back as tax), so a shadow-run replays the tax of outside trading, not recorded input words: rebuild each input word with the kernel arithmetic, step the Glutton bytes, route the answer and move the simulated curve (`demo.py` does exactly this with `scenarios.run`).
+
+## Through the chip kit
+
+`glutton.kit.json` lets `chips/kit/kit.sh` (docs/BUILD_YOUR_CHIP.md) treat Glutton like any outsider's chip:
+
+```
+chips/kit/kit.sh build    chips/cells/glutton/glutton.kit.json   # same 795 bytes, keccak256 0x3278...9582, 10/10 proved
+chips/kit/kit.sh envelope chips/cells/glutton/glutton.kit.json --launcher <address>
+chips/kit/kit.sh fork     chips/cells/glutton/glutton.kit.json   # tape-out, kernel, hand-over, preflight on a local fork
+```
+
+On a fork at block 72,524,440 a keyless outsider address taped it out through the Fab (0.0049 OKB, 960,430 gas), the
+factory created its kernel with the reference envelope, and `Lens.preflight` passed: both evaluators ran within the
+gas a settle gives them (TapeOut 339,363 of 497,200; sealed 33,633 of 63,000) and agreed. `kit.sh envelope` proves,
+for every state and input, that under the reference envelope it can trigger `K2`, `K3` and (on a large epoch) `K2C`,
+and never `K1T`, `K2L` or `K5`. Outputs go to `chips/cells/glutton/out/`.
+
+The kit writes a new pin manifest (`out/glutton.tape-pins.json`, profile `covenant-v1`, SHA-256 `0xde65...a3d5`). It
+is not the manifest Glutton was taped out with on mainnet: chip 3 records `0x12d9...c7ea`, the SHA-256 of
+`glutton.pins.json`. The netlist bytes are the same.

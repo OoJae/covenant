@@ -1,0 +1,174 @@
+{
+ "format": "covenant-kit-fork/1",
+ "note": "LOCAL ANVIL FORK of X Layer. Nothing here happened on the real chain. The launcher was impersonated.",
+ "chip": "starter",
+ "forkBlock": 72524565,
+ "launcher": "0xe766dd64fe4f5f49f7f413596355081e16f2d9ec",
+ "chipId": 5,
+ "kernel": "0xc3108D25947830e8Ff8575A15704C1201b34e468",
+ "netlistKeccak256": "0xac8a37a27bf4f86d790b03d543d161d8ba20c66d4458b44e9f6edebe05f4ffe4",
+ "manifestHash": "0x2e6238e68dda7326985c3e5a4649784bf3df5939e99074ddb558a144c192bdc2",
+ "envelope": {
+  "launcher": "0xe766dd64fe4f5f49f7f413596355081e16f2d9ec",
+  "epochLen": 900,
+  "allowancePayee": "0xe766dd64fe4f5f49f7f413596355081e16f2d9ec",
+  "capT": 32,
+  "capV": 0,
+  "allowCumBps": 1250,
+  "ceilMax": 440,
+  "relMax": 16,
+  "floorRel": 2,
+  "floorMin": 1,
+  "fallbackEpochs": 16,
+  "fbAllow": 8,
+  "buyEnabled": true,
+  "sink": "0x0000000000000000000000000000000000000000"
+ },
+ "checks": {
+  "kernel holds its chip": true,
+  "factory.isKernel(kernel)": true,
+  "kernel envelope is the planned one": true,
+  "Fab records the netlist (keccak256)": true,
+  "Fab records the manifestHash": true,
+  "Fab records the outsider as author": true,
+  "preflight: TapeOut evaluator ran": true,
+  "preflight: sealed evaluator ran": true,
+  "preflight: both evaluators agree": true
+ },
+ "preflight": {
+  "sealedModeNow": false,
+  "tapeoutRan": true,
+  "sealedRan": true,
+  "agree": true,
+  "tapeoutGas": 483737,
+  "sealedGas": 43969,
+  "stepFloor": 669600,
+  "sealedFloor": 76400,
+  "minSettleGas": 5396369
+ },
+ "pinsLive": true,
+ "transactions": {
+  "tapeout": {
+   "tx": "0xac411f0ddab787d59bbf901810957ec02acc8b14bf2f4607ac9db7ec52be9a67",
+   "gasUsed": 1250047,
+   "effectiveGasPrice": 17747124
+  },
+  "create": {
+   "tx": "0x68c169b71d73f488f2501eccb4d5927433a8ce49b116b30a29d2e72b4301795c",
+   "gasUsed": 323734,
+   "effectiveGasPrice": 15555145
+  },
+  "handover": {
+   "tx": "0x35aabb1b326dda1fb31ac92afc82fca2b78eb1e611c66f42141c61dfeb7bb70f",
+   "gasUsed": 75264,
+   "effectiveGasPrice": 13616747
+  }
+ },
+ "fabValueWei": 6220000000000000,
+ "keeperTankAllowanceWei": 3060000000000000,
+ "boundedDemo": [
+  {
+   "inflowWei": 50000000000000000,
+   "reserveBeforeWei": 0,
+   "stateBefore": "0x00",
+   "stateAfter": "0x00",
+   "asked": {
+    "T_BUY": 192,
+    "T_ALLOW": 32,
+    "T_RES": 32,
+    "REL": 4,
+    "CEIL": 440
+   },
+   "clamps": [],
+   "allowWei": 6250000000000000,
+   "buyDecidedWei": 37500000000000000,
+   "effectiveRel": 4
+  },
+  {
+   "inflowWei": 500000000000000000,
+   "reserveBeforeWei": 6250000000000000,
+   "stateBefore": "0x00",
+   "stateAfter": "0x00",
+   "asked": {
+    "T_BUY": 192,
+    "T_ALLOW": 32,
+    "T_RES": 32,
+    "REL": 4,
+    "CEIL": 440
+   },
+   "clamps": [],
+   "allowWei": 33776997205278720,
+   "buyDecidedWei": 375097656250000000,
+   "effectiveRel": 4
+  },
+  {
+   "inflowWei": 1000000000000000000,
+   "reserveBeforeWei": 97375346544721280,
+   "stateBefore": "0x00",
+   "stateAfter": "0x01",
+   "asked": {
+    "T_BUY": 192,
+    "T_ALLOW": 16,
+    "T_RES": 48,
+    "REL": 4,
+    "CEIL": 440
+   },
+   "clamps": [],
+   "allowWei": 33776997205278720,
+   "buyDecidedWei": 751521489789761270,
+   "effectiveRel": 4
+  },
+  {
+   "inflowWei": 5000000000000000000,
+   "reserveBeforeWei": 312076859549681290,
+   "stateBefore": "0x01",
+   "stateAfter": "0x01",
+   "asked": {
+    "T_BUY": 192,
+    "T_ALLOW": 16,
+    "T_RES": 48,
+    "REL": 4,
+    "CEIL": 440
+   },
+   "clamps": [],
+   "allowWei": 33776997205278720,
+   "buyDecidedWei": 3754876200930463770,
+   "effectiveRel": 4
+  },
+  {
+   "inflowWei": 20000000000000000000,
+   "reserveBeforeWei": 1523423661413938800,
+   "stateBefore": "0x01",
+   "stateAfter": "0x02",
+   "asked": {
+    "T_BUY": 192,
+    "T_ALLOW": 8,
+    "T_RES": 56,
+    "REL": 4,
+    "CEIL": 440
+   },
+   "clamps": [],
+   "allowWei": 33776997205278720,
+   "buyDecidedWei": 15023803494709592793,
+   "effectiveRel": 4
+  },
+  {
+   "inflowWei": 100000000000000000000,
+   "reserveBeforeWei": 6465843169499067287,
+   "stateBefore": "0x02",
+   "stateAfter": "0x03",
+   "asked": {
+    "T_BUY": 192,
+    "T_ALLOW": 0,
+    "T_RES": 64,
+    "REL": 4,
+    "CEIL": 440
+   },
+   "clamps": [],
+   "allowWei": 0,
+   "buyDecidedWei": 75101028799523422926,
+   "effectiveRel": 4
+  }
+ ],
+ "seconds": 61.5
+}

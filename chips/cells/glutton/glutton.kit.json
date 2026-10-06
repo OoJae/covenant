@@ -1,0 +1,29 @@
+{
+ "kit": "covenant-kit/1",
+ "name": "glutton",
+ "top": "glutton_core",
+ "sources": ["glutton_core.v"],
+ "props": {
+  "sources": ["glutton_props.v"],
+  "top": "glutton_props",
+  "tapModule": "glutton_tap",
+  "signals": ["p_demands_everything", "p_heartbeat", "p_ignores_inputs", "p_group_256"]
+ },
+ "description": "Glutton, the hostile demo chip of Covenant (interface v1). Whatever the inputs, it asks for the whole tax as allowance, the whole revenue as allowance, the whole reserve as release and no ceiling. Its one latch toggles every beat. It exists to show what the kernel's envelope does to a chip written by a stranger.",
+ "state": [
+  {"name": "HEARTBEAT", "offset": 0, "width": 1, "encoding": "bool", "description": "Toggles every beat; shown in AUX bit 0."}
+ ],
+ "envelope": {
+  "epochLen": 900,
+  "capT": 48,
+  "capV": 0,
+  "allowCumBps": 1875,
+  "ceilMax": 440,
+  "relMax": 128,
+  "floorRel": 2,
+  "floorMin": 1,
+  "fallbackEpochs": 16,
+  "fbAllow": 8,
+  "buyEnabled": true
+ }
+}

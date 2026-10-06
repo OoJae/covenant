@@ -1,0 +1,316 @@
+{
+  "tapepins": "0.1",
+  "name": "starter",
+  "description": "Starter, a Covenant vault chip (interface v1). Once per epoch a kernel contract builds the 96 input bits from chain state and runs one beat. The chip sends 75% of the epoch's tax to buy-and-lock, an allowance share of 32, 16, 8 or 0 (of 256) by tier, and the rest to the reserve, which it releases at 4/256 per settle. The tier is kept in two latches and is the larger of the old tier and the tier that cumulative tax has earned (from about 0.94, 9.2 and 92 OKB; tier 3 at graduation), so it never decreases. The reset state is zero.",
+  "circuit": {
+    "netlistHash": "0xac8a37a27bf4f86d790b03d543d161d8ba20c66d4458b44e9f6edebe05f4ffe4"
+  },
+  "profile": {
+    "name": "covenant-v1",
+    "sha256": "0x77a721cda1c499ae4ffcad1a02a9bbb75bfce2a5773e587adbc77bd660756eb5"
+  },
+  "nIn": 96,
+  "nOut": 112,
+  "nState": 2,
+  "inputs": [
+    {
+      "name": "TAX",
+      "offset": 0,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Fresh inflow of the regime asset recognised by this settle."
+    },
+    {
+      "name": "TAXCUM",
+      "offset": 10,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Cumulative inflow in the current regime, this settle included. Restarts at graduation."
+    },
+    {
+      "name": "REV",
+      "offset": 20,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Revenue since the last step. Kernel v1 always writes 0."
+    },
+    {
+      "name": "REVCUM",
+      "offset": 30,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Cumulative revenue. Kernel v1 always writes 0."
+    },
+    {
+      "name": "RES",
+      "offset": 40,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Reserve of the regime asset before this settle's routing."
+    },
+    {
+      "name": "ESC",
+      "offset": 50,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "unit": "base units of the regime asset",
+      "description": "Holder escrow. Kernel v1 always writes 0."
+    },
+    {
+      "name": "PROG",
+      "offset": 60,
+      "width": 8,
+      "encoding": "uint",
+      "scale": [
+        1,
+        255
+      ],
+      "values": {
+        "255": "graduated"
+      },
+      "unit": "of the sellable supply",
+      "description": "Curve progress: tokens sold times 255 divided by the sellable supply, rounded down, at most 254 while on the curve; 255 once graduated."
+    },
+    {
+      "name": "LOCK",
+      "offset": 68,
+      "width": 8,
+      "encoding": "uint",
+      "scale": [
+        1,
+        255
+      ],
+      "unit": "of the total supply",
+      "description": "Tokens locked or burned by the kernel times 255 divided by the total supply, rounded down."
+    },
+    {
+      "name": "DT",
+      "offset": 76,
+      "width": 4,
+      "encoding": "uint",
+      "min": 1,
+      "max": 15,
+      "values": {
+        "15": "15 or more"
+      },
+      "unit": "epochs",
+      "description": "Epochs since the last persisted step."
+    },
+    {
+      "name": "GRAD",
+      "offset": 80,
+      "width": 1,
+      "encoding": "bool",
+      "description": "True once the token has graduated from the curve."
+    },
+    {
+      "name": "ZERO",
+      "offset": 81,
+      "width": 15,
+      "encoding": "zero",
+      "description": "Always 0. A chip must ignore these bits."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "T_BUY",
+      "offset": 0,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Share of fresh tax to buy-and-lock."
+    },
+    {
+      "name": "T_HOLD",
+      "offset": 9,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Holder share of fresh tax. Kernel v1 adds it to the reserve."
+    },
+    {
+      "name": "T_ALLOW",
+      "offset": 18,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Allowance share of fresh tax."
+    },
+    {
+      "name": "T_RES",
+      "offset": 27,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh tax",
+      "description": "Reserve share of fresh tax."
+    },
+    {
+      "name": "V_BUY",
+      "offset": 36,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Share of fresh revenue to buy-and-lock. Kernel v1 ignores it."
+    },
+    {
+      "name": "V_HOLD",
+      "offset": 45,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Holder share of fresh revenue. Kernel v1 ignores it."
+    },
+    {
+      "name": "V_ALLOW",
+      "offset": 54,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Allowance share of fresh revenue. Kernel v1 ignores it."
+    },
+    {
+      "name": "V_RES",
+      "offset": 63,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the fresh revenue",
+      "description": "Reserve share of fresh revenue. Kernel v1 ignores it."
+    },
+    {
+      "name": "REL",
+      "offset": 72,
+      "width": 9,
+      "encoding": "uint",
+      "min": 0,
+      "max": 256,
+      "scale": [
+        1,
+        256
+      ],
+      "unit": "of the pre-settle reserve",
+      "description": "Share of the pre-settle reserve released into buy-and-lock."
+    },
+    {
+      "name": "CEIL",
+      "offset": 81,
+      "width": 10,
+      "encoding": "log",
+      "mantissaBits": 3,
+      "values": {
+        "1023": "none"
+      },
+      "unit": "base units of the regime asset",
+      "description": "Ceiling on this settle's allowance amount."
+    },
+    {
+      "name": "MODE",
+      "offset": 91,
+      "width": 3,
+      "encoding": "zero",
+      "description": "Always 0 in the Starter."
+    },
+    {
+      "name": "TIER",
+      "offset": 94,
+      "width": 2,
+      "encoding": "uint",
+      "min": 0,
+      "max": 3,
+      "description": "Allowance tier after this beat; equal to the TIER latch."
+    },
+    {
+      "name": "FLAGS",
+      "offset": 96,
+      "width": 8,
+      "encoding": "flags",
+      "bits": [
+        "tierup",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "description": "tierup: the tier stepped up in this beat."
+    },
+    {
+      "name": "AUX",
+      "offset": 104,
+      "width": 8,
+      "encoding": "zero",
+      "description": "Always 0 in the Starter."
+    }
+  ],
+  "state": [
+    {
+      "name": "TIER",
+      "offset": 0,
+      "width": 2,
+      "encoding": "uint",
+      "min": 0,
+      "max": 3,
+      "description": "Allowance tier: 0, 1, 2 or 3 for an allowance share of 32, 16, 8 or 0 out of 256. It never decreases."
+    }
+  ]
+}
