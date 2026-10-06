@@ -76,5 +76,105 @@
     "priceUsdt0": "0.50",
     "payTo": "0xbe5088307e15aaf8cf0c53bfcc4c612c9ead6da0",
     "listing": "submitted for OKX.AI review 2026-10-06"
+  },
+  "site": {
+    "commit": "a97b90a02dd063762593bdde37e340d024f12c0e",
+    "processor": "0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b",
+    "processorNumber": 283,
+    "circuitId": 1,
+    "container": "0x911350102b2D81a1E8A816638D429a16b80B8Ee2",
+    "name": "1.2.283.tape",
+    "gateway": "https://1-2-283.tapekit.org/",
+    "status": "https://1-2-283.tapekit.org/.tape/status",
+    "paidUntil": 1793903418,
+    "build": "web/package.json build script at the commit, deployments/xlayer.json minus .site",
+    "buildDigest": "7649b9670eb64b8addeab9c39dacc55c25cfb0c603e36d1d7f1f15b7717d2c71",
+    "files": [
+      {
+        "path": "assets/Circuit-BKZqZWLt.js",
+        "bytes": 14776,
+        "sha256": "0xc256a9d839af602bbabac4ab5bc54a502de26a02cae566910a633db13cf9d0bb",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/Die-DyMoofhs.js",
+        "bytes": 13568,
+        "sha256": "0x99b28cfb8000ef431c0a4d03e77b2492f024789fa353b3cd9d8b4408939bd000",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/guidePages-CK9CiSSS.js",
+        "bytes": 19798,
+        "sha256": "0x130bebdde48a8f269fb3b4d9b1b5ed99e37adec7a8bd1a9da4bd85579c25dea2",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/index-D3RASePi.js",
+        "bytes": 66854,
+        "sha256": "0x975a135fba216828805d9eb689ccc77247813ded3e6c50e1966fd4a89e74d530",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/kernel-SoqfKK0t.js",
+        "bytes": 6957,
+        "sha256": "0x2a1562d1fcd75ad51a1df4e7764bf5ba2838ccf4c5a2439f699a7ac50910f80b",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/kernelPages-C1QvNpE0.js",
+        "bytes": 36883,
+        "sha256": "0xd5046af2708438ab248c7f4a604aca12080eab0784ecce6a21dfb2327713ec97",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/rolldown-runtime-DK3Fl9T5.js",
+        "bytes": 158,
+        "sha256": "0xa526d1bb3288ef04d001028843220a24b0867a4edf8c685b69506d6525af36ff",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/sim-CZ5Ymxcx.js",
+        "bytes": 5159,
+        "sha256": "0xf23c4acdc5d61fd7405ef2d1049f0dc629297bc576e8a49637f9e0d49be6375e",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/sim-CvyqDsA8.js",
+        "bytes": 31567,
+        "sha256": "0xb4a9676bd5056374d91b2d2ead311ee5962c8cd68a56b96ff3ae3406a97b3778",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "assets/style-C9KWL3wo.css",
+        "bytes": 14027,
+        "sha256": "0x8bd43dba8b5c9e511962c381b4a1ebcb50c7c570a9cdf9d46f04695c75fa08d9",
+        "contentType": "text/css; charset=utf-8"
+      },
+      {
+        "path": "index.html",
+        "bytes": 1039,
+        "sha256": "0x7171abfddf70cbf5011793461809900094fb5acab4ccc8ac7dca93ed19c5d85b",
+        "contentType": "text/html; charset=utf-8"
+      }
+    ],
+    "txs": [
+      "0xd749f8c56b1b8d6f16ad74ddf3af49c82247eb410132af4c010de234fee0abc3",
+      "0x96ccd5175dfbdbc9dbb0fc5adbd1a3086a4ed6862265cdc355802f80db59fe37",
+      "0xc073f0f137a29de2c9ceb1378e2784f94a7abd7a37b128d4cc733e2f05913bd4",
+      "0xfdc7aa173c066bacfd37090f9f891aa8450d9bb63fde4cf0147a11c1c22462ee",
+      "0xcf74f43e18b53603f517c182a497101b6679cc876f54712f968f36ea99e54780",
+      "0x1ae2a7a83aef9973903be4dfe9607b13a754b08f74be23a4de23270ccbce4837",
+      "0xcbb955fb282b33ffd2135739dd25a8fff9071001250c87bfac6c669170ec7d86",
+      "0x7138a9504b95952a5958a1b33847de015be2e5275e9e06fa0c508e2d785768de",
+      "0x7421d83e7bd007ec84ba5d19d63db2e0e878f5ad3ed3a7c2da519edf5cf7b4a8",
+      "0xc0eb0d8a267bc77b94ff154ae8d1423d41103b5d9e23bd744e16bfa2179448f9",
+      "0xbb05405feee7442f9a115b6c694b2ae5a130d4db9e418089706021ea7d908744",
+      "0x2c4d769117b0f2a5d9b9eb166ef0b382e952dac385f211560753f6aabc31a4dd",
+      "0x60e7d3c9b69bcf19b47dbcc791d1aeec85de7e7a7058037b673241dfdc05d845",
+      "0x9f866b91ccb99c5eec3c627eca506e41d3edeeac856f75167460b857564e4c6a",
+      "0xb63f25e6fb13c94f97258e175a1f451be2f4bfd5ab58fde54bad08c06dd5956e",
+      "0x01f48853db11914ff2f2db4d0a5ab341d0790e82d4391e7aff0dbdcb77fd4c70",
+      "0xff250483cfb3cee5a073828dd6ef7ddbe42ec05e65ee186217384d13d306c478"
+    ]
   }
 }
