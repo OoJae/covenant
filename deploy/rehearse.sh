@@ -16,15 +16,17 @@
 # recorded addresses are used instead. On today's chain the rehearsal therefore covers the steps still to be signed.
 #
 # Everything runs in a scratch copy of the contracts, so no broadcast record of a rehearsal can land in the
-# repository, where the real ones are committed. The one file written in the repository is deploy/rehearsal.json.
+# repository, where the real ones are committed. The one file written in the repository is deploy/rehearsal.json
+# (or the file REHEARSAL_OUT names).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEPLOYER=0x84cE7bAe1b788C7aD985D57721cA428b401aE34D
 UPSTREAM="${XLAYER_RPC_URL:-https://rpc.xlayer.tech}"
-PORT="${PORT:-48600}"
+# A free port by default: a port another fork already holds would make this script drive that fork instead.
+PORT="${PORT:-$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')}"
 RPC="http://127.0.0.1:$PORT"
-OUT="$ROOT/deploy/rehearsal.json"
+OUT="${REHEARSAL_OUT:-$ROOT/deploy/rehearsal.json}"
 LIVE="$ROOT/deployments/xlayer.json"
 COMMIT="${COMMIT:-$(git -C "$ROOT" rev-parse HEAD)}"
 
@@ -50,8 +52,13 @@ fork_args=(--fork-url "$UPSTREAM" --port "$PORT" --auto-impersonate --silent)
 [ -z "${FORK_BLOCK:-}" ] || fork_args+=(--fork-block-number "$FORK_BLOCK")
 anvil "${fork_args[@]}" &
 ANVIL=$!
-for _ in $(seq 1 60); do cast chain-id --rpc-url "$RPC" >/dev/null 2>&1 && break; sleep 1; done
+for _ in $(seq 1 60); do
+  kill -0 "$ANVIL" 2>/dev/null || { echo "rehearse.sh: anvil exited (is port $PORT taken?)" >&2; exit 1; }
+  cast chain-id --rpc-url "$RPC" >/dev/null 2>&1 && break
+  sleep 1
+done
 [ "$(cast chain-id --rpc-url "$RPC" 2>/dev/null)" = "196" ] || { echo "rehearse.sh: the fork did not start" >&2; exit 1; }
+kill -0 "$ANVIL" 2>/dev/null || { echo "rehearse.sh: anvil exited; something else answers on port $PORT" >&2; exit 1; }
 BLOCK=$(cast block-number --rpc-url "$RPC")
 echo "fork of X Layer at block $BLOCK; deployer nonce $(cast nonce $DEPLOYER --rpc-url "$RPC"), balance $(cast balance $DEPLOYER --rpc-url "$RPC" --ether) OKB"
 

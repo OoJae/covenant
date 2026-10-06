@@ -45,3 +45,6 @@ docs/outreach/
 
 # fork rehearsal output (addresses on a local fork, not mainnet)
 deploy/rehearsal.json
+# DeWEB research captures (third-party gateway and contract sources, kept local) and fork broadcast records
+/tools/deweb/research/
+/tools/deweb/sim/broadcast/

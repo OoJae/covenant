@@ -56,7 +56,9 @@ root=$(cd "$(dirname "$0")/.." && pwd -P)
 cd "$root"
 [ "$(git rev-parse --show-toplevel)" = "$root" ] || refuse "this script belongs in deploy/ of the repository"
 LIVE=deployments/xlayer.json
-PLAN=deploy/rehearsal.json
+# The rehearsal's plan (its nonces and addresses) is this run's own file: nothing else can change it mid-run.
+PLAN=$(mktemp "${TMPDIR:-/tmp}/covenant-plan.XXXXXX")
+trap 'rm -f "$PLAN"' EXIT
 
 # ---- 1. The working tree is the commit, and the commit is public.
 SOURCES=(contracts/evaluator/src contracts/evaluator/script contracts/evaluator/foundry.toml
@@ -107,15 +109,37 @@ set_live() { # jq filter with $v bound to a JSON value
   tmp=$(mktemp)
   jq --argjson v "$2" "$1" "$LIVE" >"$tmp" && mv "$tmp" "$LIVE"
 }
-# Exit 0 if every transaction of a broadcast record has a successful receipt.
-receipts_ok() {
-  python3 - "$1" <<'EOF'
-import json, sys
-d = json.load(open(sys.argv[1]))
-txs = [t["hash"] for t in d["transactions"]]
-ok = {r["transactionHash"] for r in d["receipts"] if int(r["status"], 16) == 1}
-sys.exit(0 if txs and all(h in ok for h in txs) else 1)
-EOF
+# What reached the chain from a broadcast record, asked of the chain itself. forge writes the record BEFORE it asks
+# for the keystore password, so the record alone proves nothing. Prints one word:
+#   unsigned    no transaction in it has a hash: nothing was signed, so nothing can have been sent
+#   complete    every transaction has a hash, and the chain holds a successful receipt for each
+#   incomplete  anything else: part of the step was sent, a transaction failed, or one is still pending
+record_state() {
+  local n=0 signed=0 ok=0 h status
+  for h in $(jq -r '.transactions[] | .hash // "none"' "$1"); do
+    n=$((n + 1))
+    [ "$h" = "none" ] && continue
+    signed=$((signed + 1))
+    status=$(cast rpc eth_getTransactionReceipt "$h" --rpc-url "$RPC_URL" | jq -r 'if . == null then "none" else .status end')
+    [ "$status" = "0x1" ] && ok=$((ok + 1))
+  done
+  if [ "$n" -gt 0 ] && [ "$signed" -eq 0 ]; then
+    echo unsigned
+  elif [ "$n" -gt 0 ] && [ "$ok" -eq "$n" ]; then
+    echo complete
+  else
+    echo incomplete
+  fi
+}
+# Removes an unsigned record, and the timestamped copy forge wrote next to it (same bytes), so that the broadcast
+# folders hold only transactions that were sent.
+drop_unsigned() {
+  local dir copy
+  dir=$(dirname "$1")
+  for copy in "$dir"/run-[0-9]*.json; do
+    [ -f "$copy" ] && cmp -s "$copy" "$1" && rm -f "$copy"
+  done
+  rm -f "$1"
 }
 # "name address" for every contract a broadcast record created, then "tx <hash>" for every transaction.
 read_record() {
@@ -196,14 +220,26 @@ step_done() {
 }
 step_write() { "write_$1" "$2"; }
 
-# ---- 4. A step that was broadcast but not written down (an interrupted run) is written down now, never resent.
+# ---- 4. An earlier run that stopped: a step that reached the chain but was not written down is written down now,
+#      never resent; a record of a step that was never signed (stopped at the password prompt) is set aside.
 for s in "${STEPS[@]}"; do
   step_done "$s" && continue
   rec=$(record_of "$(step_project "$s")" "$(step_script "$s")")
   [ -f "$rec" ] || continue
-  receipts_ok "$rec" || refuse "$rec: a transaction of this step did not succeed. Nothing more is sent; check it first"
-  say "step '$s' was broadcast earlier; recording it from $rec"
-  step_write "$s" "$rec"
+  case $(record_state "$rec") in
+    complete)
+      say "step '$s' reached the chain in an earlier run; recording it from $rec"
+      step_write "$s" "$rec"
+      ;;
+    unsigned)
+      say "step '$s': the earlier run stopped before signing (for example a mistyped password). Nothing of it was sent."
+      say "removing forge's unsigned record $rec"
+      drop_unsigned "$rec"
+      ;;
+    *)
+      refuse "$rec: only part of step '$s' reached the chain, or one of its transactions failed or is still pending. Nothing more is sent; ask Claude to look at it"
+      ;;
+  esac
 done
 
 # ---- 5. The rehearsal, from the chain as it is now.
@@ -211,7 +247,8 @@ say "commit    $COMMIT"
 say "deployer  $DEPLOYER"
 say "RPC       $RPC_URL"
 say "REHEARSAL on a local fork of X Layer. Nothing is sent."
-deploy/rehearse.sh
+REHEARSAL_OUT=$PLAN deploy/rehearse.sh
+cp "$PLAN" deploy/rehearsal.json # kept for reading; this run uses $PLAN
 for s in "${STEPS[@]}"; do
   if step_done "$s"; then
     say "step '$s': on chain already"
@@ -240,11 +277,17 @@ send() { # step, human description, forge script arguments...
   echo
   say "BROADCAST: $what"
   say "forge asks for the keystore password next. Ctrl-C at that prompt stops this step; once entered, it is sent."
-  (cd "contracts/$(step_project "$s")" && forge script "script/$(step_script "$s")" "$@" --rpc-url "$RPC_URL" \
-    --account "$ACCOUNT" --sender "$DEPLOYER" --broadcast --slow)
   rec=$(record_of "$(step_project "$s")" "$(step_script "$s")")
+  if ! (cd "contracts/$(step_project "$s")" && forge script "script/$(step_script "$s")" "$@" --rpc-url "$RPC_URL" \
+    --account "$ACCOUNT" --sender "$DEPLOYER" --broadcast --slow); then
+    if [ ! -f "$rec" ] || [ "$(record_state "$rec")" = "unsigned" ]; then
+      refuse "forge stopped before signing step '$s' (a mistyped password does this). Nothing of it was sent. Run the same command again"
+    fi
+    refuse "forge stopped during step '$s' after signing. Run the same command again: it first checks what reached the chain and never resends it"
+  fi
   [ -f "$rec" ] || refuse "forge wrote no broadcast record for step '$s' ($rec)"
-  receipts_ok "$rec" || refuse "$rec: a transaction of step '$s' did not succeed. Nothing more is sent; check it first"
+  [ "$(record_state "$rec")" = "complete" ] \
+    || refuse "$rec: a transaction of step '$s' did not succeed or is not on chain yet. Nothing more is sent; ask Claude to look at it"
   step_write "$s" "$rec"
 }
 

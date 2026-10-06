@@ -1,0 +1,33 @@
+# Fork simulation of the exact createToken transaction. Tests only: no scripts, no broadcast, no keys.
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+cache_path = "cache"
+libs = ["lib"]
+solc = "0.8.28"
+evm_version = "cancun"          # X Layer has no Osaka opcodes
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+auto_detect_remappings = false
+remappings = ["forge-std/=lib/forge-std/src/"]
+# inputs/launch.json is written by simulate.ts; ../test/fixtures (tools/launch-check/test/fixtures) holds the
+# real OB launch, shared with the TypeScript tests
+fs_permissions = [
+  { access = "read", path = "./inputs" },
+  { access = "read", path = "../test/fixtures" },
+]
+# a real kernel settle steps a chip of several million gas
+gas_limit = "18446744073709551615"
+memory_limit = 1073741824
+
+[rpc_endpoints]
+xlayer = "${XLAYER_RPC_URL:-https://rpc.xlayer.tech}"
+xlayer_fallback = "https://xlayerrpc.okx.com"
+
+[fmt]
+line_length = 120
+
+[lint]
+lint_on_build = false

@@ -1,0 +1,21 @@
+{
+  "description": "Expected values for the launch of the Covenant reference token (CVREF). A null is a value that is not known yet: fill it in before launch day. chainId, manager, templateId, quote, venue, firstBuy, snipeStartBps and founderBps are fixed rules of launch-check; they are written here for the reader and the tool refuses a file that states anything else.",
+  "chainId": 196,
+  "manager": "0x96b51c57e5346d0c0198899243cf851d1e23c309",
+  "templateId": 3,
+  "quote": "0x0000000000000000000000000000000000000000",
+  "venue": 1,
+  "taxBuyBps": 300,
+  "taxSellBps": 300,
+  "protectionSecs": 8640000,
+  "firstBuy": "0",
+  "snipeStartBps": 0,
+  "founderBps": 0,
+  "name": null,
+  "symbol": null,
+  "kernel": null,
+  "processor": {
+    "circuits": null,
+    "transistors": null
+  }
+}

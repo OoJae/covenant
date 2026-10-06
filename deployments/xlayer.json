@@ -19,5 +19,24 @@
     "netlistKeccak256": "0xbe0a646df5b58df69e5dc50f492dcc5bdcffa440c3188b8b786ff506cb181325",
     "tapeoutTx": "0x9e75ed66ef52052282da8682644815fc1457768b02eeb6edb77c9ac39ce572fa"
   },
-  "keeper": "0x7444eC2a06d3c1070203b76c2c3EeE998317C4Ff"
+  "keeper": "0x7444eC2a06d3c1070203b76c2c3EeE998317C4Ff",
+  "evaluator": {
+    "commit": "b54cb862b128286853f8a5ee41be8ac0d8b4ade1",
+    "sealedVM": "0x19c248cf463c1e167121e52b77aba7ec68cbe47b",
+    "fab": "0xdcac8c47af534dc0cde30f60056bce7d63a79afe",
+    "txs": [
+      "0x28522c3a32d4b82620c4d2adfc9bb888a836723128b027dc21fa5a0ea41112a6",
+      "0x5141e3c6a441de7c45949852744b984c485bee60c1056ddc01cae8bad04a9ae9"
+    ]
+  },
+  "core": {
+    "commit": "b54cb862b128286853f8a5ee41be8ac0d8b4ade1",
+    "kernelFactory": "0xaaa75144304cf81cc7cf513f434e00980d1803ad",
+    "kernelImpl": "0x72e6EbdB444831c9511c6D1DBF07A7f68993EDF1",
+    "lens": "0xee63eb34f4b7a16a188d3d14075b9bb6a8aa5ea2",
+    "txs": [
+      "0xf71813daf3a370aa6ea322b73c6ee1fcbd4f7bdd1f7f9cc74476e8aa57c7acb2",
+      "0x07e76b396633175c8b593b085233230ea8481507c77a20681d52dbf5b53964e7"
+    ]
+  }
 }

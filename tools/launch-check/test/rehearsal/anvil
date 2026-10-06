@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# TEST ONLY (tools/launch-check/test/rehearsal.test.ts). Put first on PATH while deploy/rehearse.sh runs, this
+# stands in for `anvil`: it starts the real anvil ($REAL_ANVIL) in the background and waits. rehearse.sh kills
+# this wrapper when it exits; the real node keeps running, with everything rehearse.sh deployed on it, so the
+# launch-day commands can be tested against those contracts. The test kills the node (its pid is in
+# $KEEP_DIR/anvil.pid) when it is done. Nothing here touches a real network beyond the fork's reads.
+set -u
+: "${REAL_ANVIL:?REAL_ANVIL is not set}"
+: "${KEEP_DIR:?KEEP_DIR is not set}"
+"$REAL_ANVIL" "$@" >"$KEEP_DIR/anvil.log" 2>&1 &
+echo $! >"$KEEP_DIR/anvil.pid"
+wait

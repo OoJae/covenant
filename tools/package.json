@@ -1,0 +1,12 @@
+{
+  "name": "tools",
+  "private": true,
+  "type": "module",
+  "description": "Covenant launch-day and audit tools. Zero npm dependencies: Node 26 runs the .ts files directly.",
+  "scripts": {
+    "test": "node --test launch-check/test/*.test.ts audit-team/test/*.test.ts",
+    "test:offline": "OFFLINE=1 node --test launch-check/test/*.test.ts audit-team/test/*.test.ts",
+    "test:rehearsal": "REHEARSE=1 node --test launch-check/test/rehearsal.test.ts",
+    "test:sim": "forge test --root launch-check/sim"
+  }
+}
