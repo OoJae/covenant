@@ -176,5 +176,35 @@
       "0x01f48853db11914ff2f2db4d0a5ab341d0790e82d4391e7aff0dbdcb77fd4c70",
       "0xff250483cfb3cee5a073828dd6ef7ddbe42ec05e65ee186217384d13d306c478"
     ]
+  },
+  "coreV2": {
+    "commit": "a9c3c225052bf8ca0de830cc6d8a256f36501cdb",
+    "kernelFactory": "0x231c0174ebb69789813f6ecb625b4626e69a82c1",
+    "kernelImpl": "0x0d75d4c11e4770257b2bbf2d1E0Cb78f5B50CAd5",
+    "lens": "0x3ebe9e9cbc67d6a008c55d20294357521d28b049",
+    "quote": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    "quoteShift": 33,
+    "txs": [
+      "0x0012af15fa2289d61de500ec95b79d983e153d1893e47fcc028df9557c5ca59d",
+      "0x84bace91d771806db88c58560d83fed184e667a50fe52dd2be739966677f6896"
+    ]
+  },
+  "flagshipV2": {
+    "commit": "a9c3c225052bf8ca0de830cc6d8a256f36501cdb",
+    "chip": "Flow Governor",
+    "chipId": 5,
+    "kernel": "0xd50A7cb21f4ef91f795730Fe8c45EaA5E500dD75",
+    "netlistKeccak256": "0xe548768a1adafa7331faacfd029e1a829b00af3f7d769657f3b234ccdd7143b4",
+    "manifestHash": "0xfe8b7a49a7d0f9a75d0684b88587648284fc586f936035f8831cb6d34060e209",
+    "launcher": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
+    "allowancePayee": "0xBE5088307e15AAF8cF0c53bfCc4C612c9EaD6DA0",
+    "quote": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    "quoteShift": 33,
+    "envelope": "LaunchChipV2.referenceEnvelope (contracts/core-v2/script/LaunchChipV2.s.sol)",
+    "txs": [
+      "0xc4f91690e8240afa7e0c765bdaec348e6d0e4649a565d2d1812ec55d2245ffef",
+      "0x1d6b4301bbcb0409a8ec126175656d1fcb47ffa16a048eadb624bca01e4d11b8",
+      "0xee201eb30bb2feba7c7d49703ac062f1d673f4ecdff615019aea04a30c7d2812"
+    ]
   }
 }
