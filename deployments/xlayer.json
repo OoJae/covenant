@@ -78,7 +78,7 @@
     "listing": "submitted for OKX.AI review 2026-10-06"
   },
   "site": {
-    "commit": "c6da510eee0dfb038481a7d2f826c5b2b6090d1a",
+    "commit": "3b43b482b24f782aabab1705c328930c49fa197b",
     "processor": "0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b",
     "processorNumber": 283,
     "circuitId": 1,
@@ -88,42 +88,42 @@
     "status": "https://1-2-283.tapekit.org/.tape/status",
     "paidUntil": 1793903418,
     "build": "web/package.json build script at the commit, deployments/xlayer.json minus .site",
-    "buildDigest": "96bce59decc93ebeb929515fc471369a1d7e69c5a5c6723a545ccd064c587ccb",
+    "buildDigest": "b5beb00e160e2d77c4517d5433589810618ebb6f9027ae918a30a8777b758ef7",
     "files": [
       {
-        "path": "assets/Circuit-C5u-ZYMd.js",
+        "path": "assets/Circuit-CkzGveQu.js",
         "bytes": 14777,
-        "sha256": "0x9f025ab7e2d249af3b2a08446a5f62cdba136821b1e3f716eb3d4d2745dcab7c",
+        "sha256": "0xb0a495e8ba3314b52c445fe347f23f70602cf59ff850a7d9c8bc12742e50e8ef",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/Die-BbWCsQtF.js",
+        "path": "assets/Die-DfBzMYXp.js",
         "bytes": 13569,
-        "sha256": "0x752f4e58940141e59f1ca2ca72d00900b46ca48ffc2da6fad29db049a62d9589",
+        "sha256": "0x12ba266bb29c61f251af1e2757f40d2b1b0331ef378f7fe52b17c96ae01df912",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/guidePages-CS_ZSzQA.js",
+        "path": "assets/guidePages-CKti_yAr.js",
         "bytes": 26888,
-        "sha256": "0xff76d50a62a68450b71db2b812de08304e79aaf538abc492ab066f866facb98a",
+        "sha256": "0x90962ebf11093ff5b95162a3a06983294fa0045987524a2f8c3355676781cfe4",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/index-CMPcJXnf.js",
-        "bytes": 70377,
-        "sha256": "0xca02c8fd670b009eedc8eb23ac9112281e647017748129caee347982ecf0edb3",
+        "path": "assets/index-DNV4Sngd.js",
+        "bytes": 71957,
+        "sha256": "0xeac53ce258dc30ed86b887b3da5fb2af7197fd1416a75840c8720c1ceeb0adcc",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/kernel-BmIAzVgc.js",
+        "path": "assets/kernel-DNXvMpm0.js",
         "bytes": 9108,
-        "sha256": "0x5bf7afa9523dddb4ea8e6356d54b81082c12424c37bfe7fe54decc287b666263",
+        "sha256": "0xac4e7f01c28ce9b151214539b58b40f7f56c9a0f8ad437fa1cb4f65adeffa848",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/kernelPages-cSh_OtsD.js",
+        "path": "assets/kernelPages-DOvVPS6O.js",
         "bytes": 49845,
-        "sha256": "0xb11a4af9df0c4ba594b8fd9a3cef3b4bd9d5762223716f43d385db6d9856a0bc",
+        "sha256": "0xc7190f46d95f1583e0d62f5b75f9377de0608d6f51ec4ac61776f7f1e4edfdc1",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
@@ -133,15 +133,15 @@
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/sim-CZ5Ymxcx.js",
-        "bytes": 5159,
-        "sha256": "0xf23c4acdc5d61fd7405ef2d1049f0dc629297bc576e8a49637f9e0d49be6375e",
+        "path": "assets/sim-BXPQ1l41.js",
+        "bytes": 31583,
+        "sha256": "0x69446d28a959bc1654602331702883da5a1064e3e5e72bfca3abb4b41d2068a9",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
-        "path": "assets/sim-MeFOM-kQ.js",
-        "bytes": 31583,
-        "sha256": "0x56ecccc14343c5e1cbe0ef94bee3f1f0252c7bbc523a7661776266502c408212",
+        "path": "assets/sim-CZ5Ymxcx.js",
+        "bytes": 5159,
+        "sha256": "0xf23c4acdc5d61fd7405ef2d1049f0dc629297bc576e8a49637f9e0d49be6375e",
         "contentType": "text/javascript; charset=utf-8"
       },
       {
@@ -153,7 +153,7 @@
       {
         "path": "index.html",
         "bytes": 1039,
-        "sha256": "0x66b15d28e4338d28cfe2ceeded553d5872d602b64d6ecf1c1c8d4eef00ad397d",
+        "sha256": "0xfab5991934df7961f83d7871cd2729829f7870b415acfe6aba8bf72c4da43f3e",
         "contentType": "text/html; charset=utf-8"
       }
     ],
@@ -197,7 +197,28 @@
       "0x95159d23094483e113b723008ae9e98942b02bff3806eed7b687b718fdf1cb7c",
       "0x0e7e1da4fbf6111c06c6a818dc220f1ea84086f2f7c98541241eb7a90aa1cb96",
       "0x4713499bad61a724d3555174db4e594d304838188e173544ccbb1ee91d35e498",
-      "0xf3f461c18238bac5320aa487e5abaa868c9a7424377ab62f2186fafa3903d539"
+      "0xf3f461c18238bac5320aa487e5abaa868c9a7424377ab62f2186fafa3903d539",
+      "0x2e6aaddf92b7759eb1065e11b0ec3320b539198861c9d2bde16bf71a2023e45b",
+      "0xd1fa6fcc67b71223f002d2396fe815058de6b2e830db0a4699c11bb97dad6a33",
+      "0x90025fdd55289f35657c99810820a7a38044cb994ff4325255943a154c48e6d2",
+      "0x49723aa25943b063eba94b6e18a148658c001708cc79cdbf8d843e9f1e62f381",
+      "0x821c0514129ad477205369c196f051f722a0e1e708983b3e9d093dc198a1bce3",
+      "0x4f9907926066d1b8b8a074a82124da331672e30b85a07320f029921d7b61894e",
+      "0x495e25c2c0da377d10b25a82610619c0614bc685f52ec65db06fb762e1d3aa75",
+      "0xefd4dd1ba0792f83717d36ea3b229010c5795317ec5b4b1233bb3dfd7a9c966e",
+      "0xd1cbfb83fc951b9c5e185939c023b49f6c33b0645b49f7dc251cf9d02e6e1dd8",
+      "0x5d5022412774785c2291dbe05df67f65c3ad764752899d3ead0564e61b6cc8f3",
+      "0xbeedd2ccb7d831a07e9b1cd703287badecb5e9532a5ae265c55d606b0bf3014e",
+      "0xa6fb9a2d38d3c9c032e37dfdbaa76ccfb00791211ffe12e6cf678fedccdd66be",
+      "0x4898ed8d1b001170124ac29195175709128fe641d983dc3e45013f610af07581",
+      "0x0829e9c0f0b4cd63946fa409724873a51f0ae0ea901f74e0e220af20617cf9c3",
+      "0x1d95e709893a98d9ddde144c3f643ec73ae1cf87e78e0d32733071925678c958",
+      "0xad5e0d01165762ae59e8febb555992ef88dbcb283420ee1fac82b4503a446dd5",
+      "0xa0d26db744a6ce5cb2bdd1fac95821c50ebceebfed1e190d59343efe25bd5c21",
+      "0xb532ec32348b3a9b6f5ffe84ccc2e66e8c445537df11f3df1afb3f29961a1774",
+      "0x104407f36ba0668b3e2dd1cc6db45d2bdae7202bdd74567c5fc554d8285363c5",
+      "0x45c9a2bc748af8ef6ec9249e14735cdc5b0c6441255490cc6f050e8feb495fe3",
+      "0x8f5a0476eddeda2be423fbf38f481103d4291b9ce298dcf1488cca7cf794dc2f"
     ]
   },
   "coreV2": {
