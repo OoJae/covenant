@@ -33,6 +33,11 @@ only when the file names one (`launch-check/NOTES.md`, "Kernel v2"); `audit-team
 flags USD₮0 sent to any kernel from a team wallet; `launch-check/payto-check.ts` checks an address proposed as the
 Architect's x402 `PAY_TO` (only the deployment's bound v2 kernel passes).
 
+After the launches, `deploy/post-launch.sh` (signing session 4, "Launch day" step 6) adds `reference` and
+`architectToken` (each bound token with its vault, kernel, chip, quote, creator and bind transaction, read back from
+the chain), `splitterPulls` (each `Splitter.pull()`: transaction, wei to the KeeperTank and to the maintainer) and
+`registryInvites` (each `TeamRegistry.invite` it sent). The tools do not read these keys yet.
+
 Until session 2 is recorded, `launch-check` and `simulate` refuse with
 `signing session 2 is not deployed yet: deployments/xlayer.json records no evaluator (...), core (...), flagship (...)`
 (exit code 1): there is no kernel to launch against. `audit-team` runs without it.
@@ -102,8 +107,60 @@ Prerequisites: Node 26, Foundry (`forge`), and once:
    `launch-check` prints are the ones you typed. The platform's signature in the data expires (the real OB launch
    was mined 1,795 s, about 30 minutes, before the deadline it was signed with); `launch-check` refuses when fewer
    than 3 minutes remain. If time runs short, reject, reload ignix.bot and start again at step 3.
-6. After the launch: bind the kernel (anyone may call `bind(token)` for a token its launcher created), and run
+6. After the launch (the reference token CVREF here; the Architect token is launched the same way, Directed, quote
+   USD₮0, recipient = `flagshipV2.kernel`, see `launch-check/NOTES.md`, "Kernel v2"), the deployer's remaining
+   transactions are one command, signing session 4:
+
+   ```
+   CVREF_TOKEN=<reference token> ARCH_TOKEN=<Architect token> deploy/post-launch.sh               # checks and rehearses; sends nothing
+   CVREF_TOKEN=<reference token> ARCH_TOKEN=<Architect token> deploy/post-launch.sh --broadcast   # then sends
+   ```
+
+   It binds kernel v1 to CVREF and kernel v2 to the Architect token, calls `Splitter.pull()` (the processor's mint
+   proceeds: 85% to the KeeperTank, which refunds the keeper's settle gas, 15% to the maintainer) and invites the
+   Architect's agent wallet into the TeamRegistry: four transactions, one keystore password each. Each token is
+   optional (a bind whose token is not given is skipped), and so is every step that is done already. Before
+   sending, it checks bind's preconditions on chain for each token (IGNIX's vault for it pays the kernel, is for
+   that token and is quoted in native OKB for kernel v1 or USD₮0 for kernel v2; the deployer, the kernel's
+   envelope launcher, created it; the token is taxed; the kernel holds its chip and is not bound), runs every
+   call as an `eth_call` from the deployer, and rehearses the four steps on a local fork, where the keeper and the
+   agent wallet also declare themselves and the KeeperTank refunds one settle of each bound kernel. It records the
+   result in `deployments/xlayer.json` (`reference`, `architectToken`, `splitterPulls`, `registryInvites`). If it
+   stops, run it again: a step that reached the chain is recorded from the chain and never sent again. Then run
    step 1 again.
+7. What only other wallets can do; `deploy/post-launch.sh` prints these commands with the live balances at its end.
+   You type every password and key yourself.
+
+   - **The keeper declares itself** (it was invited at prelaunch), before the keeper service sends its first settle:
+
+     ```
+     cast wallet import covenant-keeper --interactive     # once: paste the keeper's private key, choose a password
+     cast wallet address --account covenant-keeper        # must print 0x7444eC2a06d3c1070203b76c2c3EeE998317C4Ff
+     cast send 0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699 "declare(string)" keeper \
+       --rpc-url https://rpc.xlayer.tech --account covenant-keeper
+     ```
+
+   - **The Architect's agent wallet declares itself** once step 6 has invited it. It is an OKX Agentic Wallet, so
+     through onchainos, logged in to that wallet. The calldata is `TeamRegistry.declare("architect (OKX.AI agent
+     14683)")`:
+
+     ```
+     onchainos wallet contract-call --chain 196 --from 0xbe5088307e15aaf8cf0c53bfcc4c612c9ead6da0 \
+       --to 0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699 \
+       --input-data 0xb7baf10a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e61726368697465637420284f4b582e4149206167656e74203134363833290000
+     ```
+
+     The wallet pays the gas in OKB and held none on 2026-10-06: send it about 0.0001 OKB first (the call is about
+     100,000 gas, 0.000002 OKB at 0.02 gwei; more through the wallet's smart-account path). If onchainos asks for a
+     confirmation, read it and add `--force` only if it describes this call.
+   - **The keeper service** (`services/keeper/README.md`, section 3): `KERNELS=<flagship.kernel>,<flagshipV2.kernel>`
+     (the bound ones), `TANK=0xb89BCe53822a99503A937C22974F1224D9Ab6352`,
+     `KEEPER_ADDRESS=0x7444eC2a06d3c1070203b76c2c3EeE998317C4Ff`. You paste `KEEPER_PRIVATE_KEY` yourself
+     (`railway variable set --service covenant-keeper --skip-deploys --stdin KEEPER_PRIVATE_KEY`) and seal it; run
+     the dry run first.
+
+   Check: `cast call 0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699 "isTeam(address)(bool)" <wallet> --rpc-url
+   https://rpc.xlayer.tech` prints `true` for both wallets.
 
 ### What a refusal looks like
 

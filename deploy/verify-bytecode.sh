@@ -11,41 +11,49 @@
 #
 # What it does, for each package at the commit deployments/xlayer.json records for it:
 #   1. exports that commit's sources with `git archive` into a scratch directory (the working tree, its
-#      uncommitted changes and contracts/*/lib are not used);
+#      uncommitted changes and contracts/*/lib are not used). contracts/core-v2 (kernel v2, USD₮0 quote) compiles
+#      kernel v1's KernelMath, TradeMath, SafeCall and interfaces from ../core/src and takes its libraries from
+#      ../core/lib, so for it contracts/core and contracts/evaluator are exported from the same commit too;
 #   2. clones the pinned libraries at their release tags from GitHub (forge-std v1.17.0; OpenZeppelin Contracts
-#      v5.4.0 for contracts/issuance, v5.7.0 for contracts/evaluator and contracts/core, as each package's
-#      README/NOTES pins them; for contracts/evaluator also OpenZeppelin Contracts Upgradeable v5.7.0, which only
+#      v5.4.0 for contracts/issuance, v5.7.0 for contracts/evaluator, contracts/core and contracts/core-v2, as each
+#      package's README/NOTES pins them; for contracts/core-v2 they go into contracts/core/lib, where its
+#      foundry.toml looks; for contracts/evaluator also OpenZeppelin Contracts Upgradeable v5.7.0, which only
 #      its test tree uses) and prints the commit each tag resolved to;
 #   3. builds src/ with the commit's own foundry.toml (solc 0.8.28, cancun, 200 runs, legacy pipeline);
-#   4. reads the chain (eth_getCode, eth_getTransactionByHash, eth_getTransactionReceipt, eth_call only) and
-#      compares:
+#   4. reads the chain (eth_getCode, eth_getTransactionByHash, eth_getTransactionReceipt, eth_getStorageAt,
+#      eth_call only) and compares:
 #        - creation code: the local creation bytecode must be the exact prefix of the deployment transaction's
 #          input, and the rest of the input must decode to the constructor arguments the broadcast record and
 #          deployments/xlayer.json name. Contracts created inside a constructor (TeamRegistry, KeeperTank, the
-#          Kernel implementation) are checked by their address (CREATE from the parent at the expected nonce)
-#          and by their local creation code appearing inside the parent's on-chain creation code;
+#          Kernel and KernelV2 implementations) are checked by their address (CREATE from the parent at the
+#          expected nonce) and by their local creation code appearing inside the parent's on-chain creation code;
 #        - runtime code: on-chain code against the local deployedBytecode, byte for byte, after copying the
 #          on-chain values into the immutable slots listed in the build's immutableReferences; every immutable
 #          value is then checked against what the constructor arguments say it must be. Metadata is compared
-#          too (core builds with bytecode_hash = none; evaluator and issuance with the default ipfs hash, so for
-#          those a MATCH also means the metadata hash, and therefore every source file the contract is compiled
-#          from, is identical). KernelFactory pins that only the broadcast record names (beacon, impl0Hash, wokb)
-#          are also tied to facts on chain;
-#        - the flagship kernel clone: OpenZeppelin's ERC-1167 clone with immutable args, its implementation, its
-#          abi.encode(Globals, Envelope) arguments against the factory's immutables, the Fab's chip record and
-#          the creation transaction, its CREATE2 address, `predict` and `isKernel` on the factory;
-#        - the netlists: each chip the Fab taped out (2, the Flow Governor; 3 and 4, the Glutton demo chips) has an
-#          SSTORE2 snapshot, 0x00 followed by the netlist; its bytes must equal the committed netlist file at the
-#          commit deployments/xlayer.json records, hash to Fab.chipInfo's netlistHash, and equal TapeOut's own copy
-#          (Circuits.netlist). The probe, circuit 1, was taped out directly on TapeOut: Circuits.netlist(1) must
-#          equal chips/probe/probe.hex.
+#          too (core and core-v2 build with bytecode_hash = none; evaluator and issuance with the default ipfs
+#          hash, so for those a MATCH also means the metadata hash, and therefore every source file the contract
+#          is compiled from, is identical). Factory pins that only the broadcast record names are tied to facts
+#          on chain: for KernelFactory beacon, impl0Hash and wokb; for KernelFactoryV2 beacon and impl0Hash, its
+#          manager, v2Router, beacon, impl0 and impl0Hash against kernel v1's factory, and quote's decimals() = 6.
+#          quoteShift (33) is compared with deployments/xlayer.json; the USD₮0/WOKB pool price is only printed;
+#        - the two flagship kernel clones (v1, chip 2; v2, chip 5): OpenZeppelin's ERC-1167 clone with immutable
+#          args, its implementation, its abi.encode(Globals, Envelope) (GlobalsV2 for v2: 19 fields, the quote
+#          asset and the code shift) against the factory's getters, the Fab's chip record and the creation
+#          transaction, its CREATE2 address, `predict` and `isKernel` on the factory; for v2 also the envelope
+#          against LaunchChipV2.referenceEnvelope at the commit, and that the kernel holds chip 5;
+#        - the netlists: each chip the Fab taped out (2 and 5, the Flow Governor; 3 and 4, the Glutton demo chips)
+#          has an SSTORE2 snapshot, 0x00 followed by the netlist; its bytes must equal the committed netlist file
+#          at the commit deployments/xlayer.json records, hash to Fab.chipInfo's netlistHash, and equal TapeOut's
+#          own copy (Circuits.netlist). The probe, circuit 1, was taped out directly on TapeOut:
+#          Circuits.netlist(1) must equal chips/probe/probe.hex.
 #
 # Read-only: no transaction is sent, no key is read, nothing is written in the repository (the scratch
 # directory is under $TMPDIR and removed on exit unless --keep). Needs: git, forge (Foundry 1.8+), python3
 # (3.9+), network access to GitHub and to the RPC.
 #
-# Exit status: 0 when every Covenant row is MATCH, 1 otherwise. The processor's two contracts (Transistors,
-# Circuits) are listed as NOT CHECKED: TapeOut's factory created them from TapeOut's code, not from this repository.
+# Exit status: 0 when every Covenant row is MATCH, 1 otherwise (a package missing at its recorded commit fails its
+# rows). The processor's two contracts (Transistors, Circuits) are listed as NOT CHECKED: TapeOut's factory created
+# them from TapeOut's code, not from this repository.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -83,15 +91,20 @@ fi
 cleanup() { if [ "$KEEP" = 1 ]; then echo "build left in $WORK"; else rm -rf "$WORK"; fi; }
 trap cleanup EXIT
 
-commit_of() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]]["commit"])' "$LIVE" "$1"; }
+commit_of() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], {}).get("commit", ""))' "$LIVE" "$1"; }
 ISS_COMMIT=$(commit_of issuance)
 EVAL_COMMIT=$(commit_of evaluator)
 CORE_COMMIT=$(commit_of core)
+COREV2_COMMIT=$(commit_of coreV2)
 
-# package  commit  openzeppelin-contracts tag
-BUILDS="issuance $ISS_COMMIT v5.4.0
-evaluator $EVAL_COMMIT v5.7.0
-core $CORE_COMMIT v5.7.0"
+# package  commit  openzeppelin-contracts tag  library directory (from the export root)  other exported packages
+BUILDS="issuance $ISS_COMMIT v5.4.0 contracts/issuance/lib
+evaluator $EVAL_COMMIT v5.7.0 contracts/evaluator/lib
+core $CORE_COMMIT v5.7.0 contracts/core/lib"
+# kernel v2: its foundry.toml has libs = ["../core/lib"] and remaps core/ to ../core/src (and, for its tests only,
+# core-test/ and evaluator/), so those packages are exported from the same commit and the libraries go to core/lib.
+[ -z "$COREV2_COMMIT" ] || BUILDS="$BUILDS
+core-v2 $COREV2_COMMIT v5.7.0 contracts/core/lib contracts/core contracts/evaluator"
 
 clone_tag() { # repo tag dest
   git -c advice.detachedHead=false clone -q --depth 1 --branch "$2" "https://github.com/$1" "$3"
@@ -100,21 +113,31 @@ clone_tag() { # repo tag dest
 
 echo "Covenant reproducible-build check, chain 196, RPC $RPC"
 echo "scratch: $WORK"
-while read -r pkg commit oz; do
+while read -r pkg commit oz libdir extra; do
   git -C "$ROOT" cat-file -e "$commit^{commit}" 2>/dev/null \
     || { echo "verify-bytecode.sh: commit $commit is not in this clone (git fetch --unshallow?)" >&2; exit 2; }
   dir="$WORK/$pkg"
   mkdir -p "$dir"
-  git -C "$ROOT" archive "$commit" "contracts/$pkg" contracts/vendor | tar -x -C "$dir"
+  missing=
+  for p in "contracts/$pkg" $extra; do git -C "$ROOT" cat-file -e "$commit:$p" 2>/dev/null || missing="$missing $p"; done
+  if [ -n "$missing" ]; then
+    # a wrong commit in the record: nothing to build, so every row of this package fails below (exit 1)
+    echo "[$pkg] NOT BUILT: commit $commit has no$missing"
+    echo "$commit has no$missing" >"$WORK/$pkg.absent"
+    continue
+  fi
+  # shellcheck disable=SC2086 # $extra is a list of paths
+  git -C "$ROOT" archive "$commit" "contracts/$pkg" contracts/vendor $extra | tar -x -C "$dir"
   proj="$dir/contracts/$pkg"
-  echo "[$pkg] sources at $commit; libraries:"
-  mkdir -p "$proj/lib"
-  clone_tag foundry-rs/forge-std v1.17.0 "$proj/lib/forge-std"
-  clone_tag OpenZeppelin/openzeppelin-contracts "$oz" "$proj/lib/openzeppelin-contracts"
+  lib="$dir/$libdir"
+  echo "[$pkg] sources at $commit${extra:+ (with$(printf ' %s' $extra) from the same commit)}; libraries in $libdir:"
+  mkdir -p "$lib"
+  clone_tag foundry-rs/forge-std v1.17.0 "$lib/forge-std"
+  clone_tag OpenZeppelin/openzeppelin-contracts "$oz" "$lib/openzeppelin-contracts"
   # contracts/evaluator's README also installs the upgradeable package: its test tree (never deployed) compiles
   # TapeOut's vendored sources with it. src/ does not import it; it is installed so that forge commands that load
   # the whole project (deploy/verify-explorers.sh) resolve every import.
-  [ "$pkg" != evaluator ] || clone_tag OpenZeppelin/openzeppelin-contracts-upgradeable "$oz" "$proj/lib/openzeppelin-contracts-upgradeable"
+  [ "$pkg" != evaluator ] || clone_tag OpenZeppelin/openzeppelin-contracts-upgradeable "$oz" "$lib/openzeppelin-contracts-upgradeable"
   log="$WORK/$pkg.build.log"
   if ! (cd "$proj" && forge build src --ast >"$log" 2>&1); then
     echo "verify-bytecode.sh: forge build failed for $pkg; log follows" >&2; cat "$log" >&2; exit 1
@@ -216,6 +239,9 @@ def same(a, b):
 
 # ---------------------------------------------------------------- build artifacts
 def artifact(pkg, file, name):
+    absent = os.path.join(WORK, pkg + ".absent")
+    if os.path.exists(absent):  # the recorded commit does not have the package: there is no build to compare
+        raise FileNotFoundError(f"contracts/{pkg} was not built: commit {open(absent).read().strip()}")
     return json.load(open(os.path.join(WORK, pkg, "contracts", pkg, "out", file, name + ".json")))
 
 _names = {}
@@ -348,7 +374,8 @@ def runtime_check(row, art, onchain, expected_imm):
         if exp is None:
             row.ok(False, f"immutable {name} = 0x{v.hex()} has no expected value in this script")
             row.runtime = "MISMATCH (unexplained immutable)"
-        elif not row.ok(v == exp, f"immutable {name} = 0x{v[-20:].hex() if v[:12] == bytes(12) else v.hex()}"
+        elif not row.ok(v == exp, f"immutable {name} = " + (str(int.from_bytes(v, "big")) if int.from_bytes(v, "big") < 1 << 64
+                        else f"0x{v[-20:].hex() if v[:12] == bytes(12) else v.hex()}")
                         + ("" if v == exp else f", expected 0x{exp.hex()}")):
             row.runtime = "MISMATCH (immutable value)"
     for name in sorted(set(expected_imm) - set(values)):
@@ -565,6 +592,170 @@ def _(r):
     r.creation = "MATCH (CREATE2 address)" if not r.fail else "MISMATCH"
     r.runtime = "MATCH (proxy + args)" if not r.fail else "MISMATCH"
 
+# ---- kernel v2 (USD₮0 quote): KernelFactoryV2, the KernelV2 implementation, LensV2 (contracts/core-v2)
+c2, flag2 = D.get("coreV2"), D.get("flagshipV2")
+KF2_PINS = ["manager", "v2Router", "quote", "quoteShift", "circuits", "fab", "sealedVM", "beacon", "impl0", "impl0Hash"]
+RATE_POOL = "0xe3BE6A0137f1b0602Fc1a4841686f43B340a5082"  # DeployCoreV2.DEFAULT_RATE_POOL: Uniswap V3 USD₮0/WOKB 0.05%
+
+def u256(n):
+    return int(n).to_bytes(32, "big")
+
+def pool_shift(block):
+    """DeployCoreV2.shiftFromPool, in integers: (nearest whole shift, micro-USD₮0 per OKB) from the pool's slot0."""
+    slot0 = h2b(rpc("eth_call", [{"to": RATE_POOL, "data": "0x" + sel("slot0()").hex()}, block]))
+    q = int.from_bytes(slot0[:32], "big") >> 64
+    m = q * q
+    s = 1
+    while s < 60 and not (m * m < (1 << (2 * s + 1 + 128))):
+        s += 1
+    return s, ((10 ** 18) << 64) // m
+
+if c2:
+    @check("KernelFactoryV2", c2["kernelFactory"], "core-v2", c2["commit"])
+    def _(r):
+        a = artifact("core-v2", "KernelFactoryV2.sol", "KernelFactoryV2")
+        bargs = broadcast_args("core-v2", "DeployCoreV2.s.sol", "KernelFactoryV2")
+        r.ok(len(bargs) == 10 and same(bargs[2], c2["quote"]) and int(bargs[3], 0) == c2["quoteShift"]
+             and same(bargs[4], iss["circuits"]) and same(bargs[5], ev["fab"]) and same(bargs[6], ev["sealedVM"]),
+             "broadcast record: quote, quoteShift, circuits, fab and sealedVM are the ones deployments/xlayer.json records")
+        exp_args = [(l, u256(int(v, 0)) if l == "quoteShift" else b32(v)) for l, v in zip(KF2_PINS, bargs)]
+        S["factory_v2_input"], words = creation_tx(r, a, tx_for(r.addr, c2["txs"]), 10, exp_args)
+        imm = {l: w for (l, w) in exp_args}
+        imm["kernelImpl"] = W(c2["kernelImpl"])
+        runtime_check(r, a, code(r.addr), imm)
+        # Pins the broadcast record names, tied to facts on chain that cannot change.
+        r.ok(imm["beacon"] == h2b(rpc("eth_getStorageAt", [iss["circuits"], BEACON_SLOT, "latest"])),
+             "pin beacon = the EIP-1967 beacon of Covenant's Circuits")
+        r.ok(imm["impl0Hash"] == keccak(code(addr_of(imm["impl0"]))), "pin impl0Hash = keccak256 of impl0's code")
+        kf1 = core["kernelFactory"]
+        for k in ("manager", "v2Router", "beacon", "impl0", "impl0Hash"):
+            r.ok(imm[k] == call(kf1, sel(k + "()")), f"pin {k} = kernel v1's KernelFactory.{k}() (an immutable)")
+        r.ok(int.from_bytes(call(c2["quote"], sel("decimals()")), "big") == 6,
+             "pin quote answers decimals() = 6, the factory's QUOTE_DECIMALS")
+        # informational only: the manager is a proxy, TapeOut may upgrade its beacon, the price moves
+        r.note("pin v2Router " + ("=" if imm["v2Router"] == call(addr_of(imm["manager"]), sel("V2_ROUTER02()")) else "!=")
+               + " manager.V2_ROUTER02() today; pin impl0 "
+               + ("=" if imm["impl0"] == call(addr_of(imm["beacon"]), sel("implementation()")) else "!=")
+               + " beacon.implementation() today; pinsLive() "
+               + str(int.from_bytes(call(r.addr, sel("pinsLive()")), "big") == 1).lower())
+        blk = int(rpc("eth_getTransactionReceipt", [tx_for(r.addr, c2["txs"])])["blockNumber"], 16)
+        for label, tag in ((f"at block {blk - 1}, before the deployment", hex(blk - 1)), ("today", "latest")):
+            try:
+                sh, micro = pool_shift(tag)
+                r.note(f"rate pool {RATE_POOL[:6]}...{RATE_POOL[-4:]} {label}: {micro / 1e6:.6f} USD₮0 per OKB, "
+                       f"nearest shift {sh} (pinned {int.from_bytes(imm['quoteShift'], 'big')}); the shift is a "
+                       "deployment choice, not part of the code check")
+            except Exception as ex:
+                r.note(f"rate pool {label}: not readable ({type(ex).__name__})")
+
+    @check("KernelV2 (implementation)", c2["kernelImpl"], "core-v2", c2["commit"])
+    def _(r):
+        a = artifact("core-v2", "KernelV2.sol", "KernelV2")
+        inner_creation(r, a, c2["kernelFactory"], S["factory_v2_input"], 1)
+        runtime_check(r, a, code(r.addr), {"SELF": W(c2["kernelImpl"])})
+
+    @check("LensV2", c2["lens"], "core-v2", c2["commit"])
+    def _(r):
+        a = artifact("core-v2", "LensV2.sol", "LensV2")
+        bargs = broadcast_args("core-v2", "DeployCoreV2.s.sol", "LensV2")
+        r.ok(len(bargs) == 1 and same(bargs[0], c2["kernelFactory"]), "broadcast record: factory = KernelFactoryV2")
+        creation_tx(r, a, tx_for(r.addr, c2["txs"]), 1, [("factory", W(c2["kernelFactory"]))])
+        runtime_check(r, a, code(r.addr), {"FACTORY": W(c2["kernelFactory"])})
+
+# ---- the v2 flagship kernel: the same OpenZeppelin clone, args abi.encode(GlobalsV2, Envelope)
+GL2 = ["manager", "v2Router", "quote", "factory", "circuits", "fab", "sealedVM", "beacon", "impl0", "impl0Hash",
+       "snapshot", "netlistHash", "chipId", "nState", "gateCount", "netlistLen", "stepFloor", "sealedFloor", "quoteShift"]
+ENV_FIELDS = ["launcher", "epochLen", "allowancePayee", "capT", "capV", "allowCumBps", "ceilMax", "relMax", "floorRel",
+              "floorMin", "fallbackEpochs", "fbAllow", "buyEnabled", "sink"]
+
+def reference_envelope_v2(commit, launcher, payee):
+    """LaunchChipV2.referenceEnvelope(launcher, payee), read from the script committed at `commit`."""
+    import re, subprocess
+    src = subprocess.check_output(["git", "-C", ROOT, "show",
+                                   f"{commit}:contracts/core-v2/script/LaunchChipV2.s.sol"]).decode()
+    body = src[src.index("function referenceEnvelope("):]
+    body = body[:body.index("\n    }")]
+    vals = dict(re.findall(r"\be\.(\w+)\s*=\s*([^;]+);", body))
+    lit = {"launcher": W(launcher), "allowancePayee": W(payee), "true": u256(1), "false": u256(0),
+           "address(0)": bytes(32)}
+    words = [lit[v.strip()] if v.strip() in lit else u256(int(v.strip().replace("_", ""), 0))
+             for v in (vals.get(k, "0") for k in ENV_FIELDS)]
+    return words, sorted(set(vals) - set(ENV_FIELDS))
+
+if c2 and flag2:
+    @check("Kernel clone v2 (flagship, chip 5)", flag2["kernel"], "core-v2", c2["commit"])
+    def _(r):
+        kf = c2["kernelFactory"]
+        oc = code(r.addr)
+        PRE, POST = h2b("363d3d373d3d3d363d73"), h2b("5af43d82803e903d91602b57fd5bf3")
+        r.note(f"runtime: {len(oc)} bytes on chain = 45-byte ERC-1167 proxy + {len(oc) - 45} bytes of immutable args")
+        r.ok(oc[:10] == PRE and oc[30:45] == POST, "bytes 0..45 are OpenZeppelin's ERC-1167 minimal proxy")
+        r.ok(same("0x" + oc[10:30].hex(), c2["kernelImpl"]),
+             f"proxy delegates to the KernelV2 implementation {c2['kernelImpl']}")
+        args = oc[45:]
+        r.ok(len(args) == 33 * 32,
+             "args are 33 words: abi.encode(GlobalsV2 (19 static fields), Envelope (14 static fields))")
+        G = S["globals_v2"] = {k: args[i * 32:(i + 1) * 32] for i, k in enumerate(GL2)}
+        e = [args[(19 + i) * 32:(20 + i) * 32] for i in range(14)]
+        for k in KF2_PINS:  # read from the factory itself, so this check does not depend on the factory's row
+            r.ok(G[k] == call(kf, sel(k + "()")), f"GlobalsV2.{k} = KernelFactoryV2.{k}()")
+        r.ok(G["factory"] == W(kf), "GlobalsV2.factory = the KernelFactoryV2")
+        qs = int.from_bytes(G["quoteShift"], "big")
+        r.ok(same(addr_of(G["quote"]), flag2["quote"]) and qs == flag2["quoteShift"],
+             f"GlobalsV2.quote = {flag2['quote']} (USD₮0) and quoteShift = {qs}, as deployments' flagshipV2 records")
+        r.ok(int.from_bytes(call(kf, sel("codeShift()")), "big") == 8 * qs, f"KernelFactoryV2.codeShift() = {8 * qs} codes")
+        chip = int.from_bytes(G["chipId"], "big")
+        r.ok(chip == flag2["chipId"], f"GlobalsV2.chipId = {chip}")
+        ci = call(ev["fab"], sel("chipInfo(uint256)") + G["chipId"])
+        r.ok(ci[0:32] == G["snapshot"] and ci[32:64] == G["netlistHash"] and ci[64:96] == G["nState"]
+             and ci[96:128] == G["gateCount"], "GlobalsV2.snapshot, netlistHash, nState, gateCount = Fab.chipInfo(chipId)")
+        r.ok(G["netlistHash"] == h2b(flag2["netlistKeccak256"]), "GlobalsV2.netlistHash = deployments' netlistKeccak256")
+        gc, ns = int.from_bytes(G["gateCount"], "big"), int.from_bytes(G["nState"], "big")
+        r.ok(int.from_bytes(G["stepFloor"], "big") == 200_000 + 2_600 * gc + 800 * ns
+             and int.from_bytes(G["sealedFloor"], "big") == 40_000 + 200 * (gc - ns) + 400 * ns,
+             f"stepFloor and sealedFloor follow the factory's formulas for {gc} gates, {ns} latches")
+        # the creation transaction: create(Envelope, chipId, salt) on the factory
+        csel = sel("create(" + ENV_T + ",uint256,bytes32)")
+        txh = tx = None
+        for h in flag2["txs"]:
+            t = rpc("eth_getTransactionByHash", [h])
+            if t["to"] and same(t["to"], kf) and h2b(t["input"])[:4] == csel:
+                txh, tx = h, t
+                break
+        r.ok(txh is not None, "deployments' flagshipV2.txs hold a KernelFactoryV2.create transaction")
+        rc = rpc("eth_getTransactionReceipt", [txh])
+        inp = h2b(tx["input"])
+        r.ok(rc["status"] == "0x1" and len(inp) == 4 + 16 * 32 and same(tx["from"], flag2["launcher"]),
+             f"creation tx {txh}: a successful KernelFactoryV2.create sent by the launcher")
+        salt = inp[4 + 15 * 32: 4 + 16 * 32]
+        r.ok([inp[4 + 32 * i: 36 + 32 * i] for i in range(14)] == e,
+             "Envelope in the clone = the envelope the creation transaction passed")
+        r.ok(inp[4 + 14 * 32: 4 + 15 * 32] == G["chipId"], "chipId in the clone = the transaction's chipId")
+        r.note("envelope: " + ", ".join(
+            f"{k}={addr_of(v) if k in ('launcher', 'allowancePayee', 'sink') else int.from_bytes(v, 'big')}"
+            for k, v in zip(ENV_FIELDS, e)))
+        r.ok(same(addr_of(e[0]), flag2["launcher"]) and same(addr_of(e[2]), flag2["allowancePayee"]),
+             "envelope launcher and allowancePayee = deployments' flagshipV2 launcher and allowancePayee")
+        if D.get("architect"):
+            r.ok(same(flag2["allowancePayee"], D["architect"]["agentWallet"]),
+                 "allowancePayee = the Architect agent wallet deployments/xlayer.json records")
+        ref, unknown = reference_envelope_v2(flag2["commit"], flag2["launcher"], flag2["allowancePayee"])
+        r.ok(not unknown and e == ref, f"Envelope = LaunchChipV2.referenceEnvelope(launcher, allowancePayee) at commit "
+             f"{flag2['commit'][:7]}" + (f" (unknown fields {unknown})" if unknown else ""))
+        initcode = h2b("61") + len(oc).to_bytes(2, "big") + h2b("3d81600a3d39f3") + oc
+        r.ok(same(create2_addr(kf, salt, initcode), r.addr),
+             "CREATE2(factory, salt, OpenZeppelin's clone initcode + on-chain runtime) = this address")
+        pred = call(kf, sel("predict(" + ENV_T + ",uint256,bytes32)") + inp[4:])
+        r.ok(same(addr_of(pred), r.addr), "KernelFactoryV2.predict(envelope, chipId, salt) returns this address today")
+        r.ok(int.from_bytes(call(kf, sel("isKernel(address)") + W(r.addr)), "big") == 1,
+             "KernelFactoryV2.isKernel(this) is true")
+        owner = call(iss["circuits"], sel("ownerOf(uint256)") + G["chipId"])
+        r.ok(same(addr_of(owner), r.addr), f"Circuits.ownerOf({chip}) = this kernel: it holds the chip")
+        tok = call(r.addr, sel("token()"))
+        r.note("token() = " + ("0x0 today: not bound to a token yet" if not any(tok) else addr_of(tok)))
+        r.creation = "MATCH (CREATE2 address)" if not r.fail else "MISMATCH"
+        r.runtime = "MATCH (proxy + args)" if not r.fail else "MISMATCH"
+
 # ---- netlists: the bytes on chain against the committed netlist files
 def committed(commit, path):
     import subprocess
@@ -576,7 +767,7 @@ def netlist_from_circuits(chip):
     n = int.from_bytes(ret[32:64], "big")
     return ret[64:64 + n]
 
-def fab_snapshot_row(label, chip, commit, path, recorded_hash=None):
+def fab_snapshot_row(label, chip, commit, path, recorded_hash=None, globals_key=None, manifest=None):
     @check(label, "?", "chips", commit)
     def _(r):
         r.ok(int.from_bytes(call(ev["fab"], sel("isChip(uint256)") + chip.to_bytes(32, "big")), "big") == 1,
@@ -590,11 +781,15 @@ def fab_snapshot_row(label, chip, commit, path, recorded_hash=None):
         r.ok(keccak(sc[1:]) == nh, f"keccak256(snapshot netlist) = Fab.chipInfo netlistHash 0x{nh.hex()}")
         if recorded_hash:
             r.ok(nh == h2b(recorded_hash), "netlistHash = the hash deployments/xlayer.json records")
+        if manifest:
+            r.ok(ci[160:192] == h2b(manifest), "Fab.chipInfo manifestHash = the manifestHash deployments/xlayer.json records")
         r.ok(netlist_from_circuits(chip) == want, f"Circuits.netlist({chip}), TapeOut's copy, is the same bytes")
-        G = S.get("globals")
-        if chip == flag["chipId"] and G:
+        G = S.get(globals_key) if globals_key else None
+        if G:
             r.ok(G["snapshot"] == ci[0:32] and len(sc) - 1 == int.from_bytes(G["netlistLen"], "big"),
                  "the kernel clone's Globals.snapshot and netlistLen name this snapshot")
+        elif globals_key:
+            r.note("not tied to the kernel clone: its row did not read the clone's Globals")
         r.creation = "n/a (written by Fab.tapeoutChip)"
         r.runtime = "MATCH (bytes = committed file)" if not r.fail else "MISMATCH"
 
@@ -609,13 +804,16 @@ def _(r):
     r.runtime = "MATCH (bytes = committed file)" if not r.fail else "MISMATCH"
 
 fab_snapshot_row("Chip 2 netlist, Fab snapshot (Flow Governor)", flag["chipId"], flag["commit"], "chips/out/fg.hex",
-                 flag["netlistKeccak256"])
+                 flag["netlistKeccak256"], "globals", flag.get("manifestHash"))
 pre = D.get("prelaunch")
 if pre:
     fab_snapshot_row("Chip 3 netlist, Fab snapshot (Glutton)", pre["gluttonChipId"], pre["commit"],
                      "chips/cells/glutton/glutton.hex")
     fab_snapshot_row("Chip 4 netlist, Fab snapshot (Glutton512)", pre["glutton512ChipId"], pre["commit"],
                      "chips/cells/glutton/glutton512.hex")
+if flag2:
+    fab_snapshot_row("Chip 5 netlist, Fab snapshot (Flow Governor, v2)", flag2["chipId"], flag2["commit"],
+                     "chips/out/fg.hex", flag2["netlistKeccak256"], "globals_v2" if c2 else None, flag2.get("manifestHash"))
 
 # ---- not built here: the processor, TapeOut's beacon proxies. Compared with another processor of the same factory
 # (0x933F.../0x0F24..., a processor the evaluator's fork tests used as a stand-in, see contracts/evaluator/NOTES.md).

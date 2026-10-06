@@ -5,7 +5,7 @@
 #   deploy/verify-explorers.sh                      dry run: build, check, write the packages, print the commands
 #   deploy/verify-explorers.sh --status             also read each address's current status (OKLink, Sourcify)
 #   deploy/verify-explorers.sh --out DIR            write the packages into DIR (default: a new directory in $TMPDIR)
-#   deploy/verify-explorers.sh --only Fab,Lens      restrict to some contracts
+#   deploy/verify-explorers.sh --only Fab,LensV2    restrict to some contracts
 #   OKLINK_API_KEY=... deploy/verify-explorers.sh --submit oklink     SUBMIT to OKLink (asks for confirmation)
 #   deploy/verify-explorers.sh --submit sourcify                      SUBMIT to Sourcify (asks for confirmation)
 #
@@ -25,9 +25,13 @@
 #   Sourcify  supports chain 196; no key. Its result shows on sourcify.dev, not on OKLink.
 # There is no Blockscout instance and no Etherscan support for chain 196.
 #
-# Not submitted by this script: the flagship kernel clone (OpenZeppelin's ERC-1167 proxy with appended arguments;
-# it has no Solidity source of its own, deploy/verify-bytecode.sh checks it), and the processor's Transistors and
-# Circuits (TapeOut's code).
+# Contracts: Splitter, TeamRegistry, KeeperTank (contracts/issuance); SealedVM, Fab (contracts/evaluator);
+# KernelFactory, Kernel, Lens (contracts/core, kernel v1); KernelFactoryV2, KernelV2, LensV2 (contracts/core-v2,
+# kernel v2 with the USD₮0 quote; its build tree also holds contracts/core, whose sources and libraries it uses).
+#
+# Not submitted by this script: the two flagship kernel clones, v1 and v2 (OpenZeppelin's ERC-1167 proxy with
+# appended arguments; they have no Solidity source of their own, deploy/verify-bytecode.sh checks them), and the
+# processor's Transistors and Circuits (TapeOut's code).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -80,7 +84,7 @@ sed -n '/^| Contract/,$p' "$WORK/bytecode.log"
 python3 - "$LIVE" "$ROOT" >"$WORK/contracts.tsv" <<'PY'
 import json, os, sys
 D = json.load(open(sys.argv[1])); root = sys.argv[2]
-iss, ev, core = D["issuance"], D["evaluator"], D["core"]
+iss, ev, core, c2 = D["issuance"], D["evaluator"], D["core"], D.get("coreV2")
 def bargs(pkg, script, name):
     p = os.path.join(root, "contracts", pkg, "broadcast", script, "196", "run-latest.json")
     return next(t.get("arguments") or [] for t in json.load(open(p))["transactions"]
@@ -96,6 +100,13 @@ rows = [
     ("Kernel", "core", "src/Kernel.sol:Kernel", core["kernelImpl"], "", "", ""),
     ("Lens", "core", "src/Lens.sol:Lens", core["lens"], core["txs"][1], "constructor(address)", "tx"),
 ]
+if c2:  # kernel v2 (USD₮0 quote); txs[0] creates KernelFactoryV2 (and KernelV2 inside it), txs[1] LensV2
+    rows += [
+        ("KernelFactoryV2", "core-v2", "src/KernelFactoryV2.sol:KernelFactoryV2", c2["kernelFactory"], c2["txs"][0],
+         "constructor(address,address,address,uint256,address,address,address,address,address,bytes32)", "tx"),
+        ("KernelV2", "core-v2", "src/KernelV2.sol:KernelV2", c2["kernelImpl"], "", "", ""),
+        ("LensV2", "core-v2", "src/LensV2.sol:LensV2", c2["lens"], c2["txs"][1], "constructor(address)", "tx"),
+    ]
 for r in rows:
     print("\t".join(x if x else "-" for x in r))
 PY
@@ -162,6 +173,7 @@ PY
   {
     echo "# $name at $addr (contracts/$pkg, commit from deployments/xlayer.json); run inside contracts/$pkg at that commit"
     echo "# with the pinned libraries installed (deploy/verify-bytecode.sh --workdir DIR builds exactly that tree)."
+    [ "$pkg" != core-v2 ] || echo "# contracts/core-v2 compiles kernel v1's files from ../core/src and takes its libraries from ../core/lib."
     echo
     echo "# OKLink (shows on www.oklink.com/x-layer and web3.okx.com/explorer/x-layer). Needs OKLINK_API_KEY."
     echo "forge verify-contract $addr $path --chain 196 \\"
@@ -213,7 +225,7 @@ for line in open(sys.argv[1]):
     sf = get(f"https://sourcify.dev/server/v2/contract/196/{addr}")
     okv = ("verified as " + ok["data"][0].get("contractName", "?")) if ok.get("data") else (
         "not verified" if ok.get("code") == "0" else f"answer {ok}")
-    print(f"  {name:14} {addr}  OKLink: {okv:28} Sourcify: {sf.get('match') or 'not verified'}")
+    print(f"  {name:16} {addr}  OKLink: {okv:28} Sourcify: {sf.get('match') or 'not verified'}")
     time.sleep(13)
 PY
 fi
