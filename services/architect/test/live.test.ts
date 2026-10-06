@@ -256,26 +256,72 @@ const cfg = { rpcUrls: ['https://rpc.example'], asset: USDT0, payTo: PAY_TO as `
 const rpcFetch = (receipt: unknown): typeof fetch =>
   (async () => new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: receipt }), { status: 200 })) as typeof fetch;
 
-const transferLog = (to: string, value: bigint, token: string = USDT0.address) => ({
+const PAYER = '0x00000000000000000000000000000000000000Aa';
+const NONCE = `0x${'5a'.repeat(32)}`;
+const AUTHORIZATION_USED = '0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5';
+
+const transferLog = (to: string, value: bigint, token: string = USDT0.address, from: string = PAYER) => ({
   address: token,
-  topics: [TRANSFER, pad('0x00000000000000000000000000000000000000Aa'), pad(to)],
+  topics: [TRANSFER, pad(from), pad(to)],
   data: `0x${value.toString(16).padStart(64, '0')}`,
 });
 
+// What USD₮0 emits for every EIP-3009 authorization it executes, next to the Transfer.
+const authorizationUsedLog = (authorizer: string = PAYER, nonce: string = NONCE, token: string = USDT0.address) => ({
+  address: token,
+  topics: [AUTHORIZATION_USED, pad(authorizer), nonce],
+  data: '0x',
+});
+const settled = (to: string, value: bigint) => ({ status: '0x1', logs: [authorizationUsedLog(), transferLog(to, value)] });
+
 test('settlement timeout: the transfer is confirmed from the receipt only if it pays the payee the price in USDT0', async () => {
   const opts = { sleep: async () => {}, attempts: 2 };
-  const ok = { status: '0x1', logs: [transferLog(PAY_TO, 500000n)] };
+  const ok = settled(PAY_TO, 500000n);
   assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(ok) }), true);
   // More than the price is fine.
-  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch({ status: '0x1', logs: [transferLog(PAY_TO, 600000n)] }) }), true);
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(settled(PAY_TO, 600000n)) }), true);
 
   // Too little, another payee, another token, a reverted transaction, no receipt, a malformed hash.
-  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch({ status: '0x1', logs: [transferLog(PAY_TO, 499999n)] }) }), false);
-  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch({ status: '0x1', logs: [transferLog('0x2222222222222222222222222222222222222222', 500000n)] }) }), false);
-  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch({ status: '0x1', logs: [transferLog(PAY_TO, 500000n, '0x3333333333333333333333333333333333333333')] }) }), false);
-  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch({ status: '0x0', logs: [transferLog(PAY_TO, 500000n)] }) }), false);
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(settled(PAY_TO, 499999n)) }), false);
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(settled('0x2222222222222222222222222222222222222222', 500000n)) }), false);
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch({ status: '0x1', logs: [authorizationUsedLog(), transferLog(PAY_TO, 500000n, '0x3333333333333333333333333333333333333333')] }) }), false);
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch({ ...settled(PAY_TO, 500000n), status: '0x0' }) }), false);
   assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(null) }), false);
   assert.equal(await confirmTransferOnChain('MOCK-NOT-A-TRANSACTION-1', cfg, { ...opts, fetch: rpcFetch(ok) }), false);
+});
+
+// Review A-F6. Once PAY_TO is a contract that also receives other USD₮0 (a Covenant kernel receives its vault's tax
+// claim every settle, and anyone's claimFor), a Transfer to PAY_TO of at least the price no longer proves that this
+// buyer paid. The transfer must be the one an EIP-3009 authorization executed: USD₮0 emits AuthorizationUsed for the
+// sender of that Transfer, and, when the payment's authorization is known, its `from` and nonce must match.
+test('settlement timeout: a transfer to the payee that no EIP-3009 authorization executed does not confirm a payment', async () => {
+  const opts = { sleep: async () => {}, attempts: 1 };
+  const VAULT = '0x4444444444444444444444444444444444444444';
+  // a vault claim (or a claimFor) paying the kernel more than the price: no AuthorizationUsed in the transaction
+  const claim = { status: '0x1', logs: [transferLog(PAY_TO, 3_000_000n, USDT0.address, VAULT)] };
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(claim) }), false);
+  // an authorization by somebody else in the same transaction does not make the claim a payment
+  const mixed = { status: '0x1', logs: [authorizationUsedLog(), transferLog(PAY_TO, 3_000_000n, USDT0.address, VAULT)] };
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(mixed) }), false);
+  // an AuthorizationUsed from another token contract does not count
+  const foreign = { status: '0x1', logs: [authorizationUsedLog(PAYER, NONCE, '0x3333333333333333333333333333333333333333'), transferLog(PAY_TO, 500000n)] };
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(foreign) }), false);
+  // the real thing: the authorizer's own transfer, either log order
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(settled(PAY_TO, 500000n)) }), true);
+  const reversed = { status: '0x1', logs: [transferLog(PAY_TO, 500000n), authorizationUsedLog()] };
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(reversed) }), true);
+
+  // when the payment's authorization is known, its payer and nonce must be the ones on chain
+  const known = { from: PAYER, nonce: NONCE };
+  assert.equal(await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(settled(PAY_TO, 500000n)) }, known), true);
+  assert.equal(
+    await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(settled(PAY_TO, 500000n)) }, { from: '0x00000000000000000000000000000000000000Bb', nonce: NONCE }),
+    false,
+  );
+  assert.equal(
+    await confirmTransferOnChain(TX, cfg, { ...opts, fetch: rpcFetch(settled(PAY_TO, 500000n)) }, { from: PAYER, nonce: `0x${'6b'.repeat(32)}` }),
+    false,
+  );
 });
 
 test('settlement timeout end to end: OKX says timeout, the chain says paid, the result is delivered', async (t) => {
@@ -284,7 +330,7 @@ test('settlement timeout end to end: OKX says timeout, the chain says paid, the 
   // The SDK first polls OKX's settle/status (here for 50 ms instead of 5 s), which keeps answering "pending".
   const h = harness(
     { ...LIVE, RPC_URLS: 'https://rpc.example', X402_SETTLE_POLL_MS: '50' },
-    { fetch: rpcFetch({ status: '0x1', logs: [transferLog(PAY_TO, 500000n)] }) },
+    { fetch: rpcFetch(settled(PAY_TO, 500000n)) },
   );
   const challenge = challengeOf(await h.post(CHIP, { preset: 'ok' }));
   const res = await h.post(CHIP, { preset: 'ok' }, { 'PAYMENT-SIGNATURE': payment(challenge) });
@@ -292,6 +338,50 @@ test('settlement timeout end to end: OKX says timeout, the chain says paid, the 
   assert.equal(decodeHeader(res.headers.get('PAYMENT-RESPONSE'))['status'], 'success');
   assert.ok(seen.some((s) => s.url.includes('/settle/status?txHash=')), 'the facilitator was polled first');
   assert.ok(h.lines.some((l) => l['event'] === 'payment_settlement_timeout' && l['confirmedOnChain'] === true));
+});
+
+const paymentBy = (challenge: ReturnType<typeof challengeOf>, from: string, nonce: string): string =>
+  Buffer.from(
+    JSON.stringify({
+      x402Version: 2,
+      resource: challenge.resource,
+      accepted: challenge.accepts[0],
+      payload: { signature: '0xsigned', authorization: { from, to: PAY_TO, value: '500000', validAfter: '0', validBefore: '9999999999', nonce } },
+    }),
+  ).toString('base64');
+
+test('settlement timeout end to end: the payment is checked against its own payer and nonce', async (t) => {
+  fakeOkx(t, { success: false, status: 'timeout', transaction: TX, network: 'eip155:196' });
+  const VAULT = '0x4444444444444444444444444444444444444444';
+  // A receipt in which the payee only receives a claim from a vault: not this buyer's payment.
+  const claimOnly = harness(
+    { ...LIVE, RPC_URLS: 'https://rpc.example', X402_SETTLE_POLL_MS: '50' },
+    { fetch: rpcFetch({ status: '0x1', logs: [transferLog(PAY_TO, 3_000_000n, USDT0.address, VAULT)] }) },
+  );
+  let challenge = challengeOf(await claimOnly.post(CHIP, { preset: 'ok' }));
+  let res = await claimOnly.post(CHIP, { preset: 'ok' }, { 'PAYMENT-SIGNATURE': paymentBy(challenge, PAYER, NONCE) });
+  assert.equal(res.status, 402);
+  assert.doesNotMatch(await res.text(), /netlistHex/);
+  assert.ok(claimOnly.lines.some((l) => l['event'] === 'payment_settlement_timeout' && l['confirmedOnChain'] === false && l['payerKnown'] === true));
+
+  // Somebody else's authorization in the receipt: not this buyer's payment either.
+  const otherNonce = harness(
+    { ...LIVE, RPC_URLS: 'https://rpc.example', X402_SETTLE_POLL_MS: '50' },
+    { fetch: rpcFetch(settled(PAY_TO, 500000n)) },
+  );
+  challenge = challengeOf(await otherNonce.post(CHIP, { preset: 'ok' }));
+  res = await otherNonce.post(CHIP, { preset: 'ok' }, { 'PAYMENT-SIGNATURE': paymentBy(challenge, PAYER, `0x${'6b'.repeat(32)}`) });
+  assert.equal(res.status, 402);
+
+  // This buyer's authorization, executed: delivered.
+  const paid = harness(
+    { ...LIVE, RPC_URLS: 'https://rpc.example', X402_SETTLE_POLL_MS: '50' },
+    { fetch: rpcFetch(settled(PAY_TO, 500000n)) },
+  );
+  challenge = challengeOf(await paid.post(CHIP, { preset: 'ok' }));
+  res = await paid.post(CHIP, { preset: 'ok' }, { 'PAYMENT-SIGNATURE': paymentBy(challenge, PAYER, NONCE) });
+  assert.equal(res.status, 200);
+  assert.ok(paid.lines.some((l) => l['event'] === 'payment_settlement_timeout' && l['confirmedOnChain'] === true && l['payerKnown'] === true));
 });
 
 test('settlement timeout end to end: OKX says timeout and the chain has no such transfer: 402, nothing delivered', async (t) => {

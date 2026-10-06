@@ -119,7 +119,10 @@ What happens to a request to `POST /v1/architect/chip`:
 6. The compile succeeded: OKX settles (`syncSettle`: it waits for the transfer to be mined). On success the answer
    carries `PAYMENT-RESPONSE`. If settlement fails the result is withheld and the answer is 402.
 7. If OKX answers "timeout", the service looks for the USDT0 transfer to `PAY_TO` in the transaction's receipt on
-   X Layer before refusing the buyer.
+   X Layer before refusing the buyer. Only a transfer that an EIP-3009 authorization executed counts (USDT0's
+   `AuthorizationUsed` for the transfer's sender, and this payment's payer and nonce when its payload carries them),
+   so USDT0 that reaches `PAY_TO` some other way (a Covenant kernel as `PAY_TO` also receives its vault's tax claims)
+   is never taken for a payment.
 
 **Mock mode** (`X402_MODE=mock`) replaces only the facilitator: OKX's SDK still builds the challenge and runs the same
 flow, but verification and settlement happen in this process and nothing touches OKX or the chain. It accepts only

@@ -15,7 +15,9 @@
 //   - fail closed: without credentials, payee or a real toolchain the route answers 503 with the reasons;
 //   - the facilitator handshake (GET supported kinds) is done here, with retries, instead of by the SDK:
 //     the SDK starts it eagerly and an early failure would be an unhandled rejection;
-//   - when OKX reports a settlement timeout, the transfer is looked up on chain before the buyer is refused;
+//   - when OKX reports a settlement timeout, the transfer is looked up on chain before the buyer is refused: it
+//     counts only if USD₮0 executed an EIP-3009 authorization for it (AuthorizationUsed by the Transfer's sender,
+//     and the payer and nonce of this payment when they are known), not any USD₮0 that reached PAY_TO;
 //   - X402_MODE=mock swaps the facilitator for an in-process one (mock-facilitator.ts).
 
 import { OKXFacilitatorClient } from '@okxweb3/x402-core';
@@ -35,6 +37,61 @@ const DESCRIPTION =
 
 /** keccak256("Transfer(address,address,uint256)") */
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+/** keccak256("AuthorizationUsed(address,bytes32)"): emitted by USD₮0 for every EIP-3009 authorization it executes. */
+const AUTHORIZATION_USED_TOPIC = '0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5';
+
+/** The EIP-3009 authorization a settlement executes, when the payment payload carried a well-formed one. */
+export interface ExpectedAuthorization {
+  /** lower-case 0x address of the payer, or null when unknown */
+  from: string | null;
+  /** lower-case 0x bytes32 nonce, or null when unknown */
+  nonce: string | null;
+}
+
+const UNKNOWN_AUTHORIZATION: ExpectedAuthorization = { from: null, nonce: null };
+
+/** The payer and nonce of an exact-scheme payment payload (payload.authorization of EIP-3009). */
+export function authorizationOf(paymentPayload: unknown): ExpectedAuthorization {
+  const a = (paymentPayload as { payload?: { authorization?: { from?: unknown; nonce?: unknown } } } | null)?.payload
+    ?.authorization;
+  const from = typeof a?.from === 'string' && /^0x[0-9a-fA-F]{40}$/.test(a.from) ? a.from.toLowerCase() : null;
+  const nonce = typeof a?.nonce === 'string' && /^0x[0-9a-fA-F]{64}$/.test(a.nonce) ? a.nonce.toLowerCase() : null;
+  return { from, nonce };
+}
+
+/**
+ * The facilitator, unchanged, except that it remembers which authorization each settlement transaction it reports
+ * was executing, so that a settlement timeout can be checked against that payment's payer and nonce. Bounded.
+ */
+export function rememberingSettlements(
+  inner: FacilitatorClient,
+  seen: Map<string, ExpectedAuthorization>,
+  max = 1000,
+): FacilitatorClient {
+  const wrapped: FacilitatorClient = {
+    verify: (payload, requirements) => inner.verify(payload, requirements),
+    getSupported: () => inner.getSupported(),
+    settle: async (payload, requirements) => {
+      const result = await inner.settle(payload, requirements);
+      const tx = typeof result.transaction === 'string' ? result.transaction.toLowerCase() : '';
+      if (/^0x[0-9a-f]{64}$/.test(tx)) {
+        seen.set(tx, authorizationOf(payload));
+        while (seen.size > max) {
+          const oldest = seen.keys().next().value;
+          if (oldest === undefined) break;
+          seen.delete(oldest);
+        }
+      }
+      return result;
+    },
+  };
+  if (inner.getSettleStatus) wrapped.getSettleStatus = (txHash) => inner.getSettleStatus!(txHash);
+  return wrapped;
+}
+
+/** The address in an indexed address topic, lower case, or null if the topic is not one. */
+const topicAddress = (topic: string | undefined): string | null =>
+  typeof topic === 'string' && /^0x0{24}[0-9a-fA-F]{40}$/.test(topic) ? `0x${topic.slice(26).toLowerCase()}` : null;
 
 export interface PaywallStatus {
   mode: 'live' | 'mock';
@@ -102,19 +159,26 @@ interface RpcReceipt {
 }
 
 /**
- * Was this settlement mined? Looks for the token's Transfer to the payee of at least the price in the
- * transaction's receipt. Used only when the facilitator says "timeout".
+ * Was this settlement mined? Looks in the transaction's receipt for the token's Transfer to the payee of at least
+ * the price whose sender is the authorizer of an AuthorizationUsed log of the same token in the same transaction:
+ * the transfer an EIP-3009 authorization executed. A Transfer to the payee that no authorization executed (when the
+ * payee is a contract that also receives other USD₮0, such as a Covenant kernel's vault claim) does not count. When
+ * the payment's authorization is known, its payer and nonce must be the ones on chain. Used only when the
+ * facilitator says "timeout".
  */
 export async function confirmTransferOnChain(
   txHash: string,
   config: Pick<PaidConfig, 'rpcUrls' | 'asset' | 'payTo' | 'amount'>,
   options: { fetch?: typeof fetch; sleep?: (ms: number) => Promise<void>; attempts?: number; delayMs?: number } = {},
+  expected: ExpectedAuthorization = UNKNOWN_AUTHORIZATION,
 ): Promise<boolean> {
   if (!/^0x[0-9a-fA-F]{64}$/.test(txHash) || config.payTo === null) return false;
   const doFetch = options.fetch ?? fetch;
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const attempts = options.attempts ?? 10;
   const payTo = config.payTo.toLowerCase().slice(2);
+  const expectedFrom = expected.from?.toLowerCase() ?? null;
+  const expectedNonce = expected.nonce?.toLowerCase() ?? null;
   const asset = config.asset.address.toLowerCase();
   const price = BigInt(config.amount);
 
@@ -131,15 +195,30 @@ export async function confirmTransferOnChain(
         const receipt = ((await res.json()) as { result?: RpcReceipt | null }).result;
         if (!receipt) continue;
         if (receipt.status !== '0x1') return false;
-        return (receipt.logs ?? []).some(
-          (l) =>
-            l.address?.toLowerCase() === asset &&
+        const tokenLogs = (receipt.logs ?? []).filter((l) => l.address?.toLowerCase() === asset);
+        const authorizers = new Set(
+          tokenLogs
+            .filter(
+              (l) =>
+                l.topics?.[0] === AUTHORIZATION_USED_TOPIC &&
+                (expectedNonce === null || l.topics?.[2]?.toLowerCase() === expectedNonce),
+            )
+            .map((l) => topicAddress(l.topics?.[1]))
+            .filter((a): a is string => a !== null),
+        );
+        return tokenLogs.some((l) => {
+          const sender = topicAddress(l.topics?.[1]);
+          return (
             l.topics?.[0] === TRANSFER_TOPIC &&
-            l.topics?.[2]?.toLowerCase().endsWith(payTo) === true &&
+            sender !== null &&
+            authorizers.has(sender) &&
+            (expectedFrom === null || sender === expectedFrom) &&
+            topicAddress(l.topics?.[2]) === `0x${payTo}` &&
             typeof l.data === 'string' &&
             /^0x[0-9a-fA-F]{1,64}$/.test(l.data) &&
-            BigInt(l.data) >= price,
-        );
+            BigInt(l.data) >= price
+          );
+        });
       } catch {
         // try the next endpoint
       }
@@ -203,6 +282,10 @@ export function createPaywall(config: PaidConfig, deps: PaywallDeps): Paywall {
     throw new Error('createPaywall: live mode without credentials should have been caught by config.reasons');
   }
 
+  // Which authorization each reported settlement transaction executed (for the timeout check below).
+  const authorizations = new Map<string, ExpectedAuthorization>();
+  facilitator = rememberingSettlements(facilitator, authorizations);
+
   const resourceServer = new x402ResourceServer(facilitator).register(config.network, new ExactEvmScheme());
   resourceServer.onAfterSettle(async (ctx) => {
     log.info('payment_settled', {
@@ -227,8 +310,15 @@ export function createPaywall(config: PaidConfig, deps: PaywallDeps): Paywall {
   httpServer.setPollDeadline(config.settlePollMs);
   if (config.mode === 'live') {
     httpServer.onSettlementTimeout(async (txHash) => {
-      const confirmed = await confirmTransferOnChain(txHash, config, { fetch: deps.fetch, sleep: deps.sleep });
-      log.warn('payment_settlement_timeout', { transaction: txHash, confirmedOnChain: confirmed });
+      const key = txHash.toLowerCase();
+      const expected = authorizations.get(key) ?? UNKNOWN_AUTHORIZATION;
+      authorizations.delete(key);
+      const confirmed = await confirmTransferOnChain(txHash, config, { fetch: deps.fetch, sleep: deps.sleep }, expected);
+      log.warn('payment_settlement_timeout', {
+        transaction: txHash,
+        confirmedOnChain: confirmed,
+        payerKnown: expected.from !== null,
+      });
       return { confirmed };
     });
   }
