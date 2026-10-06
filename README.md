@@ -4,8 +4,8 @@
 
 Covenant is an entry to the TapeOut Genesis Transistor Hackathon (organiser: IGNIX; chain: X Layer, id 196).
 
-- Site, no wallet needed: https://oojae.github.io/covenant/
-- Judge guide, seven checks you can run in the page or in a terminal: https://oojae.github.io/covenant/#/judge
+- Site, no wallet needed: https://oojae.github.io/covenant/ (mirrored on TapeOut's DeWEB, served from probe circuit 1's container: https://1-2-283.tapekit.org/)
+- Judge guide, eight checks you can run in the page or in a terminal: https://oojae.github.io/covenant/#/judge
 - The flagship kernel: https://oojae.github.io/covenant/#/k/0xB722a4bDE4EfEe08Be938E2103d7a44C498dd356
 - Every deployed address, read back from the chain: [`deployments/xlayer.json`](deployments/xlayer.json)
 
@@ -113,7 +113,7 @@ Nothing below is claimed until it is marked done. Adoption today is zero.
 | Reference token `CVREF` and its keeper (`services/keeper`) | Not launched yet |
 | Reproducible-build check (`deploy/verify-bytecode.sh`, [docs/VERIFY.md](docs/VERIFY.md)): every Covenant contract rebuilt at its recorded commit and compared with chain 196 | Done: 13 of 13 match. Source not yet published on OKLink |
 | Kit for outside chip authors (`chips/kit`, [docs/BUILD_YOUR_CHIP.md](docs/BUILD_YOUR_CHIP.md)): template to proven netlist to the exact tape-out and kernel commands, with a 180-gate Starter chip | Done; tested end to end on a fork |
-| Kernel v2 (USDT0 quote, agent revenue routed by a chip) | Designed and fork-probed (`contracts/probes/test/Q11`, `Q12`); not built |
+| Kernel v2, USDT0 quote (`contracts/core-v2`, [chips/INTERFACE-V2.md](chips/INTERFACE-V2.md)): x402 revenue paid to the kernel is routed by the chip as tax on the curve; after graduation the chip does not see it and a fixed rule buys the token with it and sends it to 0xdEaD | Built; 189 tests incl. fork tests on live IGNIX with a USD₮0-quoted token, 8,940 settles bit for bit against the Python model, two independent reviews with every finding fixed; not deployed. The signing wrapper (`deploy/launch-kernel-v2.sh`), the launch check's USD₮0 mode, the keeper and the team audit cover it, rehearsed on a fork. Revenue is not pointed at it until IGNIX confirms in writing that revenue-funded contract buys are allowed |
 
 ## The interface
 
