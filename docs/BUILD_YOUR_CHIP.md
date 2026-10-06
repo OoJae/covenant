@@ -4,6 +4,11 @@ Anyone can design a Covenant vault chip, tape it out through the Fab, give it a 
 without asking the team. None of the contracts on that path (Fab, KernelFactory, Lens, KeeperTank) has an owner, an
 allow-list or a switch. This page is the short path, with `chips/kit/kit.sh`.
 
+The kit targets kernel v1 (a token quoted in OKB, `KernelFactory` `0xAAA7…03ad`). A kernel v2 (a token quoted in USD₮0,
+`KernelFactoryV2` `0x231c…82c1`) runs the same chips through a fixed code shift, but the kit does not plan or rehearse
+it. `contracts/core-v2/script/LaunchChipV2.s.sol` takes any netlist (`NETLIST_HEX`); `deploy/launch-kernel-v2.sh`
+signs only the Flow Governor. See `contracts/core-v2/NOTES.md`.
+
 The interface your chip implements is `chips/INTERFACE.md` (revision 2): 96 input bits the kernel builds from chain
 state once per epoch, 112 output bits that say how to route that epoch's tax, 1 to 256 latches of your own state,
 NAND and LATCH records only, at most 3,400 gates.

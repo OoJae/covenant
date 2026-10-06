@@ -4,7 +4,14 @@ The immutable recipient of an IGNIX Directed vault. The code conforms to `chips/
 (2026-10-05). It was first written against revision 1; section 7 records what was changed to reach
 revision 2.
 
-No contract here has an owner, an upgrade path or a pause. Unaudited. Nothing is deployed.
+No contract here has an owner, an upgrade path or a pause. Unaudited.
+
+**Deployed on X Layer** (2026-10-06, built from commit `b54cb86`; `deployments/xlayer.json`, `core` and `flagship`):
+KernelFactory `0xAAA75144304cF81Cc7cf513F434E00980d1803ad` (its constructor created the Kernel implementation
+`0x72e6EbdB444831c9511c6D1DBF07A7f68993EDF1`), Lens `0xEe63Eb34f4B7A16A188d3D14075b9bB6A8aA5ea2`, and the flagship
+kernel `0xB722a4bDE4EfEe08Be938E2103d7a44C498dd356`, which holds chip 2 (the Flow Governor) under the reference
+envelope with the KeeperTank as allowance payee. No token has been launched or bound yet. The on-chain runtime sizes
+equal the table of section 3 (20,413, 6,312 and 15,135 bytes).
 
 ## 1. What is here
 

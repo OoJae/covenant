@@ -13,4 +13,4 @@ We read the public repositories of other entries to this hackathon as landscape 
 
 What we believe is new in this field, stated narrowly: a taped-out chip with persisted multi-latch state that computes how an IGNIX Directed vault's tax is routed, behind a kernel with no admin, and a processor whose creator is a contract that enforces the split of mint proceeds.
 
-Adoption today is zero. Flows on the reference token are small and are reported as they are.
+Adoption today is zero. No token has been launched on a Covenant kernel yet; once the team's own tokens are, their flows will be small and are reported as they are.

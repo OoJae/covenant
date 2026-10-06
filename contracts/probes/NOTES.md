@@ -12,7 +12,7 @@ cd contracts/probes
 # once: forge-std is not committed (the repo .gitignore excludes lib/)
 forge install foundry-rs/forge-std --no-git --root "$PWD"
 
-# everything (112 tests in 12 suites, about 20 s with a warm RPC cache, about 1 min cold)
+# everything (129 tests in 14 suites, about 20 s with a warm RPC cache, about 1 min cold)
 forge test
 
 # with the numbers (gas, amounts) printed
@@ -87,6 +87,10 @@ test/Q7_V2BuyBurn.t.sol            Uniswap V2 buy-and-burn leg (also Q-C), prote
 test/Q8_Timing.t.sol               claimFor griefing, sync, pause switches, anti-snipe, launch bounds
 test/Q9_Gas.t.sol                  gas per leg, minimum gas limits, whole epochs
 test/Q10_Replay.t.sol              two REAL mainnet transactions re-executed on a fork: same tokens, same gas
+test/Q11_Usdt0Quote.t.sol          a Directed launch quoted in USD₮0 with a contract recipient (kernel v2): claims,
+                                   buyTo, graduation to a token/USD₮0 pair, EIP-3009 payments to a contract
+test/Q12_KernelV2Review.t.sol      the kernel v2 review's questions: USD₮0 approve semantics, the USD₮0/WOKB V3 pool,
+                                   a USD₮0-to-native converter (rejected option d), lg8 exact under a whole-bit shift
 
 vendor-cache/                      everything fetched from outside the chain (see below)
 ```

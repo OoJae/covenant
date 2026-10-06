@@ -195,7 +195,8 @@ Bytecode of this revision (changes with any edit to the sources, comments includ
    and kernels are unaffected; new chips would need a new Fab. A processor that lies in every view cannot
    be defeated by any check (section 6, finding 4).
 2. **OKLink verification was not run.** The command in the README follows Foundry's `--verifier oklink` and
-   the endpoint answers, but no contract was submitted (nothing is deployed and there is no key here).
+   the endpoint answers, but no contract was submitted. Both contracts have been deployed since (2026-10-06); their
+source is not yet verified on OKLink (`docs/VERIFY.md`).
 3. **TapeOut's deployed build used via-IR.** Inferred: its source does not compile otherwise. OKLink's record
    does not show the flag. It does not matter for these contracts.
 4. **Gas is measured in Foundry's EVM with Cancun rules.** X Layer runs a later fork and looks like an

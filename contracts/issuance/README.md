@@ -192,16 +192,20 @@ The receipt and all addresses are saved to `broadcast/Ignite.s.sol/196/run-lates
 Never run `script/ignite.sh --broadcast` a second time: it would create a second processor. (While the record
 is uncommitted the wrapper refuses anyway, because the project then differs from `HEAD`.)
 
-As long as the deployer's nonce is 0 when the transaction is sent, the Splitter is
-`0xfd73b7Bc92cDa68ec57799987fd3449BA5daDD88`, the registry `0x6f1a330b7FfAc901205704EACA8e46ee4091F3A2` and the
-tank `0xAfed3eC2196BDc8F5a933D8f280c945f0D2D826e`.
+At the deployer's nonce 0 the Splitter would be `0xfd73b7Bc92cDa68ec57799987fd3449BA5daDD88`, the registry
+`0x6f1a330b7FfAc901205704EACA8e46ee4091F3A2` and the tank `0xAfed3eC2196BDc8F5a933D8f280c945f0D2D826e`.
 The Transistors and Circuits addresses are created by TapeOut's factory and are final only in the receipt.
+
+**Done on 2026-10-06**, at the deployer's nonce 1 (block 72,519,781), so the live addresses are: Splitter
+`0xB87101F7426BA9175E0a944d3e763dC69B19867f`, TeamRegistry `0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699`, KeeperTank
+`0xb89BCe53822a99503A937C22974F1224D9Ab6352`, Transistors `0xC372dc307eFE4B551c866A79F582D692A373960A`, Circuits
+`0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b` (`deployments/xlayer.json`).
 
 Check the result from a terminal (free calls):
 
 ```sh
 RPC=https://rpc.xlayer.tech
-SPLITTER=0xfd73b7Bc92cDa68ec57799987fd3449BA5daDD88        # or the address the broadcast printed
+SPLITTER=0xB87101F7426BA9175E0a944d3e763dC69B19867f        # the live Splitter
 TRANSISTORS=$(cast call $SPLITTER "TRANSISTORS()(address)" --rpc-url $RPC)
 CIRCUITS=$(cast call $SPLITTER "CIRCUITS()(address)" --rpc-url $RPC)
 REGISTRY=$(cast call $SPLITTER "REGISTRY()(address)" --rpc-url $RPC)
@@ -224,13 +228,14 @@ forge script script/TapeoutProbe.s.sol:TapeoutProbe --rpc-url https://rpc.xlayer
 
 Three transactions: `mint(0, 109)` with 0.00284 OKB, `mint(1, 9)` with 0.00084 OKB and `tapeout` with
 0.0013 OKB. Cost: 0.00498 OKB plus about 812,000 gas. If it is the first tape-out on the processor the circuit
-id is 1. Before sending, `cast keccak $(cat ../../chips/probe/probe.hex)` must print
+id is 1 (done: the probe is circuit 1, tape-out transaction `0x9e75ed66…ce572fa`). Before sending, `cast keccak $(cat ../../chips/probe/probe.hex)` must print
 `0xbe0a646df5b58df69e5dc50f492dcc5bdcffa440c3188b8b786ff506cb181325`.
 
 ### Verify the sources on OKLink
 
-Templates, not yet run (there is nothing to verify until the contracts exist). Run them after Ignite with the
-addresses it printed. If OKLink asks for a key, add `--verifier-api-key <key>`.
+Templates, not yet run: the contracts exist, but no source has been submitted to OKLink (`docs/VERIFY.md` and
+`deploy/verify-explorers.sh` prepare the submissions). Use the live addresses above. If OKLink asks for a key, add
+`--verifier-api-key <key>`.
 
 ```sh
 OKLINK=https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/XLAYER

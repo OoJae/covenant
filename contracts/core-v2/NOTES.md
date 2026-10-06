@@ -8,7 +8,15 @@ quote asset kept as it is. The interface delta is `chips/INTERFACE-V2.md`.
 **Status (2026-10-06):** built, tested on mocks, against an independent Python model (bit for bit) and on an X Layer
 fork, and rehearsed on a local anvil fork. Two independent reviews found no defect in the kernel's code; their
 findings on tests, wording, the deploy script's rehearsal switch and the Architect's timeout check are fixed (section
-10). **Not deployed. Nothing was sent to any network.** Not audited. A separate RevenueInbox, `routeRev` and a Revenue
+10). Not audited. **Deployed on X Layer on 2026-10-06** (steps 1 and 2 of section 9, built from commit `a9c3c22`;
+`deployments/xlayer.json`, `coreV2` and `flagshipV2`): KernelFactoryV2 `0x231c0174ebb69789813f6EcB625b4626E69A82C1`
+(USD₮0, shift 33 read from the pool at deployment), KernelV2 implementation `0x0d75d4c11e4770257b2bbf2d1E0Cb78f5B50CAd5`,
+LensV2 `0x3EBE9e9cbc67D6A008c55d20294357521D28b049`, and the Flow Governor taped out again as chip 5 and held by the v2
+kernel `0xd50A7cb21f4ef91f795730Fe8c45EaA5E500dD75` under the reference envelope, with the Architect agent wallet
+`0xBE5088307e15AAF8cF0c53bfCc4C612c9EaD6DA0` as allowance payee. `LensV2.preflight` on chain gives the figures of
+section 4 exactly (TapeOut 4,496,309 of 5,326,400; SealedVM 326,054 of 443,200; `minSettleGas` 11,814,581), and the
+runtime sizes equal the EIP-170 table. Steps 3 to 6 are not done: no token is launched or bound, and `PAY_TO` is the
+agent wallet. A separate RevenueInbox, `routeRev` and a Revenue
 Covenant chip are **roadmap**, not part of this package. ("Kernel v2" here means **kernel v2 (USD₮0 quote)**; the
 "Kernel v2" column of `chips/INTERFACE.md` revision 2 is that later revenue kernel.)
 
@@ -256,6 +264,8 @@ Counts and gas in the final report of 2026-10-06 come from these commands; rerun
 
 ## 9. The mainnet steps the user would sign (only after the hold on launches is lifted)
 
+Steps 1 and 2 were sent on 2026-10-06 (header above). Steps 3 to 6 have not been taken.
+
 Before any of them: (i) the $0.01 x402 test to a **throwaway** contract `payTo` (never a kernel); (ii) a check,
 without signing, that ignix.bot offers and signs a Directed launch quoted in USD₮0 with a contract recipient.
 
@@ -278,7 +288,9 @@ resends it. Tested end to end on a fork from a scratch copy, as `deploy/launch-k
 3. **Prepay keepers** (optional, anyone): `KeeperTank.topUp(chipId)` with OKB.
 4. **Launch the token** at ignix.bot from the launcher wallet: Directed, quote USD₮0, recipient = the kernel, first buy
    0, anti-snipe off, after `tools/launch-check/launch-check.ts` and `simulate.ts` pass on the exact transaction.
-5. **Bind** (anyone): `kernel.bind(token)`.
+5. **Bind** (anyone): `kernel.bind(token)`. The deployer sends it with `ARCH_TOKEN=<token> deploy/post-launch.sh
+   --broadcast` (signing session 4, `tools/README.md` "Launch day" step 6), which checks bind's preconditions on chain,
+   rehearses on a fork and records `architectToken` in `deployments/xlayer.json`.
 6. **Point `PAY_TO` at the kernel** in the Architect service, only when **all** of these hold:
    - (a) IGNIX has confirmed **in writing, in the Developer Support topic**, that contract buys funded by third-party
      x402 revenue paid to the kernel are allowed (the 2026-10-05 answer covers buys funded by transaction taxes
@@ -306,7 +318,7 @@ Each was reproduced first (a failing test, or a mutant of the kernel that the ol
 | A-F3, B-F6: forced OKB is not the only asset without an exit | Wording (sections 5, 7, 9; INTERFACE-V2 9.4) and the rule "`PAY_TO` only after `bind` succeeded" | `StatedLimitsV2.test_usdt0_sent_before_bind_and_foreign_tokens_have_no_exit`, `..._is_routed_once_bound` |
 | A-F4, B-F7: credits come first after Tether destroys a balance | Wording (section 7, INTERFACE-V2 13) | `StatedLimitsV2.test_after_tether_destroys_the_balance_later_inflow_refills_the_credits_first` |
 | A-F5: `REHEARSAL=true` switched the price-band check off on chain 196 | `rehearsalAllowed()` = REHEARSAL and chain id not 196, in both scripts | `test_fork_scripts_chain_guard_and_what_rehearsal_may_switch_off` (failed on the old script: shift 32 deployed on chain 196) |
-| A-F6: the Architect's timeout check accepted any USD₮0 transfer to `PAY_TO` | `services/architect/src/paywall.ts`: only a transfer an EIP-3009 authorization executed (AuthorizationUsed by its sender; this payment's payer and nonce when known). Not deployed | `services/architect/test/live.test.ts`, two new tests (the first failed on the old code) |
+| A-F6: the Architect's timeout check accepted any USD₮0 transfer to `PAY_TO` | `services/architect/src/paywall.ts`: only a transfer an EIP-3009 authorization executed (AuthorizationUsed by its sender; this payment's payer and nonce when known). Deployed on Railway with commit `8678740` on 2026-10-06 | `services/architect/test/live.test.ts`, two new tests (the first failed on the old code) |
 | A-F7: graduated records share the buy flags between two legs | How to tell them apart, INTERFACE-V2 section 10 | wording |
 | B-F1 (medium): the factory constructor test checked only its first line | Every check through an external call (17 counted), shift 40 and 0 accepted, a canary test, `dynamic_test_linking = false` | `BindFactoryV2.test_constructor_rejects_bad_pins` (kills M15 decimals, M16 shift bound), `test_canary_an_expected_revert_of_new_does_not_end_the_test` (failed with dynamic linking on) |
 | B-F2 (medium): the unreadable-USD₮0 branch was untested | Two unit tests; the handler checks every settle with the regime balance unreadable and has an action that makes one | `FailureMatrixV2.test_unreadable_usdt0_balance_on_the_curve_loses_no_reserve`, `..._token_balance_after_graduation_...`, `HandlerV2.settleUnreadable` (all kill M6) |

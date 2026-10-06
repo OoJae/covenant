@@ -120,7 +120,7 @@ export function Trust() {
         ]}
         cannot={[
           'Change an envelope, a chip or a route after creation: kernels are fixed clones with the envelope in their bytecode, and the implementation has no owner, setter, upgrade or pause (the vault page scans its code).',
-          'Take the tax. Value leaves a kernel only to a curve buy (the tokens come back and cannot move), after graduation to 0xdEaD or to a router buy whose tokens go to 0xdEaD, or as a pull credit to the envelope’s allowance payee within its caps.',
+          'Take more than the envelope’s allowance. Value leaves a kernel only to a curve buy (the tokens come back and cannot move), after graduation to 0xdEaD or to a router buy whose tokens go to 0xdEaD, or as a pull credit to the envelope’s allowance payee within its caps. The v1 kernel’s payee is the KeeperTank; the v2 kernel’s is the Covenant Architect’s agent wallet, a team wallet.',
           'Stop settles. If the chip stops answering, the fallback word applies after the envelope’s fallbackEpochs (at most 30 days).',
         ]}
       >
@@ -185,7 +185,7 @@ export function Trust() {
       <Party
         name="The keeper, and anyone who settles"
         can={['Call settle() once per epoch, or skip epochs. The input word records how many epochs a settle covers (DT).', 'Choose when within an epoch to settle.']}
-        cannot={['Supply any input: every bit of the input word is assembled by the kernel from chain state.', 'Starve the chip of gas into a failure: every external call gets a fixed gas amount or the whole settle reverts first.', 'Be needed: the keeper is liveness only; anyone can call settle() and the KeeperTank refunds gas from the chip’s own prepaid allowance.']}
+        cannot={['Supply any input: every bit of the input word is assembled by the kernel from chain state.', 'Starve the chip of gas into a failure: every external call gets a fixed gas amount or the whole settle reverts first.', 'Be needed: the keeper is liveness only; anyone can call settle() and the KeeperTank refunds gas from the chip’s own prepaid allowance, once Splitter.pull() has paid it in.']}
       />
 
       <Party
@@ -219,7 +219,7 @@ export function Trust() {
         <h2>Not done</h2>
         <ul>
           <li>No audit. The contracts have unit, fuzz, invariant and fork tests (contracts/core/NOTES.md); that is not an audit.</li>
-          <li>Adoption is zero: the only token a chip routes, or will route, is the team’s own reference token, and its flows are small.</li>
+          <li>Adoption is zero: the only tokens planned for a Covenant kernel are the two the team launches itself (first buy 0, never traded by a team wallet); none is bound yet.</li>
         </ul>
       </section>
       {q.error && <p class="warn">Could not read the owners: {q.error.message}</p>}

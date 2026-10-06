@@ -7,7 +7,7 @@ them for every state and input, and compares them with the chain.
 |---|---|
 | `tools/tapc/` | the Python package |
 | `tools/bin/tapc` | wrapper script (uses `chips/.venv`) |
-| `tools/tests/` | test-suite (96 tests, a little over 3 minutes with the live check) |
+| `tools/tests/` | test-suite: 183 tests, 96 for the toolchain and 87 for the Architect's entry point (`test_architect.py`); about 5.5 minutes with the live check |
 | `tools/NOTES.md` | everything that was measured: gate counts by recipe, timings, RPC limits, fees and gas |
 | `tools/requirements.txt` | pinned packages |
 | `vendor/tap-20/` | TAP-20 text, reference evaluator and vectors (TapeOutProtocol, MIT / CC0), unmodified |
@@ -209,3 +209,4 @@ or `cd chips/tools && ../.venv/bin/python -m pytest [-m "not live"]`.
 | `test_difftest_offline.py` | difftest against a local fake node that enforces the batch and gas limits and can lie |
 | `test_probe.py` | the committed probe: consistency, model on every (s, x), proofs, byte-identical rebuild |
 | `test_live.py` | `tapc.sim` against on-chain `step` on X Layer for two circuits (4,863 and 3,035 gates) |
+| `test_architect.py` | `python -m tapc.architect`, the toolchain behind the Covenant Architect: the request contract, presets, parameter checks, proofs and the stock Flow Governor answer |

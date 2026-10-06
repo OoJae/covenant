@@ -168,7 +168,7 @@ const CHECKS: Check[] = [
   },
   {
     title: 'The team wallets never traded',
-    claim: 'Every team wallet is listed on chain in the TeamRegistry, and none of them ever buys, sells or swaps an IGNIX token, or sends funds into a kernel.',
+    claim: 'Every team wallet is listed in docs/WALLETS.md and joins the on-chain TeamRegistry once invited and declared, and none of them ever buys, sells or swaps an IGNIX token, or sends funds into a kernel.',
     run: async () => {
       if (!COVENANT.teamRegistry) return notYet('The TeamRegistry');
       const reg = teamRegistry(COVENANT.teamRegistry);
@@ -177,10 +177,15 @@ const CHECKS: Check[] = [
       const entries = await readAll(rpc, Array.from({ length: Math.min(count, 50) }, (_, i) => reg.at(i)));
       const wallets = entries.filter((e) => !(e instanceof Error)) as { wallet: string; role: string }[];
       const lines: ComponentChildren[] = wallets.map((w) => `registry: ${w.wallet} (${w.role || 'no role declared'})`);
-      // docs/WALLETS.md also names the keeper; say so when the registry does not list it yet
-      if (COVENANT.keeper && !wallets.some((w) => w.wallet.toLowerCase() === COVENANT.keeper!.toLowerCase())) {
-        wallets.push({ wallet: COVENANT.keeper, role: 'keeper' });
-        lines.push(`docs/WALLETS.md: ${COVENANT.keeper} (keeper), not declared in the registry yet`);
+      // docs/WALLETS.md also names the keeper and the Architect wallet; say so when the registry does not list them yet
+      for (const [addr, role] of [
+        [COVENANT.keeper, 'keeper'],
+        [COVENANT.architectWallet, 'Architect agent wallet'],
+      ] as const) {
+        if (addr && !wallets.some((w) => w.wallet.toLowerCase() === addr.toLowerCase())) {
+          wallets.push({ wallet: addr, role });
+          lines.push(`docs/WALLETS.md: ${addr} (${role}), not declared in the registry yet`);
+        }
       }
       let ok: boolean | null = null;
       for (const [k, what] of [

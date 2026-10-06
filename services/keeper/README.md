@@ -15,7 +15,8 @@ both; `TANK` refunds each from its own chip's allowance (NOTES.md, "Kernel v2").
 It is **liveness only**. `settle()` is permissionless: anyone can call it, and a kernel does the same thing whoever
 calls. If this process stops, nothing is lost; the next caller settles with a larger "epochs elapsed" input.
 
-The keeper wallet is a declared team wallet and this code can make it do exactly one thing: call settle. The
+The keeper wallet is a team wallet (`docs/WALLETS.md`; invited into the TeamRegistry, and it declares itself there
+before its first settle) and this code can make it do exactly one thing: call settle. The
 transaction is checked against that rule immediately before it is signed (`assertSettleOnly` in `src/tx.ts`);
 anything else stops the process.
 
@@ -127,7 +128,7 @@ and pays for the revert. Use one wallet for the worker and the backup, or give t
 
 ## Runbook
 
-Everything below is done by a person. Nothing here has been deployed.
+Everything below is done by a person. Nothing here has been deployed yet (2026-10-06): the Railway service exists with no deployment, and the keeper wallet `0x7444…C4Ff` has been invited into the TeamRegistry, funded with 0.031 OKB, and has sent no transaction.
 
 ### 1. The wallet
 

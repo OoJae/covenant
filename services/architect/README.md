@@ -16,8 +16,13 @@ reached through one adapter function, `compilePreset(preset, params)` in `src/to
 and the image sets `TAPC_CMD` to it, so a container compiles for real: synthesis, proofs on the netlist bytes, pin
 manifest and cost, in about 30 s for the Flow Governor on 4 CPUs. Run from a checkout without `TAPC_CMD`, the service
 still falls back to **stub mode**: the free route returns a fixed demo payload marked `stub: true`, and the paid route
-is closed (503), because selling a fixed payload would be dishonest. Nothing has been deployed and no OKX.AI agent has
-been registered. What a person has to do is in the runbook below.
+is closed (503), because selling a fixed payload would be dishonest.
+
+**Deployed** (2026-10-06): `https://architect-production-ffbe.up.railway.app`, on Railway from commit `8678740`
+(which includes the settlement-timeout fix A-F6 of `contracts/core-v2/NOTES.md`). `/healthz` reports
+`toolchain.mode: "cli"`, `paid.mode: "live"`, `paid.ready: true`, price 0.50 USD₮0 and `PAY_TO` the agent wallet
+`0xBE50…6DA0`. The OKX.AI agent is #14683 (registration transaction `0x61d9d945…083a`), submitted for listing review on
+2026-10-06. The runbook below is how a person got there.
 
 | Path | What |
 |---|---|
@@ -29,7 +34,7 @@ been registered. What a person has to do is in the runbook below.
 | `src/config.ts`, `src/request.ts`, `src/ratelimit.ts`, `src/cache.ts` | Environment, request validation, limiter, compile cache |
 | `scripts/selfcheck.ts` | Prints (and can run) the curl self-check of OKX's A2MCP guide |
 | `scripts/okx-listing.ts` | Prints the `onchainos agent ...` registration commands with the service JSON filled in |
-| `test/` | 89 tests. Nothing in them contacts OKX or X Layer. The 3 in `toolchain-real.test.ts` run against the real toolchain and are opt-in (`TAPC_E2E_CMD`) |
+| `test/` | 91 tests. Nothing in them contacts OKX or X Layer. The 3 in `toolchain-real.test.ts` run against the real toolchain and are opt-in (`TAPC_E2E_CMD`); without it they are skipped |
 | `../../chips/tools/tapc/architect.py` | The toolchain entry point (`TAPC_CMD`), owned with the chips; its tests are `chips/tools/tests/test_architect.py` |
 
 ## Run it
@@ -250,8 +255,8 @@ configuration never does: the paid route answers 503 and names it, and `/healthz
 
 ## Runbook
 
-Everything below is done by a person. Nothing here has been deployed, no secret has been entered, and no
-`onchainos` command that logs in, creates, signs or pays has been run.
+Everything below is done by a person, and was, for the deployment above: Railway service, secrets, `PAY_TO` (the
+agent wallet) and the OKX.AI registration. No agent ran any of it.
 
 ### 1. Deploy on Railway
 

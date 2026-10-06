@@ -15,7 +15,9 @@ document wins for it. Revision 2 itself is not changed by kernel v2.
 - **Golden vectors:** `chips/golden/vectors_v2.json` and its companion `vectors_v2_settles.jsonl`, written by
   `gen_vectors_v2.py`. `vectors.json` is unchanged.
 - **Code:** `contracts/core-v2` (`KernelV2`, `KernelFactoryV2`, `LensV2`, `KernelMathV2`). Status: built and tested on
-  mocks and on an X Layer fork; not deployed.
+  mocks and on an X Layer fork; deployed on X Layer on 2026-10-06 (`KernelFactoryV2` `0x231c…82c1`, `LensV2`
+  `0x3ebe…b049`, one kernel `0xd50A…dD75` holding chip 5, unbound; `deployments/xlayer.json`, `coreV2` and
+  `flagshipV2`).
 
 ## 1. Scope
 

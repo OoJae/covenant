@@ -1,6 +1,6 @@
 # Flow Governor: what the chip does
 
-The Flow Governor is the flagship Covenant vault chip: 1,888 NAND gates and 64 latches, taped out once, immutable afterwards. Every epoch the kernel hands it one 96-bit word built from chain state, and it answers with one 112-bit word that says how that epoch's trading tax is routed. This page describes the rule it applies. The rule is the function `step(s, x)` in `chips/model/flow_governor.py`. That function, the Verilog `chips/rtl/fg_core.v` and the gates are proven to be one and the same function for every state and every input (section 9).
+The Flow Governor is the flagship Covenant vault chip: 1,888 NAND gates and 64 latches. Its bytes are taped out twice on X Layer, as circuit 2 (held by the v1 kernel) and as circuit 5 (held by the v2 kernel, USD₮0 quote); each copy is immutable. Every epoch the kernel hands it one 96-bit word built from chain state, and it answers with one 112-bit word that says how that epoch's trading tax is routed. This page describes the rule it applies. The rule is the function `step(s, x)` in `chips/model/flow_governor.py`. That function, the Verilog `chips/rtl/fg_core.v` and the gates are proven to be one and the same function for every state and every input (section 9).
 
 All constants are in `chips/rtl/fg_params.json`. Amounts reach the chip as `lg8` codes: one code is 1/8 of an octave (about 9%), so "8 codes" means "twice" and "16 codes" means "four times". The chip never sees wei, only codes; the kernel applies the shares to exact amounts.
 

@@ -13,6 +13,10 @@ no storage and makes no calls. `Fab` has one mapping, written once per chip.
 
 Unaudited.
 
+**Deployed on X Layer** (2026-10-06, built from commit `b54cb86`; `deployments/xlayer.json`, `evaluator`): SealedVM
+`0x19C248cF463c1E167121e52b77abA7EC68CBE47B`, Fab `0xdCAc8c47aF534dC0cDE30f60056bCe7D63a79aFE`. Chips 2, 3, 4 and 5
+were taped out through this Fab.
+
 **Status.** Conforms to revision 2 of `chips/INTERFACE.md` (2026-10-05), sections 2, 11 and 12. `SealedVM` is
 unchanged since revision 1. The `Fab` was reviewed once by a second agent at revision 1; what that review
 found and what was changed afterwards is in NOTES.md, section 6.
@@ -205,7 +209,7 @@ event ChipTaped(uint256 indexed chipId, address indexed author, bytes32 indexed 
 `cost = mintPrice * (nNand + nLatch) + protocolFee * mintCalls + TAPEOUT_FEE`, where `mintCalls` is 2, or 1
 for a chip with no NAND, and the three prices are read from the processor in the same call
 (`Transistors.mintPrice()`, `Transistors.protocolFee()`, `Circuits.TAPEOUT_FEE()`). The Fab stores none of
-them. A call must carry exactly that. For the planned processor (0.00002 OKB per transistor) and today's
+them. A call must carry exactly that. For the Covenant processor (0.00002 OKB per transistor) and today's
 TapeOut fees (0.00066 OKB per mint call, 0.0013 OKB per tape-out), a 112-record chip costs 0.00486 OKB and a
 2,000-gate chip 0.04262 OKB.
 
@@ -265,8 +269,8 @@ transistors left.
 
 ## Deploy
 
-The processor must exist first (`Splitter.ignite()` in `contracts/issuance`). Take its two addresses from that
-broadcast record.
+The processor must exist first (it is created by the Splitter's constructor, through `script/Ignite.s.sol` in
+`contracts/issuance`). Take its two addresses from that broadcast record.
 
 ```
 cd contracts/evaluator

@@ -10,6 +10,10 @@ If code and this document disagree, fix the code or change this document first.
 
 ## 1. Scope
 
+> **Naming.** The "Kernel v2" column below is a later *revenue* kernel. It is roadmap: none of it is built. The kernel v2
+> deployed on X Layer (`contracts/core-v2`, **kernel v2 (USD₮0 quote)**) takes only this column's first row, the ERC-20
+> quote; what it changes is in `chips/INTERFACE-V2.md`.
+
 | | Kernel v1 | Kernel v2 (second implementation, second factory) |
 |---|---|---|
 | Quote asset | Native OKB only (`vault.QUOTE() == address(0)`) | Adds ERC-20 quote (USDT0) |

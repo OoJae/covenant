@@ -114,8 +114,8 @@ export function Landing() {
         </ul>
         <p class="muted">
           Every address comes from <span class="mono">deployments/xlayer.json</span>, which the deploy scripts write only after reading
-          each contract back from the chain. Adoption is zero today: the only token a chip routes, or will route, is the team's own
-          reference token, and its flows are small. Unaudited.
+          each contract back from the chain. Adoption is zero today: the only tokens planned for a Covenant kernel are the two the team launches itself (first buy 0,
+          never traded by a team wallet); none is bound yet. Unaudited.
         </p>
       </section>
 

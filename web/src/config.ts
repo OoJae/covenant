@@ -25,7 +25,7 @@ export interface Deployment {
   /** The Flow Governor taped out again for a v2 kernel, and that kernel. */
   flagshipV2?: { chipId: number; kernel: string };
   /** The Covenant Architect (services/architect): its x402 PAY_TO as last recorded. */
-  architect?: { payTo?: string };
+  architect?: { payTo?: string; agentWallet?: string };
   /** The two hostile Glutton chips, taped out through the Fab by the prelaunch step; held by the deployer. */
   prelaunch?: { gluttonChipId: number; glutton512ChipId: number; keeperInvited?: string };
   glutton?: { chipId: number };
@@ -74,6 +74,8 @@ export const COVENANT = {
    * change at any time without a trace on chain: the pages say so wherever they show it.
    */
   architectPayTo: dep.architect?.payTo ?? null,
+  /** The Architect's OKX.AI agent wallet, a team wallet (docs/WALLETS.md). */
+  architectWallet: dep.architect?.agentWallet ?? null,
 };
 
 export interface Addresses {

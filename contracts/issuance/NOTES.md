@@ -7,7 +7,14 @@ Scope: `Splitter`, `KeeperTank`, `TeamRegistry`, the scripts `Ignite` and `Tapeo
 `script/ignite.sh`, and their tests. Binding documents: `docs/PLAN.md` sections 5 to 7, the review decisions
 of 2026-10-04 and the removal of the launchpad share on 2026-10-06 (both in section 9 below).
 
-Status on 2026-10-06: nothing here has been deployed. No mainnet transaction was sent. No key was used.
+Status: **deployed on X Layer on 2026-10-06** by the person holding the deployer key, from commit `9e99885`, in
+transaction `0x9b4c9a6c…d5479f` (block 72,519,781, 3,810,435 gas). It was sent at the deployer's nonce 1, not 0, so
+the live addresses differ from the nonce-0 plan of the rehearsal in section 5: Splitter
+`0xB87101F7426BA9175E0a944d3e763dC69B19867f`, TeamRegistry `0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699`, KeeperTank
+`0xb89BCe53822a99503A937C22974F1224D9Ab6352`, Transistors `0xC372dc307eFE4B551c866A79F582D692A373960A`, Circuits
+`0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b` (`deployments/xlayer.json`, `issuance`). The story on chain is 1,366 bytes
+and names the Splitter, the tank, the registry, the maintainer and the commit. `pull()` has not been called yet: the tank holds 0 OKB. The registry lists the deployer
+only.
 
 ## 1. Layout
 
