@@ -1152,3 +1152,19 @@ summary {
     opacity: 0.45;
   }
 }
+
+/* Kernel v2: how the kernel shows USD₮0 to its chip (vault page, envelope section). */
+.codeshift {
+  margin: 1rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid var(--c-allow);
+  background: var(--bg2);
+}
+.codeshift h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+.codeshift ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+}

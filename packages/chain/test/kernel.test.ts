@@ -11,6 +11,8 @@ import {
   ignix,
   kernel,
   kernelFactory,
+  kernelFactoryV2,
+  kernelV2,
   KERNEL_SIGNATURES,
   lens,
   multicallViews,
@@ -18,6 +20,7 @@ import {
   teamRegistry,
   ownerOf,
   safe,
+  tether,
 } from '../src/kernel.ts';
 
 const RECORD = 'uint32 epoch, uint40 time, uint16 clampBits, uint8 flags, bytes12 inputs, bytes14 outputs, bytes32 stateAfter, uint128 inflow, uint128 reserveBefore, uint128 allow, uint128 buyDecided, uint128 buyExecuted, uint128 tokensOut, uint128 nativeIn';
@@ -340,5 +343,107 @@ describe('decoders equal viem', () => {
   test('short return data throws instead of decoding', () => {
     expect(() => kernel(K).records(1).decode('0x' + '00'.repeat(32 * 13))).toThrow('too short');
     expect(() => lens(K).replay(K, 1).decode('0x')).toThrow('too short');
+  });
+});
+
+// Kernel v2 (USD₮0 quote): contracts/core-v2/src/interfaces/IKernelV2.sol. RecordV2 and GlobalsV2 are separate
+// structs, so they get their own ABI; every other kernel view is v1's and is checked above.
+const RECORD_V2 = RECORD.replace('uint128 nativeIn', 'uint128 quoteIn');
+const GLOBALS_V2 = GLOBALS.replace('address wokb', 'address quote') + ', uint256 quoteShift';
+const abiV2 = parseAbi([
+  `struct RecordV2 { ${RECORD_V2}; }`.replaceAll(', ', '; '),
+  `struct GlobalsV2 { ${GLOBALS_V2}; }`.replaceAll(', ', '; '),
+  'function records(uint32 n) view returns (RecordV2)',
+  'function globals() view returns (GlobalsV2)',
+  'function quote() view returns (address)',
+  'function quoteShift() view returns (uint256)',
+  'function codeShift() view returns (uint256)',
+  'function manager() view returns (address)',
+  'function v2Router() view returns (address)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function isBlocked(address) view returns (bool)',
+  'function count() view returns (uint32)',
+  'function isKernel(address) view returns (bool)',
+]);
+
+describe('kernel v2 (USD₮0 quote) equals viem', () => {
+  const k = kernelV2(K);
+  const f = kernelFactoryV2(K);
+  const enc = (fn: string, result: unknown): Hex => encodeFunctionResult({ abi: abiV2, functionName: fn as never, result: result as never });
+  const data = (fn: string, args: unknown[] = []): string => lower(encodeFunctionData({ abi: abiV2, functionName: fn as never, args: args as never }));
+
+  test('calldata: records, globals, quote, quoteShift, the factory pins, allowance, isBlocked', () => {
+    for (let i = 0; i < 20; i++) {
+      const n = Number(uint(32));
+      const a = address();
+      const b = address();
+      expect(k.records(n).data).toBe(data('records', [n]));
+      expect(f.isKernel(a).data).toBe(data('isKernel', [a]));
+      expect(erc20(K).allowance(a, b).data).toBe(data('allowance', [a, b]));
+      expect(tether(K).isBlocked(a).data).toBe(data('isBlocked', [a]));
+    }
+    expect(k.globals().data).toBe(data('globals'));
+    expect(k.quote().data).toBe(data('quote'));
+    expect(k.quoteShift().data).toBe(data('quoteShift'));
+    expect(k.count().data).toBe(data('count')); // inherited from kernel v1
+    for (const fn of ['quote', 'quoteShift', 'codeShift', 'manager', 'v2Router'] as const) expect(f[fn]().data, fn).toBe(data(fn));
+  });
+
+  test('decoders: RecordV2, GlobalsV2, the shift, allowance, isBlocked', () => {
+    for (let i = 0; i < 50; i++) {
+      const rec = {
+        epoch: Number(uint(32)),
+        time: Number(uint(40)),
+        clampBits: Number(uint(16)),
+        flags: Number(uint(8)),
+        inputs: hex(12),
+        outputs: hex(14),
+        stateAfter: hex(32),
+        inflow: uint(128),
+        reserveBefore: uint(128),
+        allow: uint(128),
+        buyDecided: uint(128),
+        buyExecuted: uint(128),
+        tokensOut: uint(128),
+        quoteIn: uint(128),
+      };
+      expect(k.records(1).decode(enc('records', rec))).toEqual(rec);
+      const g = {
+        manager: address(),
+        v2Router: address(),
+        quote: address(),
+        factory: address(),
+        circuits: address(),
+        fab: address(),
+        sealedVM: address(),
+        beacon: address(),
+        impl0: address(),
+        impl0Hash: hex(32),
+        snapshot: address(),
+        netlistHash: hex(32),
+        chipId: uint(256),
+        nState: Number(uint(32)),
+        gateCount: Number(uint(32)),
+        netlistLen: Number(uint(32)),
+        stepFloor: uint(64),
+        sealedFloor: uint(64),
+        quoteShift: Number(uint(6)),
+      };
+      expect(k.globals().decode(enc('globals', g))).toEqual(g);
+      const s = Number(uint(6));
+      expect(k.quoteShift().decode(enc('quoteShift', BigInt(s)))).toBe(s);
+      expect(f.codeShift().decode(enc('codeShift', BigInt(8 * s)))).toBe(8 * s);
+      const a = address();
+      expect(k.quote().decode(enc('quote', a))).toBe(a);
+      const v = uint(256);
+      expect(erc20(K).allowance(a, a).decode(enc('allowance', v))).toBe(v);
+      expect(tether(K).isBlocked(a).decode(enc('isBlocked', i % 2 === 0))).toBe(i % 2 === 0);
+    }
+  });
+
+  test('a v1 record or globals is too short for the v2 decoders, and the other way round they differ', () => {
+    // GlobalsV2 is 19 words; a v1 globals() answer has 18
+    expect(() => k.globals().decode('0x' + '00'.repeat(32 * 18))).toThrow('too short');
+    expect(() => k.records(1).decode('0x' + '00'.repeat(32 * 13))).toThrow('too short');
   });
 });

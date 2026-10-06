@@ -30,6 +30,14 @@ describe('addresses.json and deployments/xlayer.json', () => {
     expect(COVENANT.lens).toBe(l.core?.lens ?? null);
     expect(COVENANT.kernel).toBe(l.flagship?.kernel ?? null);
     expect(COVENANT.chipId).toBe(l.flagship?.chipId ?? null);
+    // kernel v2 (USD₮0 quote): null until the deployment file records it
+    const l2 = live as { coreV2?: { kernelFactory: string; kernelImpl: string; lens: string }; flagshipV2?: { kernel: string; chipId: number }; architect?: { payTo?: string } };
+    expect(COVENANT.kernelFactoryV2).toBe(l2.coreV2?.kernelFactory ?? null);
+    expect(COVENANT.kernelImplV2).toBe(l2.coreV2?.kernelImpl ?? null);
+    expect(COVENANT.lensV2).toBe(l2.coreV2?.lens ?? null);
+    expect(COVENANT.kernelV2).toBe(l2.flagshipV2?.kernel ?? null);
+    expect(COVENANT.chipIdV2).toBe(l2.flagshipV2?.chipId ?? null);
+    expect(COVENANT.architectPayTo).toBe(l2.architect?.payTo ?? null);
     for (const v of Object.values(COVENANT)) if (typeof v === 'string' && v.length === 42) expect(isAddress(v)).toBe(true);
     expect(ADDR.rpc).toEqual(addresses.rpc);
   });

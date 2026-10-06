@@ -1,7 +1,8 @@
-// Covenant's read-only surface: the kernel (chips/INTERFACE.md section 10, contracts/core/src/Kernel.sol), its
-// factory, the Lens, the Fab, and the few IGNIX and Multicall3 views the kernel pages read. Same pattern as
-// tapeout.ts: literal selectors next to their signatures, hand-written decoders; test/kernel.test.ts checks every
-// selector against keccak256 and every encoder and decoder against viem.
+// Covenant's read-only surface: the kernel (chips/INTERFACE.md section 10, contracts/core/src/Kernel.sol), kernel v2
+// (USD₮0 quote: chips/INTERFACE-V2.md section 10, contracts/core-v2), their factories, the Lens, the Fab, and the
+// few IGNIX, USD₮0 and Multicall3 views the kernel pages read. Same pattern as tapeout.ts: literal selectors next to
+// their signatures, hand-written decoders; test/kernel.test.ts checks every selector against keccak256 and every
+// encoder and decoder against viem.
 //
 // A separate entry ('@covenant/chain/kernel') so that a bundle that only reads TapeOut does not carry it.
 
@@ -160,6 +161,31 @@ export const decGlobals = tuple(
     sealedFloor: big(r, 17),
   }),
 );
+
+// Kernel v2 (USD₮0 quote): contracts/core-v2/src/interfaces/IKernelV2.sol, chips/INTERFACE-V2.md section 10.
+// Same record layout with `quoteIn` (USD₮0 the post-graduation router buy spent) in place of `nativeIn`; globals with
+// the quote asset in place of WOKB and the code shift appended. Everything else reads exactly as kernel v1.
+
+/** One settle of a v2 kernel. Amounts on the curve are USD₮0 base units (6 decimals). */
+export interface KernelRecordV2 extends Omit<KernelRecord, 'nativeIn'> {
+  quoteIn: bigint;
+}
+
+export const decRecordV2 = tuple((r): KernelRecordV2 => {
+  const { nativeIn, ...rest } = decRecord(r);
+  return { ...rest, quoteIn: nativeIn };
+});
+
+/** GlobalsV2: `quote` in place of `wokb`, plus `quoteShift` (bits) at the end: 19 words. */
+export interface GlobalsV2 extends Omit<Globals, 'wokb'> {
+  quote: string;
+  quoteShift: number;
+}
+
+export const decGlobalsV2 = tuple((r): GlobalsV2 => {
+  const { wokb, ...rest } = decGlobals(r);
+  return { ...rest, quote: wokb, quoteShift: small(r, 18) };
+});
 
 /** Lens.replay: the record recomputed through one evaluator and through KernelMath. */
 export interface Replay {
@@ -435,6 +461,37 @@ export const kernelFactory = (at: string) => ({
   beacon: (): Call<string> => mk(at, '59659e90', '', decAddress),
 });
 
+/**
+ * A kernel v2 (USD₮0 quote): kernel v1's views with the v2 `globals()` and `records(n)` layouts, plus the quote
+ * asset and its code shift. LensV2 has kernel v1's Lens ABI, so `lens(at)` reads it unchanged.
+ */
+export const kernelV2 = (at: string) => ({
+  ...kernel(at),
+  /** records(uint32): RecordV2 (`quoteIn` in place of `nativeIn`) */
+  records: (n: N): Call<KernelRecordV2> => mk(at, '3bd29d69', u32(n), decRecordV2),
+  /** globals(): GlobalsV2 */
+  globals: (): Call<GlobalsV2> => mk(at, 'c3124525', '', decGlobalsV2),
+  /** quote(): the ERC-20 quote asset this kernel routes on the curve */
+  quote: (): Call<string> => mk(at, '999b93af', '', decAddress),
+  /** quoteShift(): code shift in bits on the curve (33 for USD₮0) */
+  quoteShift: (): Call<number> => mk(at, 'c415e92c', '', (r) => Number(decUint(r))),
+});
+
+/** The KernelFactoryV2: kernel v1's factory views plus its quote pins. */
+export const kernelFactoryV2 = (at: string) => ({
+  ...kernelFactory(at),
+  /** quote() */
+  quote: (): Call<string> => mk(at, '999b93af', '', decAddress),
+  /** quoteShift(): bits */
+  quoteShift: (): Call<number> => mk(at, 'c415e92c', '', (r) => Number(decUint(r))),
+  /** codeShift(): 8 * quoteShift, in lg8 codes */
+  codeShift: (): Call<number> => mk(at, 'd18c0712', '', (r) => Number(decUint(r))),
+  /** manager() */
+  manager: (): Call<string> => mk(at, '481c6a75', '', decAddress),
+  /** v2Router() */
+  v2Router: (): Call<string> => mk(at, 'deadbc14', '', decAddress),
+});
+
 /** The Lens: stateless audit views over the kernels of one factory. */
 export const lens = (at: string) => ({
   /** FACTORY() */
@@ -500,6 +557,14 @@ export const erc20 = (at: string) => ({
   balanceOf: (who: string): Call<bigint> => mk(at, '70a08231', addressWord(who), decUint),
   /** pair() (IgnixToken): non-zero once graduated */
   pair: (): Call<string> => mk(at, 'a8aa1b31', '', decAddress),
+  /** allowance(address owner, address spender) */
+  allowance: (owner: string, spender: string): Call<bigint> => mk(at, 'dd62ed3e', addressWord(owner) + addressWord(spender), decUint),
+});
+
+/** USD₮0 (a TetherToken): whether its owner has blocked an address. A blocked address can receive but not send. */
+export const tether = (at: string) => ({
+  /** isBlocked(address) */
+  isBlocked: (who: string): Call<boolean> => mk(at, 'fbac3951', addressWord(who), decBool),
 });
 
 /** An OpenZeppelin UpgradeableBeacon: implementation(). */
@@ -593,6 +658,13 @@ export const KERNEL_SIGNATURES = {
   decimals: ['decimals()', '313ce567'],
   totalSupply: ['totalSupply()', '18160ddd'],
   balanceOf: ['balanceOf(address)', '70a08231'],
+  allowance: ['allowance(address,address)', 'dd62ed3e'],
+  isBlocked: ['isBlocked(address)', 'fbac3951'],
+  quote: ['quote()', '999b93af'],
+  quoteShift: ['quoteShift()', 'c415e92c'],
+  codeShift: ['codeShift()', 'd18c0712'],
+  manager: ['manager()', '481c6a75'],
+  v2Router: ['v2Router()', 'deadbc14'],
   implementation: ['implementation()', '5c60da1b'],
   at: ['at(uint256)', 'e0886f90'],
   getCurrentBlockTimestamp: ['getCurrentBlockTimestamp()', '0f28c97d'],

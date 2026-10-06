@@ -44,6 +44,9 @@ export function Landing() {
     },
     { label: 'Its kernel', addr: COVENANT.kernel, href: COVENANT.kernel ? `#/k/${COVENANT.kernel}` : undefined, note: 'holds the chip; no owner' },
   ];
+  // Kernel v2 (USD₮0 quote): listed once deployments/xlayer.json records it, not before.
+  if (COVENANT.kernelFactoryV2) rows.push({ label: 'KernelFactoryV2 and LensV2', addr: COVENANT.kernelFactoryV2, note: 'kernels for tokens quoted in USD₮0; the same chip through a fixed code shift' });
+  if (COVENANT.kernelV2) rows.push({ label: `Kernel v2 (USD₮0 quote)${COVENANT.chipIdV2 !== null ? `, chip #${COVENANT.chipIdV2}` : ''}`, addr: COVENANT.kernelV2, href: `#/k/${COVENANT.kernelV2}`, note: 'routes tax and revenue paid to it, as tax' });
 
   return (
     <article class="landing">
@@ -121,7 +124,7 @@ export function Landing() {
         <div class="tiles">
           <a class="tile" href="#/judge">
             <b>Judge guide</b>
-            <span>Seven checks, each runnable here and from a terminal.</span>
+            <span>Eight checks, each runnable here and from a terminal.</span>
           </a>
           {COVENANT.kernel ? (
             <a class="tile" href={`#/k/${COVENANT.kernel}`}>

@@ -20,11 +20,17 @@ export interface Deployment {
   evaluator?: { sealedVM: string; fab: string };
   core?: { kernelFactory: string; kernelImpl: string; lens: string };
   flagship?: { chipId: number; kernel: string; netlistKeccak256?: string };
+  /** Kernel v2 (USD₮0 quote, contracts/core-v2): KernelFactoryV2, its KernelV2 implementation, LensV2. */
+  coreV2?: { kernelFactory: string; kernelImpl: string; lens: string };
+  /** The Flow Governor taped out again for a v2 kernel, and that kernel. */
+  flagshipV2?: { chipId: number; kernel: string };
+  /** The Covenant Architect (services/architect): its x402 PAY_TO as last recorded. */
+  architect?: { payTo?: string };
   /** The two hostile Glutton chips, taped out through the Fab by the prelaunch step; held by the deployer. */
   prelaunch?: { gluttonChipId: number; glutton512ChipId: number; keeperInvited?: string };
   glutton?: { chipId: number };
   /** Only in the fork fixture's file. */
-  fork?: { rpc: string; block: number; token: string; records: number };
+  fork?: { rpc: string; block: number; token: string; records: number; v2?: { token: string; records: number; graduatedAt: number | null } };
 }
 
 declare const __COVENANT_FORK__: Deployment | null | undefined;
@@ -57,6 +63,17 @@ export const COVENANT = {
   gluttonChipId: dep.prelaunch?.gluttonChipId ?? dep.glutton?.chipId ?? (site.gluttonChipId as number | null),
   /** The variant whose share groups sum to 512 (the kernel refuses the whole group). */
   glutton512ChipId: dep.prelaunch?.glutton512ChipId ?? null,
+  /** Kernel v2 (USD₮0 quote): null until deployments/xlayer.json records its deployment. */
+  kernelFactoryV2: dep.coreV2?.kernelFactory ?? null,
+  kernelImplV2: dep.coreV2?.kernelImpl ?? null,
+  lensV2: dep.coreV2?.lens ?? null,
+  chipIdV2: dep.flagshipV2?.chipId ?? null,
+  kernelV2: dep.flagshipV2?.kernel ?? null,
+  /**
+   * The Covenant Architect's x402 PAY_TO as deployments/xlayer.json records it. A seller setting the operator can
+   * change at any time without a trace on chain: the pages say so wherever they show it.
+   */
+  architectPayTo: dep.architect?.payTo ?? null,
 };
 
 export interface Addresses {

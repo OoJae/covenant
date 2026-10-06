@@ -1,6 +1,6 @@
 # Web and packages: notes
 
-Scope: `packages/tap20`, `packages/chain`, `packages/dieshot`, `web`. Written 2026-10-04; kernel pages, judge guide, trust model and design pass added 2026-10-06.
+Scope: `packages/tap20`, `packages/chain`, `packages/dieshot`, `web`. Written 2026-10-04; kernel pages, judge guide, trust model and design pass added 2026-10-06; kernel v2 (USD₮0 quote) support added 2026-10-06 (section 3.6).
 Everything here reads X Layer mainnet (chain 196) with `eth_call` only. Nothing sends a transaction, holds a key or loads a wallet library.
 
 ## 1. What exists
@@ -8,7 +8,7 @@ Everything here reads X Layer mainnet (chain 196) with `eth_call` only. Nothing 
 | Path | What it is |
 |---|---|
 | `packages/tap20` | TAP-20 parser, well-formedness check (section 3), one-beat simulator, LSB-first bit packing, REF support (sync resolver, plus `load()` that fetches a REF closure asynchronously). No runtime dependencies. |
-| `packages/chain` | JSON-RPC client over `fetch` (failover, batches of at most 10), hand-written ABI codec for the TapeOut read calls and Multicall3 `aggregate3`, typed call descriptors, `readAll` (many calls in one request). keccak256 and EIP-55 in a separate entry, `@covenant/chain/keccak`. Covenant's own read surface (Kernel, KernelFactory, Lens, Fab, IGNIX Manager/vault/token, TeamRegistry, Safe owners, Multicall3 timestamp and balance) in a third entry, `@covenant/chain/kernel`. No runtime dependencies. |
+| `packages/chain` | JSON-RPC client over `fetch` (failover, batches of at most 10), hand-written ABI codec for the TapeOut read calls and Multicall3 `aggregate3`, typed call descriptors, `readAll` (many calls in one request). keccak256 and EIP-55 in a separate entry, `@covenant/chain/keccak`. Covenant's own read surface (Kernel, KernelFactory, Lens, Fab, IGNIX Manager/vault/token, TeamRegistry, Safe owners, Multicall3 timestamp and balance; kernel v2's `RecordV2`/`GlobalsV2`, `quote()`, `quoteShift()`, the KernelFactoryV2 pins, ERC-20 `allowance`, USD₮0 `isBlocked`) in a third entry, `@covenant/chain/kernel`. No runtime dependencies. |
 | `packages/dieshot` | Deterministic floorplan (`layout`, `layoutHash`), optional block map packed by a squarified treemap (`decodeBlockMap`), Canvas 2D renderer with `animate(previousSignals, signals, stateBefore, stateAfter)`. No runtime dependencies. |
 | `web` | Vite + Preact + TypeScript site, hash routes: `#/`, `#/p/:processor`, `#/c/:processor/:id`, `#/k/:kernel` (vault), `#/k/:kernel/:n` (audit one settle), `#/hostile`, `#/judge`, `#/trust`. Only runtime dependency: `preact`. |
 
@@ -16,19 +16,20 @@ The three packages are consumed as TypeScript source (`exports` point at `src/in
 
 Files worth knowing in `web/`:
 
-- `src/config.ts`: every Covenant address comes from `../deployments/xlayer.json` (written by the deploy scripts after reading each contract back from the chain), so a contract appears on the site the moment that file names it. `COVENANT` holds them (null until deployed); `ADDR` keeps the old shape for the circuit reader. With `COVENANT_FORK` set at build or dev time, the fork fixture's file replaces it, the fork's RPC replaces the public endpoints, and `SIMULATION` is non-null (every page then shows a SIMULATION banner).
+- `src/config.ts`: every Covenant address comes from `../deployments/xlayer.json` (written by the deploy scripts after reading each contract back from the chain), so a contract appears on the site the moment that file names it. `COVENANT` holds them (null until deployed), including kernel v2's `kernelFactoryV2`, `kernelImplV2`, `lensV2` (from `.coreV2`), `chipIdV2`, `kernelV2` (from `.flagshipV2`) and the Architect's recorded `architectPayTo` (from `.architect.payTo`); `ADDR` keeps the old shape for the circuit reader.
+- `vite.config.ts`: a small plugin drops the `.site` section of `deployments/xlayer.json` from the bundle (section 3.6). With `COVENANT_FORK` set at build or dev time, the fork fixture's file replaces it, the fork's RPC replaces the public endpoints, and `SIMULATION` is non-null (every page then shows a SIMULATION banner).
 - `src/addresses.json`: only what is not a deployment: `{factory, rpc, gluttonChipId}` (a test checks the keys). `gluttonChipId` stays null unless a Glutton is taped out on mainnet next to the flagship chip; it switches the hostile page's on-chain shadow run on.
-- `src/kernel/model.ts`: the kernel's arithmetic in TypeScript (lg8/exp8, word layouts, the routing with clamps K1T..K5, the fallback word). A port of `chips/golden/kernel_model.py`; passes every vector of `chips/golden/vectors.json`.
+- `src/kernel/model.ts`: the kernel's arithmetic in TypeScript (lg8/exp8, word layouts, the routing with clamps K1T..K5, the fallback word), and kernel v2's code shift (`lg8s`, `exp8s`, `route(..., shift)`, `minAmountForCode`). A port of `chips/golden/kernel_model.py` and `kernel_model_v2.py`; passes every vector of `chips/golden/vectors.json` and `vectors_v2.json`, and every settle of `vectors_v2_settles.jsonl`.
 - `src/kernel/chip.ts`: what an output word means in human terms; the Flow Governor's state fields, modes and flags (copied from `chips/out/fg.fields.json`, a test checks the copy); `chips/out/fg.witness.json` (imported).
 - `src/kernel/sim.ts` (on demand): `chips/out/fg.hex` and the two Glutton netlists bundled and stepped by `@covenant/tap20`; `shadowRun` ports `Lens._shadowOne`.
 - `src/kernel/code.ts`: what a browser can prove from `eth_getCode`: the kernel is an ERC-1167 clone with immutable arguments; a scan of the implementation for DELEGATECALL/CALLCODE/SELFDESTRUCT and owner/upgrade/pause/approve/transfer selectors.
-- `src/data/kernel.ts`: the kernel pages' data path, with no DOM (`loadVault`, `loadRecords`, `loadCounterfactual`, `loadNetlist`, `loadAudit`, `loadShadowChip`). Pages, `scripts/verify-kernel.ts`, `test/fork.test.ts` call the same functions.
+- `src/data/kernel.ts`: the kernel pages' data path, with no DOM (`detectKernel`, `loadVault`, `loadRecords`, `loadCounterfactual`, `loadNetlist`, `loadAudit`, `loadShadowChip`). Pages, `scripts/verify-kernel.ts`, `test/fork.test.ts` call the same functions. `kindOf` tells kernel v1 from kernel v2 (section 3.6).
 - `src/components/TwoStates.tsx`: the landing page's demonstration (same inputs, two reachable states, two routes).
 - `src/routes/Vault.tsx`, `Audit.tsx`, `Hostile.tsx` (on demand, one chunk); `Judge.tsx`, `Trust.tsx` (on demand, another chunk).
 - `src/data/processor.ts`, `src/data/circuit.ts`, `src/routes/Circuit.tsx`: the circuit reader, unchanged in substance.
 - `scripts/check-budget.mjs`: fails the build if the output breaks the size budget or is not self-contained. Now also counts every script the entry imports statically (see 3.5).
 - `scripts/verify-live.ts`: the circuit reader from a terminal. `scripts/verify-kernel.ts`: the landing demonstration and every record of a kernel, four ways, from a terminal.
-- `scripts/fork-fixture.sh`: the local fork with a kernel that has records (section 2).
+- `scripts/fork-fixture.sh`: the local fork with a kernel v1 and a kernel v2 that have records (section 2).
 
 ## 2. How to run
 
@@ -37,13 +38,13 @@ From the repository root, after `pnpm install` has been run once:
 ```
 pnpm --filter web dev                  # http://localhost:5173
 pnpm --filter web build                # typecheck, vite build, budget check; output in web/dist
-pnpm --filter web test                 # 56 tests: 42 offline, 10 live against X Layer, 4 against the fork fixture (skipped unless COVENANT_FORK is set)
+pnpm --filter web test                 # 69 tests: 49 offline, 10 live against X Layer, 10 against the fork fixture (skipped unless COVENANT_FORK is set)
 pnpm --filter web test:offline         # SKIP_LIVE=1
 pnpm --filter web verify:live          # node scripts/verify-live.ts; prints MATCH per beat
 pnpm --filter web verify:live -- 0xProcessor 3     # one circuit of your choice
 
 pnpm --filter @covenant/tap20 test     # 67 tests, 11 live
-pnpm --filter @covenant/chain test     # 97 tests, 11 live
+pnpm --filter @covenant/chain test     # 100 tests, 11 live
 pnpm --filter @covenant/chain size     # minified sizes, fails above the ceiling
 pnpm --filter @covenant/dieshot test   # 42 tests, none need the network
 # all four at once, no network
@@ -59,13 +60,18 @@ Kernel pages:
 pnpm --filter web verify:kernel                   # node scripts/verify-kernel.ts: two-state demo on chip #2 + every record, MATCH or MISMATCH
 pnpm --filter web verify:kernel -- 0xKernel        # another kernel of the same factory
 
-web/scripts/fork-fixture.sh                        # build the fork fixture (about 3 minutes); anvil keeps running
+web/scripts/fork-fixture.sh                        # build the fork fixture, kernel v1 and kernel v2 (about 15 minutes); anvil keeps running
+V2=0 web/scripts/fork-fixture.sh                   # kernel v1 only, as before (EPOCHS, EPOCHS_V2, GRAD_EPOCHS_V2 set the epochs)
 pnpm --filter web dev:fork                         # the site against it (COVENANT_FORK=web/.fork/deployment.json), SIMULATION banner on
 pnpm --filter web test:fork                        # the data path against it: every record four ways, shadow run vs Lens, counterfactual
 web/scripts/fork-fixture.sh stop                   # stop its anvil
 ```
 
-The fork fixture: anvil forks X Layer at the latest block on a free port (refuses a port that already answers, and checks its own anvil process is alive); runs the signing steps that `deployments/xlayer.json` does not record yet (`forge script ... --unlocked` from the deployer, impersonated, in a scratch copy of `contracts/`; nothing under `contracts/` or `deploy/` is written); tapes out the Glutton through the Fab from an unrelated address; replaces IgnixManager's platform signer (storage slot 5) with anvil's public test key 0 and signs a Directed launch whose recipient is the kernel, sent from the deployer (the envelope's launcher), first buy 0, tax 3% / 3%; binds from an unrelated address; then 12 epochs of buys (and some sells) by anvil test accounts with a two-epoch surge, a quiet spell and one skipped epoch, each closed by `settle()` from an unrelated address. It writes `web/.fork/deployment.json` (git-ignored): the deployment file's shape plus `fork: {rpc, block, token, records}` and `glutton: {chipId}`. A fork build cannot be published by accident: `check-budget.mjs` rejects its RPC host.
+The fork fixture: anvil forks X Layer at the latest block on a free port (refuses a port that already answers, and checks its own anvil process is alive); runs the signing steps that `deployments/xlayer.json` does not record yet (`forge script ... --unlocked` from the deployer, impersonated, in a scratch copy of `contracts/`; nothing under `contracts/` or `deploy/` is written, and no `broadcast/` folder of the repository is touched); tapes out the Glutton through the Fab from an unrelated address; makes a Directed launch whose recipient is the kernel, sent from the deployer (the envelope's launcher), first buy 0, tax 3% / 3%, with IGNIX's platform signer replaced on the fork by the keyless method of 3.6; binds from an unrelated address; then 12 epochs of buys (and some sells) by anvil test accounts with a two-epoch surge, a quiet spell and one skipped epoch, each closed by `settle()` from an unrelated address.
+
+Then kernel v2 (USD₮0 quote), unless `V2=0`: `contracts/core-v2`'s `DeployCoreV2` (KernelFactoryV2 + LensV2; its price-band check reads the live V3 pool on the fork) and `LaunchChipV2` (the Flow Governor taped out again, a v2 kernel with the reference envelope, the chip moved to it; allowance payee an unrelated test account, since the KeeperTank cannot move USD₮0), from the deployer impersonated in the same scratch copy, unless the deployment file records them; a Directed launch quoted in USD₮0 (graduation 8,000 USD₮0) with the v2 kernel as recipient; bind; 12 curve epochs of USD₮0 buys and sells by test accounts plus $0.50 revenue payments to the kernel from an unrelated account (plain USD₮0 transfers, as an x402 settlement amounts to on chain); then an unrelated whale buys the rest of the curve, the token graduates to its token/USD₮0 pair, and 3 more epochs of pair trades and revenue payments are settled (the quote leg buys the token with that revenue and burns it). USD₮0 comes from `anvil_dealERC20` (or, failing that, from the V3 pool, impersonated). The fixture checks that the v2 kernel leaves no USD₮0 allowance to the Manager or the router.
+
+It writes `web/.fork/deployment.json` (git-ignored): the deployment file's shape without `.site`, plus `fork: {rpc, block, token, records, v2: {token, records, graduatedAt}}`, `glutton: {chipId}`, and the v2 keys the deployment file will gain, `coreV2: {kernelFactory, kernelImpl, lens}` and `flagshipV2: {chipId, kernel}`. A fork build cannot be published by accident: `check-budget.mjs` rejects its RPC host.
 
 ## 3. Decisions
 
@@ -125,6 +131,67 @@ The fork fixture: anvil forks X Layer at the latest block on a free port (refuse
 - **RPC**: `createRpc` now also falls back to `application/json` when an endpoint answers the `text/plain` form with HTTP 200 and a request-level error (`-32600` / `-32700`, no id). Anvil does that; it closes the open item of 5 below for such endpoints.
 - **Design**: a die-shot palette (logic gold = buy and lock, wire blue = allowance, latch teal = reserve) on a faint routing grid; chip-package cards; numbered section pins; one-sentence lede on every page; light and dark; every page checked at 360 px.
 
+### 3.6 kernel v2 (USD₮0 quote)
+
+Kernel v2 is `contracts/core-v2` (`chips/INTERFACE-V2.md`): a kernel for IGNIX Directed tokens quoted in USD₮0, with
+revenue paid to the kernel routed as tax and the Flow Governor reused through a fixed code shift. It is not deployed;
+the pages work with and without the keys `deployments/xlayer.json` will gain (`.coreV2 {kernelFactory, kernelImpl,
+lens}`, `.flagshipV2 {chipId, kernel}`). Without them nothing v2 appears except where a page says it is not deployed.
+
+- **v1 or v2 is decided by factory.** `kindOf` asks `isKernel(address)` of the kernel factory and of KernelFactoryV2
+  (each only when the deployment file names it), in the same Multicall3 batch as the first reads. If neither created
+  the address, the version is read from its answers (a v2 kernel answers `quoteShift()`), and the page says the
+  factory is not one of ours, as before. `globals()` is read raw and decoded after the decision (18 words on v1, 19
+  on v2), and `records(n)` with the version's decoder (`quoteIn` in place of `nativeIn`).
+- **Each kernel is audited by its own factory's Lens.** LensV2 answers only for kernels of KernelFactoryV2 and the v1
+  Lens only for kernel v1's (both revert `NotKernel` otherwise; a fork test checks this), so `loadAudit`,
+  the counterfactual and the shadow run take the Lens from the kind. LensV2 has the v1 Lens's ABI.
+- **Units.** On the curve a v2 kernel's regime asset is USD₮0, 6 decimals (symbol and decimals read from the quote;
+  KernelFactoryV2 refuses any quote without 6 decimals); after graduation the project token, 18, as in v1. Every
+  amount on the vault, audit and hostile pages is formatted in the regime's unit (`amount`, `Unit` in `kernel/chip.ts`).
+- **The code shift is explained in the envelope section** (`CodeShift` in `components/EnvelopeWords.tsx`): amounts
+  shown as `lg8(x << s) = lg8(x) + 8s`, why a whole number of bits, 1 OKB of the chip's calibration in USD₮0
+  (`10^18 >> s`), the price band for which `s` is the nearest shift, the stated reference rate (135.895901 USD₮0 per
+  OKB, block 72,530,000, only when `s` is 33), the codes of 1 USD₮0, one $0.50 call and a whole curve, and ceilMax in
+  USD₮0. Every shift-dependent number is computed from the kernel's own `quoteShift()`. The envelope words read
+  ceilMax as `exp8(ceilMax) >> s` and give the floor threshold exactly (`minAmountForCode`: the smallest reserve whose
+  shifted code reaches floorMin, "any reserve" for the reference floorMin 1).
+- **Revenue is shown as part of inflow**, never separately, because the kernel cannot tell it from tax: the vault page
+  says inflow is "tax claimed from the vault plus USD₮0 paid to the kernel directly (revenue), routed as tax", and a
+  "Revenue, routed as tax" section states the limits: routed only if paid to the kernel; payTo is a seller setting
+  the operator can change without a trace on chain; after graduation the chip does not see revenue and a fixed rule
+  buys and burns; self-payment by any team wallet is forbidden; USD₮0 sent to a never-bound kernel and foreign ERC-20s
+  stay there. It shows the Architect's PAY_TO as `deployments/xlayer.json` records it and says that is a record, not
+  something the chain proves (today: the agent wallet, so "not this kernel").
+- **The Tether trust line.** The vault page reads `USD₮0.isBlocked(kernel)` live and states what Tether's owner can do
+  (block, destroy, credits first after a destruction); the trust page has a "Tether, for a kernel v2" party (owner read
+  live once a v2 factory is recorded); the judge page's check 8 prints the owner.
+- **The code scan on a v2 kernel allows `approve`**: KernelV2 approves USD₮0 to the IgnixManager or the router for
+  exactly one buy and resets it in the same settle, so the selector is in its bytes (checked: the only forbidden
+  selector present in the 20,900-byte implementation). In its place the page reads the kernel's USD₮0 allowance to the
+  Manager and to the router live and requires both to be zero.
+- **Audit page.** The amounts are recomputed with the shift (`route(..., shift)`, shift 0 after graduation); the input
+  codes are shown as `lg8 + 264` and checked against `lg8s` of the stored amounts; a graduated record shows the quote
+  leg (`quoteIn`) and how to tell the two legs' shared buy flags apart (INTERFACE-V2 section 10).
+- **Hostile page.** A kernel switch (v1 OKB / v2 USD₮0) for the one-settle table: on v2 the Flow Governor's input word
+  carries shifted codes and the Glutton is capped at `exp8(ceilMax) >> s` (3.932160 USD₮0); and, once a v2 flagship is
+  recorded, a second shadow run over its records with the shift, compared with `LensV2.shadowChip`.
+- **Judge page.** Check 6 also covers the v2 token; check 8 ("Kernel v2 reads USD₮0 through a fixed shift") checks the
+  factory's pins (quote, 6 decimals, shift, codeShift), the v2 kernel (by KernelFactoryV2, holds its chip, clean clone,
+  no allowance left), every curve record's TAX/TAXCUM/RES against `lg8s`, LensV2 on the first and last settle, and
+  prints `isBlocked` and USD₮0's owner. Until a v2 deployment is recorded it says so ("nothing to check yet").
+- **`.site` is not bundled.** `deployments/xlayer.json` gained `.site` (the DeWEB publication's own record) after the
+  last publish; bundled, its gateway host failed `check-budget.mjs`, so `pnpm --filter web build` (and the Pages
+  workflow) failed on HEAD before this work. `deploy/publish-site.sh` already builds from the file without `.site`; a
+  Vite plugin now drops it in every build, so a build from the full file and one from the file without `.site` bundle
+  the same deployment data. It also removed 2.7 KB from the entry.
+- **The fork fixture handles no key.** IgnixManager checks the platform signature with `ECDSA.recover` against
+  `signer()` (storage slot 5). The fixture uses a fixed signature (r = the x coordinate of secp256k1's generator,
+  s = 1, v = 27), asks the ecrecover precompile which address that recovers to for the launch's digest, and writes that
+  address into the slot on the fork; nobody holds a key for it. Kernel v1's launch now uses the same method (it used
+  anvil's public test key 0 before). Revenue on the fork is a plain USD₮0 `transfer` to the kernel from an unrelated
+  account: what an x402 settlement amounts to on chain (the EIP-3009 path itself is in `contracts/core-v2`'s fork tests).
+
 ## 4. Verified
 
 All on 2026-10-04 from this machine, read-only.
@@ -176,6 +243,14 @@ Chromium driven through Playwright, production build served as static files by `
 
 ### 4.5 Sizes
 
+After kernel v2 support (2026-10-06, evening), `node scripts/check-budget.mjs`: **total 235,094 of 240,000 (98.0%)**,
+**entry 84,330 of 96,000 (87.8%)**. Entry `index-*.js` 69,061 (`.site` no longer bundled: minus 2.7 KB; the shift
+helpers, unit helpers and v2 config: plus 1.4 KB); `kernelPages` 49,845 (+12.9 KB: v2 on the vault, audit and hostile
+pages); `guidePages` 26,565 (+6.8 KB: judge check 8, the Tether party); `kernel-*.js` 9,108 (+2.2 KB: v2 decoding and
+detection); stylesheet 14,230 (+0.2 KB). Headroom left: 4,906 bytes in total, 11,670 in the entry.
+
+The table below is the state before that work.
+
 `web/dist` on 2026-10-06 (bytes on disk):
 
 | File | Bytes | gzip |
@@ -205,7 +280,50 @@ Chromium driven through Playwright, production build served as static files by `
 - **On the fork fixture** (fork of block 72,521,930, 12 records whose modes run CRUISE, BANK, DEFEND, REST; one record with DT = 2): every record MATCHes four ways and its amounts equal the TypeScript clip; no clamp fired on any record; the local Glutton shadow run equals `Lens.shadowChip` on every step (allowance 18.74% of the tax vs the real chip's 5.77%); the counterfactual chip column equals the sums of the records and paging does not change it (`test/fork.test.ts`, 4 tests). In Chromium against that fork: landing, vault, audit (#9, a DEFEND settle after a skipped epoch: MATCH, stateMatters yes), hostile (on-chain shadow MATCH), judge (7 of 7 passed), trust.
 - **On X Layer mainnet**, after the flagship chip was taped out (chip #2, kernel 0xB722…d356, not yet bound): the landing page's two `Circuits.step` calls MATCH the browser (`0xa000…060b` and `0x0001…0e11`, routes differ in T_BUY, T_ALLOW, T_RES, REL); `node scripts/verify-kernel.ts` prints the same; the vault page shows the kernel as a clean clone of the factory's implementation, holding chip #2, pins holding (TapeOut evaluator), envelope as in `LaunchChip.referenceEnvelope`, no records; judge checks 1, 2, 3, 5, 7 pass, 4 and 6 say there is nothing to check yet (no settle, no token). `test/live.test.ts` gained a check of the deployment (processor, transistors, Fab, factory, Lens agree with each other).
 - **Phone width**: at 360 px no route scrolls sideways (`scrollWidth == clientWidth`) on landing, vault, audit, hostile, judge, trust and the circuit page; tables scroll inside their own box. Console: no errors or warnings on the production build.
-- Screenshots: `.playwright-mcp/shots/` (git-ignored): `landing-fork.png`, `landing-mainnet.png`, `landing-phone-dark-fork.png`, `vault-fork.png`, `vault-die-anim.png`, `audit-fork.png`, `hostile-fork.png`, `hostile-dark-fork.png`, `trust-dark-fork.png`.
+- Screenshots: `.playwright-mcp/shots/` (git-ignored): `landing-fork.png`, `landing-mainnet.png`, `landing-phone-dark-fork.png`, `vault-fork.png`, `vault-die-anim.png`, `audit-fork.png`, `hostile-fork.png`, `hostile-dark-fork.png`, `trust-dark-fork.png`, `vault-v2-codeshift-fork.png`.
+
+### 4.7 Kernel v2 (USD₮0 quote)
+
+All on 2026-10-06 (evening); X Layer only read (`eth_call`), everything else on a local anvil fork.
+
+- **Vectors** (`test/model.test.ts`, offline): every vector of `chips/golden/vectors_v2.json` (format
+  `covenant-golden-v2/1`): 1,950 `lg8s`, 3,072 `exp8s`, 3,000 routing with shifts 0 to 40 (755 graduated), 153 boundary
+  routing; the reference points of `kernel_model_v2.py` (1 USD₮0 = 424, $0.50 = 416, 8,000 USD₮0 = 527; M1, CEIL0,
+  M2, M3 in base units; 10^18 >> 33 = 116,415,321); and **all 8,808 settles of `vectors_v2_settles.jsonl`** (520
+  sequences): every stored input word's TAX, TAXCUM, RES equal `lg8s` of the stored amounts (shift 0 after
+  graduation), GRAD/REV/REVCUM/ESC/ZERO as required, the clip port gives the stored clamp bits, allowance and decided
+  buy, every fallback record carries the fallback word. Three mutants of the port (no shift on K5, on the chip's CEIL,
+  on ceilMax) each fail 3 of these tests.
+- **Codec** (`packages/chain/test/kernel.test.ts`): `RecordV2`, `GlobalsV2`, `quote()`, `quoteShift()`, the
+  KernelFactoryV2 pins, ERC-20 `allowance`, USD₮0 `isBlocked` against viem; every new selector against keccak256.
+  USD₮0 `isBlocked(address)` (`0xfbac3951`), `owner()` (`0x4DFF…0bf8`), `decimals()` 6 and `symbol()` "USD₮0" were
+  read on X Layer.
+- **Fork fixture** (anvil fork of block 72,545,990; about 15 minutes): DeployCoreV2 accepted shift 33 from the live V3
+  pool; LaunchChipV2 taped the Flow Governor out as chip 6 and created kernel v2 `0x90D0…2121` (KernelFactoryV2
+  `0x3ebe…b049`, implementation 20,900 bytes); a Directed launch quoted in USD₮0 with that recipient went through the
+  live IgnixManager with the keyless signer; 12 curve epochs (52.000069 USD₮0 of inflow including 12 USD₮0 of
+  revenue payments (24 of 0.50); modes CRUISE, BANK, DEFEND, REST); the whale's buy graduated the token (7,678.94 USD₮0 at most);
+  3 graduated epochs whose quote leg spent 103.0125, 96.340808 and 46.754183 USD₮0 on the pair (two of them with
+  BUY_SHRUNK from the impact cap). No clamp on any of the 15 records; no USD₮0 allowance left.
+- **Fork tests** (`COVENANT_FORK=… vitest run test/fork.test.ts`): 10 of 10 (kernel v1's 4, unchanged, and 6 for v2):
+  v1/v2 told apart by factory and, without the v2 factory in the file, by shape; the v2 vault (bound, holds chip 6,
+  clean clone of the recorded implementation, only `approve` among the forbidden selectors, no allowance, not
+  blocked); every v2 record four ways (record = LensV2 on TapeOut = LensV2 on the SealedVM = this site's simulator),
+  shifted codes and the clip as recorded, quote leg present after graduation; the Glutton shadow run with the shift
+  equals `LensV2.shadowChip` on all 15 steps (allowance 9.750006 USD₮0, 18.75% of curve inflow, never above 3.932160
+  USD₮0 per settle; the real chip 2.9365 USD₮0, 5.6%); LensV2's counterfactual adds up per regime and paging does not
+  change it; the v1 Lens refuses the v2 kernel and LensV2 the v1 kernel.
+- **In Chromium** (Playwright) against the fork (`dev:fork`): vault v2 (all facts ✓, code-shift panel, revenue section,
+  15-row history with the quote-leg column, both counterfactual regimes), audit #6 (BANK, inflow 18.312729 USD₮0:
+  MATCH four ways, codes shown as lg8 + 264) and #13 (graduated: MATCH, quote leg 103.0125 USD₮0, flag reading),
+  hostile (the v2 switch; both shadow runs MATCH on chain), judge (8 of 8 passed), trust (USD₮0's owner read). At 360
+  px no route scrolls sideways (landing, both vaults, three audits, hostile, judge, trust). Console: no errors or
+  warnings. Found and fixed there: after graduation the vault's allowance tile and the audit's allowance-limit rows
+  showed token totals as quote amounts (true for a graduated kernel v1 too; never seen before because the v1 fixture
+  does not graduate).
+- **Production build against X Layer** (no v2 keys): judge check 8 and the trust page say kernel v2 is not deployed;
+  checks 3 passes and 4 and 6 have nothing to check yet, as before; the v1 vault shows no v2 section; the hostile v2
+  switch uses the reference envelope and shift; `node scripts/verify-kernel.ts`: all MATCH. Console clean.
 
 ## 5. Open assumptions and things not verified
 
@@ -223,13 +341,23 @@ Chromium driven through Playwright, production build served as static files by `
 - The gas-per-gate figure comes from two circuits.
 - Preact 11.0.0, Vite 8.3.2, vitest 5.0.3 and TypeScript 7.0.2 are the versions pnpm resolved today; nothing older was tried.
 
+- Kernel v2 pages were exercised with records only on the fork. The deployment file's v2 key names (`coreV2`,
+  `flagshipV2`) are the ones the brief gave; if the deploy step writes others, `config.ts` and the fixture follow.
+- The fixture assumes a v2 kernel recorded in the deployment file is still unbound (as it does for kernel v1): once a
+  real token is bound to it, its launch and bind steps would fail on the fork.
+- Revenue on the fork is plain USD₮0 transfers to the kernel, not EIP-3009 settlements; the kernel only sees the
+  balance, and `contracts/core-v2`'s fork tests run the EIP-3009 path.
+- The site cannot tell revenue from tax in a record (neither can the kernel); it never shows a revenue figure.
+- The Architect's PAY_TO shown on a v2 vault is the deployment file's record, not chain state.
+
 ## 6. Stubs and open items
 
 - No builder page (compose a chip, tape it out): out of scope here.
 - The die has no block map: `chips/out/fg.map.json` has `blocks: []` (records carry cones, not blocks), so the vault and audit dies are one block. The state is shown field by field next to the die instead.
 - A REF is drawn as plain cells (one per signal it produces) with a link to the referenced circuit; there is no drill-down into the sub-circuit on the die.
 - The landing demonstration uses the witness of `chips/out/fg.witness.json`. If the chip is rebuilt, regenerate the witness with it, or the page will show the local and on-chain answers disagreeing (by design it then says so).
-- Graduated-regime display (token units, burn leg, native pot) is implemented from the interface but was not seen with data: the fixture does not graduate its token.
+- Graduated-regime display (token units, burn leg, native pot) for kernel v1 was not seen with data: its fixture token does not graduate. Kernel v2's was (records 13 to 15 of the v2 fixture), which also exercised the shared graduated paths.
+- The root `README.md` still says "seven checks" for the judge guide (now eight); it was being edited by another track, so it was left alone.
 
 ## 7. Differences from the brief
 

@@ -4,7 +4,7 @@
 // only for a chip whose published proofs tie them to its routing; the Flow Governor's do.
 
 import witness from '../../../chips/out/fg.witness.json' with { type: 'json' };
-import { exp8, LG8_MAX, outputFields, unpack, wordOf, type Layout } from './model.ts';
+import { exp8, exp8s, LG8_MAX, outputFields, unpack, wordOf, type Layout } from './model.ts';
 
 export { witness };
 
@@ -132,6 +132,44 @@ export function approxCode(code: number, decimals: number = 18): string {
   if (code === 0) return '0';
   if (code >= LG8_MAX) return 'no limit';
   return approx(exp8(code), decimals);
+}
+
+/** The smallest amount a code stands for on a kernel with code shift `s` (exp8(code) >> s), as a short decimal. */
+export function approxCodeIn(code: number, s: number, decimals: number): string {
+  if (code === 0) return '0';
+  if (code >= LG8_MAX) return 'no limit';
+  return approx(exp8s(code, s), decimals);
+}
+
+/** The asset an amount is in: OKB or USD₮0 on the curve, the project token after graduation. */
+export interface Unit {
+  symbol: string;
+  decimals: number;
+}
+export const OKB_UNIT: Unit = { symbol: 'OKB', decimals: 18 };
+
+/** An amount for a sentence: "3.93 USD₮0", "0.0338 OKB"; "1 wei" / "3 base units" when it is that small. */
+export function amount(v: bigint, u: Unit): string {
+  const a = approx(v, u.decimals);
+  return a.endsWith('wei') || a.endsWith('base units') ? a : `${a} ${u.symbol}`;
+}
+
+/**
+ * Kernel v2's code shift (chips/INTERFACE-V2.md 4.1, chips/golden/kernel_model_v2.py, contracts/core-v2/NOTES.md
+ * section 3): the stated reference rate it was derived from. The shift itself is read from each kernel.
+ */
+export const V2_REFERENCE = {
+  /** bits; 264 codes */
+  shift: 33,
+  /** USD₮0 per OKB, the canonical Uniswap V3 USD₮0/WOKB 0.05% pool's spot price at the block below */
+  rate: '135.895901',
+  block: 72_530_000,
+  pool: '0xe3BE6A0137f1b0602Fc1a4841686f43B340a5082',
+} as const;
+
+/** The OKB prices, in USD₮0 per OKB, for which `s` is the nearest whole-bit shift: 10^12 / 2^(s ± 1/2). */
+export function shiftBand(s: number): [number, number] {
+  return [1e12 / 2 ** (s + 0.5), 1e12 / 2 ** (s - 0.5)];
 }
 
 /** An OKB amount for a sentence: "0.0338 OKB", or "1 wei" when it is below a millionth of a gwei. */

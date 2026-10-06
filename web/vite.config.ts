@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 // The production build must be self-contained static files (it will be stored on chain):
 // relative URLs, no module-preload helper, and index.html naming one script and one stylesheet.
@@ -13,8 +13,25 @@ import { defineConfig } from 'vite';
 const forkPath = process.env.COVENANT_FORK;
 const fork = forkPath ? JSON.parse(readFileSync(resolve(process.cwd(), forkPath.replace(/^web\//, '')), 'utf8')) : null;
 
+// The site bundles deployments/xlayer.json (src/config.ts) without its `.site` section. That section records the
+// site's own publication (deploy/publish-site.sh writes it after a publish and builds from the file without it): it
+// must not feed the build it records, and its gateway host would fail scripts/check-budget.mjs. The site reads none
+// of it.
+const withoutSiteRecord: Plugin = {
+  name: 'covenant-deployment-without-site',
+  enforce: 'pre',
+  transform(code, id) {
+    if (!id.split('?')[0].replace(/\\/g, '/').endsWith('/deployments/xlayer.json')) return null;
+    const d = JSON.parse(code) as Record<string, unknown>;
+    if (!('site' in d)) return null;
+    delete d.site;
+    return { code: JSON.stringify(d), map: null };
+  },
+};
+
 export default defineConfig({
   base: './',
+  plugins: [withoutSiteRecord],
   oxc: { jsx: { runtime: 'automatic', importSource: 'preact' } },
   define: { __COVENANT_FORK__: JSON.stringify(fork) },
   build: {

@@ -1,6 +1,8 @@
 // #/k/:kernel/:n
 // Audit one settle: the record as the kernel stored it, recomputed by the Lens on both evaluators and by this
 // browser from the netlist bytes; what the envelope clipped and why; and whether the chip's state changed the route.
+// On a v2 kernel (USD₮0 quote) the amounts are USD₮0 on the curve, the input codes carry the kernel's code shift, and
+// the Lens is LensV2 (data/kernel.ts loadAudit picks it by factory).
 
 import { useRef } from 'preact/hooks';
 import type { DieShot } from '@covenant/dieshot';
@@ -10,9 +12,9 @@ import { Command } from '../components/common.tsx';
 import { Die } from '../components/Die.tsx';
 import { CheckRow, Pin, RouteBar, SimBanner } from '../components/kit.tsx';
 import { CAST_RPC, CHAIN, COVENANT, rpc } from '../config.ts';
-import { loadAudit, loadNetlist, type AuditData } from '../data/kernel.ts';
-import { approx, approxCode, FG_KECCAK, fgFlagNames, fgModeName, pct256, routeView } from '../kernel/chip.ts';
-import { bitsOf, CLAMPS, exp8, fallbackWord, bytesOf, inputFields, LG8_MAX, outputFields, RECORD_FLAGS, route, stateBytes, wordOf } from '../kernel/model.ts';
+import { loadAudit, loadNetlist, quoteLegIn, type AuditData } from '../data/kernel.ts';
+import { amount, approx, approxCodeIn, FG_KECCAK, fgFlagNames, fgModeName, pct256, routeView, type Unit } from '../kernel/chip.ts';
+import { bitsOf, CLAMPS, exp8s, fallbackWord, bytesOf, inputFields, lg8, lg8s, LG8_MAX, outputFields, RECORD_FLAGS, route, stateBytes, wordOf } from '../kernel/model.ts';
 import { beat, chipFromBytes, replayLocal } from '../kernel/sim.ts';
 import { fmtTime, fmtUnits, shortHex } from '../format.ts';
 import { useAsync } from '../router.ts';
@@ -20,8 +22,8 @@ import { Failure, Loading } from './shared.tsx';
 
 export function Audit({ kernel, n }: { kernel: string; n: number }) {
   const q = useAsync(async () => {
-    if (!COVENANT.lens) throw new Error('The Lens is not in deployments/xlayer.json yet, so the on-chain replays cannot be asked.');
-    const a = await loadAudit(rpc, COVENANT.lens, kernel, n);
+    if (!COVENANT.lens && !COVENANT.lensV2) throw new Error('No Lens is in deployments/xlayer.json yet, so the on-chain replays cannot be asked.');
+    const a = await loadAudit(rpc, COVENANT, kernel, n);
     const nl = await loadNetlist(rpc, a.globals);
     return { a, chip: chipFromBytes(`chip ${a.globals.chipId}`, nl.bytes), keccak: nl.keccak };
   }, [kernel, n]);
@@ -38,6 +40,12 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
   const n = row.n;
   const fallback = (r.flags & 1) !== 0;
   const grad = (r.flags & 64) !== 0;
+  const v2 = d.kind.version === 2;
+  /** The kernel's code shift for this record: its quoteShift on the curve, 0 after graduation and on kernel v1. */
+  const sh = grad ? 0 : d.kind.shift;
+  const qu: Unit = { symbol: d.kind.quoteSymbol, decimals: d.kind.quoteDecimals };
+  /** The record's regime asset. */
+  const ru: Unit = grad ? { symbol: 'tokens', decimals: 18 } : qu;
   const die = useRef<DieShot | null>(null);
 
   // the browser's own recomputation
@@ -55,13 +63,14 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
 
   // the kernel's routing, recomputed with the TypeScript port of its clip
   const allowBefore = row.allowPaidCum - r.allow;
-  const rt = route(e, wordOf(r.outputs), r.inflow, r.reserveBefore, row.cumInflow, allowBefore, grad);
+  const rt = route(e, wordOf(r.outputs), r.inflow, r.reserveBefore, row.cumInflow, allowBefore, grad, sh);
   const amountsOk = rt.clamp === r.clampBits && rt.allow === r.allow && rt.buyDecided === r.buyDecided && r.buyExecuted <= r.buyDecided;
   const lensT = d.replayTapeout instanceof Error ? null : d.replayTapeout;
   const ask = outputFields(r.outputs);
   const x = inputFields(r.inputs);
   const view = routeView(r.outputs);
-  const unit = grad ? 'tokens' : 'OKB';
+  const unit = ru.symbol;
+  const codeNote = (x: bigint): string => (sh > 0 && x > 0n ? ` = lg8 ${lg8(x)} + ${8 * sh} (the shift)` : '');
   const sm = d.stateMatters instanceof Error ? null : d.stateMatters;
   const zeroLocal = fallback ? null : beat(chip.netlist, '0x' + '00'.repeat(Math.ceil(g.nState / 8)), r.inputs).outputs;
 
@@ -78,6 +87,12 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
         <a href="#/">Covenant</a> / <a href={`#/k/${kernel}`}>vault</a> / settle {n}
       </p>
       <h1>Settle #{n}, recomputed three ways</h1>
+      {v2 && (
+        <p class="muted small">
+          Kernel v2 (USD₮0 quote): amounts are {qu.symbol} on the curve, project tokens after graduation; the chip reads them through a fixed shift of{' '}
+          {d.kind.shift} bits (<a href={`#/k/${kernel}`}>vault page</a>, section 03).
+        </p>
+      )}
       <p class="lede">
         The kernel stored what its chip answered on {fmtTime(r.time)} (epoch {r.epoch}). Below, the chain's two evaluators and this browser
         compute the same step again from the stored state and inputs, and the kernel's routing is recomputed from the stored answer.
@@ -125,10 +140,18 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
         </div>
         {fallback && <p class="small">This record applied the fallback word (flag 1): no evaluator answered, the state was left as it was.</p>}
         <ul class="checks small">
-          <CheckRow ok={amountsOk} note="TypeScript port of the kernel's clip (tested against chips/golden/vectors.json) on the stored outputs, inflow, reserve and totals">
-            Allowance {approx(rt.allow)} OKB, buy decided {approx(rt.buyDecided)} {unit}, clamp bits {rt.clamp}: as recorded
+          <CheckRow
+            ok={amountsOk}
+            note={`TypeScript port of the kernel's clip (tested against chips/golden/vectors.json${v2 ? ' and vectors_v2.json' : ''}) on the stored outputs, inflow, reserve and totals${sh > 0 ? `, through the ${sh}-bit shift` : ''}`}
+          >
+            Allowance {amount(rt.allow, qu)}, buy decided {approx(rt.buyDecided, ru.decimals)} {unit}, clamp bits {rt.clamp}: as recorded
           </CheckRow>
-          <CheckRow ok={lensT ? lensT.amountsMatch && lensT.inputsMatch : null} note="Lens: KernelMath.route over the stored values, and the input word's TAX, TAXCUM, RES and GRAD codes against the stored amounts">
+          {sh > 0 && (
+            <CheckRow ok={x.TAX === lg8s(r.inflow, sh) && x.TAXCUM === lg8s(row.cumInflow, sh) && x.RES === lg8s(r.reserveBefore, sh)} note={`computed here: lg8(amount << ${sh}) for the inflow, the cumulative inflow and the reserve`}>
+              The input word's TAX, TAXCUM and RES are the stored amounts' codes plus {8 * sh}
+            </CheckRow>
+          )}
+          <CheckRow ok={lensT ? lensT.amountsMatch && lensT.inputsMatch : null} note={`Lens${v2 ? 'V2' : ''}: KernelMath${v2 ? 'V2' : ''}.route over the stored values, and the input word's TAX, TAXCUM, RES and GRAD codes against the stored amounts`}>
             The Lens agrees on the amounts and the input word
           </CheckRow>
         </ul>
@@ -139,17 +162,22 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
         <dl class="facts">
           <dt>Input word</dt>
           <dd class="mono">{r.inputs}</dd>
-          <dt>Tax this settle</dt>
+          <dt>{v2 ? 'Inflow this settle' : 'Tax this settle'}</dt>
           <dd>
-            {fmtUnits(r.inflow)} {unit} <span class="muted">(code TAX {x.TAX} ≈ {approxCode(x.TAX)})</span>
+            {fmtUnits(r.inflow, ru.decimals)} {unit}{' '}
+            <span class="muted">
+              (code TAX {x.TAX}
+              {codeNote(r.inflow)} ≈ {approxCodeIn(x.TAX, sh, ru.decimals)})
+            </span>
+            {v2 && !grad && <div class="muted small">Tax claimed from the vault plus any {qu.symbol} paid to the kernel directly (revenue), routed as tax: the kernel cannot tell them apart.</div>}
           </dd>
-          <dt>Tax so far</dt>
+          <dt>{v2 ? 'Inflow so far' : 'Tax so far'}</dt>
           <dd>
-            {fmtUnits(row.cumInflow)} {unit} <span class="muted">(TAXCUM {x.TAXCUM})</span>
+            {fmtUnits(row.cumInflow, ru.decimals)} {unit} <span class="muted">(TAXCUM {x.TAXCUM}{codeNote(row.cumInflow)})</span>
           </dd>
           <dt>Reserve before</dt>
           <dd>
-            {fmtUnits(r.reserveBefore)} {unit} <span class="muted">(RES {x.RES})</span>
+            {fmtUnits(r.reserveBefore, ru.decimals)} {unit} <span class="muted">(RES {x.RES}{codeNote(r.reserveBefore)})</span>
           </dd>
           <dt>Other inputs</dt>
           <dd class="small">
@@ -173,7 +201,9 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
               {isFG && <span>{fgModeName(view.mode)} {fgFlagNames(view.flags).map((f) => <span class="flag" key={f}>{f}</span>)}</span>}
             </div>
             <RouteBar view={view} />
-            <div class="small muted">own allowance ceiling: {view.ceil >= LG8_MAX ? 'none' : `${approx(exp8(view.ceil))} OKB`}</div>
+            <div class="small muted">
+              own allowance ceiling: {grad ? 'not used (no allowance after graduation)' : view.ceil >= LG8_MAX ? 'none' : `${amount(exp8s(view.ceil, sh), qu)}${sh > 0 ? ` (exp8(${view.ceil}) >> ${sh})` : ''}`}
+            </div>
           </div>
           <div class="chipcard">
             <div class="cardhead">
@@ -181,8 +211,14 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
             </div>
             <RouteBar view={{ ...view, buy: rt.shares[0], hold: rt.shares[1], allow: rt.shares[2], res: rt.shares[3], rel: rt.rel, wellFormed: true }} />
             <div class="small">
-              allowance credited <b>{fmtUnits(r.allow)}</b> OKB · buy decided <b>{fmtUnits(r.buyDecided)}</b> {unit} (executed {fmtUnits(r.buyExecuted)}) · {grad ? 'burned' : 'tokens bought'}{' '}
-              {approx(r.tokensOut)}
+              allowance credited <b>{fmtUnits(r.allow, qu.decimals)}</b> {qu.symbol} · buy decided <b>{fmtUnits(r.buyDecided, ru.decimals)}</b> {unit} (executed{' '}
+              {fmtUnits(r.buyExecuted, ru.decimals)}) · {grad ? 'burned' : 'tokens bought'} {approx(r.tokensOut)}
+              {grad && quoteLegIn(r) > 0n && (
+                <>
+                  {' '}
+                  · quote leg: <b>{fmtUnits(quoteLegIn(r), qu.decimals)}</b> {qu.symbol} spent on the pair, tokens to 0xdEaD
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -208,18 +244,22 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
               <td>cap {pct256(e.capT)}</td>
               <td>{grad ? 'no allowance after graduation' : ask.T_ALLOW > e.capT ? 'clipped (K2)' : 'within'}</td>
             </tr>
-            <tr>
-              <th>allowance per settle</th>
-              <td>{approx((r.inflow * BigInt(Math.min(ask.T_ALLOW, e.capT))) / 256n)} OKB</td>
-              <td>ceiling {e.ceilMax >= LG8_MAX ? 'none' : `${approx(exp8(e.ceilMax))} OKB`}</td>
-              <td>{(r.clampBits & 8) !== 0 ? 'clipped (K2C)' : 'within'}</td>
-            </tr>
-            <tr>
-              <th>allowance for life</th>
-              <td>{approx(allowBefore + r.allow)} OKB after this settle</td>
-              <td>cap {approx((row.cumInflow * BigInt(e.allowCumBps)) / 10000n)} OKB</td>
-              <td>{(r.clampBits & 16) !== 0 ? 'clipped (K2L)' : 'within'}</td>
-            </tr>
+            {!grad && (
+              <>
+                <tr>
+                  <th>allowance per settle</th>
+                  <td>{amount((r.inflow * BigInt(Math.min(ask.T_ALLOW, e.capT))) / 256n, qu)}</td>
+                  <td>ceiling {e.ceilMax >= LG8_MAX ? 'none' : amount(exp8s(e.ceilMax, sh), qu)}</td>
+                  <td>{(r.clampBits & 8) !== 0 ? 'clipped (K2C)' : 'within'}</td>
+                </tr>
+                <tr>
+                  <th>allowance for life</th>
+                  <td>{amount(allowBefore + r.allow, qu)} after this settle</td>
+                  <td>cap {amount((row.cumInflow * BigInt(e.allowCumBps)) / 10000n, qu)}</td>
+                  <td>{(r.clampBits & 16) !== 0 ? 'clipped (K2L)' : 'within'}</td>
+                </tr>
+              </>
+            )}
             <tr>
               <th>release</th>
               <td>asked {pct256(ask.REL)}</td>
@@ -237,6 +277,13 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
               .map((f) => `${f.name} (${f.what})`)
               .join('; ')}
             .
+          </p>
+        )}
+        {v2 && grad && (r.flags & (16 | 32 | 128)) !== 0 && (
+          <p class="small muted">
+            After graduation two legs share the buy flags (chips/INTERFACE-V2.md section 10): buy skipped and buy shrunk are the quote leg's (the {qu.symbol} pot bought
+            on the pair); buy failed is the burn leg's when executed &lt; decided ({r.buyExecuted < r.buyDecided ? 'here: yes' : 'here: no'}), and the quote leg's
+            otherwise.
           </p>
         )}
       </section>
@@ -285,10 +332,10 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
           label="The same step on TapeOut's evaluator (state before, stored inputs):"
           line={`cast call ${g.circuits} "step(uint256,bytes,bytes)(bytes,bytes)" ${g.chipId} ${stateBytes(row.stateBefore, g.nState)} ${r.inputs} --rpc-url ${CAST_RPC}`}
         />
-        {COVENANT.lens && (
+        {d.kind.lens && (
           <>
-            <Command label="The Lens replay on each evaluator (false = TapeOut, true = SealedVM):" line={`cast call ${COVENANT.lens} "replayOn(address,uint32,bool)((bool,bool,bool,bool,bool,bool,bool,bytes14,bytes32))" ${kernel} ${n} false --rpc-url ${CAST_RPC}`} />
-            <Command line={`cast call ${COVENANT.lens} "stateMatters(address,uint32)(bool,bytes14,bytes14)" ${kernel} ${n} --rpc-url ${CAST_RPC}`} />
+            <Command label={`The Lens${v2 ? 'V2' : ''} replay on each evaluator (false = TapeOut, true = SealedVM):`} line={`cast call ${d.kind.lens} "replayOn(address,uint32,bool)((bool,bool,bool,bool,bool,bool,bool,bytes14,bytes32))" ${kernel} ${n} false --rpc-url ${CAST_RPC}`} />
+            <Command line={`cast call ${d.kind.lens} "stateMatters(address,uint32)(bool,bytes14,bytes14)" ${kernel} ${n} --rpc-url ${CAST_RPC}`} />
           </>
         )}
         <p class="row">

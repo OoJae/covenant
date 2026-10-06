@@ -1,17 +1,18 @@
 // #/judge
-// Seven checks. Each runs in the page with free read calls and prints the terminal command that asks the same
-// question, so nothing here has to be taken on trust from this site.
+// Eight checks. Each runs in the page with free read calls and prints the terminal command that asks the same
+// question, so nothing here has to be taken on trust from this site. The eighth is kernel v2 (USD₮0 quote): it says
+// so plainly until deployments/xlayer.json records a v2 deployment.
 
 import { useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { processor, read, readAll } from '@covenant/chain';
 import { keccak256Hex } from '@covenant/chain/keccak';
-import { erc20, kernel, lens, teamRegistry } from '@covenant/chain/kernel';
+import { erc20, kernel, kernelFactoryV2, lens, ownerOf, teamRegistry } from '@covenant/chain/kernel';
 import { Command } from '../components/common.tsx';
 import { Mark, SimBanner } from '../components/kit.tsx';
 import { ADDR, CAST_RPC, CHAIN_LABEL, COVENANT, REPO, rpc } from '../config.ts';
-import { FG_KECCAK, REF_ENVELOPE, routeDiff, witness } from '../kernel/chip.ts';
-import { bitsOf, CLAMPS, route, wordOf } from '../kernel/model.ts';
+import { amount, FG_KECCAK, REF_ENVELOPE, routeDiff, witness } from '../kernel/chip.ts';
+import { bitsOf, CLAMPS, exp8s, inputFields, lg8, lg8s, route, wordOf } from '../kernel/model.ts';
 import { loadProcessor } from '../data/processor.ts';
 import { fmtInt, fmtUnits } from '../format.ts';
 
@@ -30,6 +31,8 @@ interface Check {
 
 const P = COVENANT.processor;
 const K = COVENANT.kernel;
+const K2 = COVENANT.kernelV2;
+const F2 = COVENANT.kernelFactoryV2;
 const R = CAST_RPC;
 const ZERO = '0x0000000000000000000000000000000000000000';
 const notYet = (what: string): Result => ({ ok: null, lines: [`${what} is not deployed yet; this check runs as soon as deployments/xlayer.json names it.`] });
@@ -94,7 +97,7 @@ const CHECKS: Check[] = [
     run: async () => {
       if (!K) return notYet('The flagship kernel');
       const { loadVault } = await import('../data/kernel.ts');
-      const v = await loadVault(rpc, K, COVENANT.kernelFactory);
+      const v = await loadVault(rpc, K, COVENANT);
       const holds = !!v.chipOwner && v.chipOwner.toLowerCase() === K.toLowerCase();
       const clone = v.clone.isClone && !!v.factoryImpl && v.clone.implementation === v.factoryImpl.toLowerCase() && v.argsMatch;
       const s = v.implScan;
@@ -180,14 +183,20 @@ const CHECKS: Check[] = [
         lines.push(`docs/WALLETS.md: ${COVENANT.keeper} (keeper), not declared in the registry yet`);
       }
       let ok: boolean | null = null;
-      if (K) {
-        const [tok] = await readAll(rpc, [kernel(K).token()] as const);
+      for (const [k, what] of [
+        [K, 'the reference token'],
+        [K2, 'the kernel v2 token (USD₮0 quote)'],
+      ] as const) {
+        if (!k) continue;
+        const [tok] = await readAll(rpc, [kernel(k).token()] as const);
         if (!(tok instanceof Error) && tok.toLowerCase() !== ZERO) {
           const bals = await readAll(rpc, wallets.map((w) => erc20(tok).balanceOf(w.wallet)));
-          ok = bals.every((b) => b === 0n);
-          lines.push(`none of them holds the reference token: ${ok}`);
+          const none = bals.every((b) => b === 0n);
+          ok = (ok ?? true) && none;
+          lines.push(`none of them holds ${what}: ${none}`);
         }
       }
+      if (K2) lines.push('Self-payment is forbidden too: no team wallet may pay revenue into a kernel that buys the team’s token.');
       lines.push('The full check walks every transaction these wallets ever sent; it needs an archive node, so it runs from a terminal (below).');
       return { ok, lines };
     },
@@ -233,6 +242,79 @@ const CHECKS: Check[] = [
       <>
         Results: <a href={`${REPO}/blob/main/chips/out/fg.proofs.json`}>chips/out/fg.proofs.json</a>; what the chip does:{' '}
         <a href={`${REPO}/blob/main/chips/model/FLOW_GOVERNOR.md`}>FLOW_GOVERNOR.md</a>.
+      </>
+    ),
+  },
+  {
+    title: 'Kernel v2 reads USD₮0 through a fixed shift',
+    claim: (
+      <>
+        A kernel v2 routes a token quoted in USD₮0 (6 decimals) with the same, unchanged Flow Governor: on the curve it shows every amount to the chip
+        as lg8(amount) + 264, a 33-bit shift fixed in its code. Its factory pins USD₮0 and the shift; its records carry the shifted codes; both evaluators
+        replay them; it has no owner and leaves no USD₮0 allowance behind. Tether can block it and destroy what it holds.
+      </>
+    ),
+    run: async () => {
+      if (!F2) return { ok: null, lines: ['Kernel v2 (USD₮0 quote) is built and tested on an X Layer fork but not deployed: deployments/xlayer.json has no coreV2 entry yet, so there is nothing on chain to check.'] };
+      const f = kernelFactoryV2(F2);
+      const [quote, shift, codeShift] = await readAll(rpc, [f.quote(), f.quoteShift(), f.codeShift()] as const);
+      if (quote instanceof Error || shift instanceof Error || codeShift instanceof Error) throw quote instanceof Error ? quote : shift instanceof Error ? shift : (codeShift as Error);
+      const [dec, sym, owner] = await readAll(rpc, [erc20(quote).decimals(), erc20(quote).symbol(), ownerOf(quote)] as const);
+      let ok = dec === 6 && codeShift === 8 * shift;
+      const unit = { symbol: typeof sym === 'string' ? sym : 'USD₮0', decimals: 6 };
+      const lines: ComponentChildren[] = [
+        `KernelFactoryV2: quote ${quote} (${unit.symbol}, decimals ${String(dec)}), shift ${shift} bits = ${codeShift} codes; 1 ${unit.symbol} reads as code ${lg8s(10n ** 6n, shift)} = ${lg8(10n ** 6n)} + ${8 * shift}`,
+        `the reference envelope's ceilMax ${REF_ENVELOPE.ceilMax} caps the allowance at ${amount(exp8s(REF_ENVELOPE.ceilMax, shift), unit)} per settle`,
+      ];
+      if (!K2) {
+        lines.push('No v2 kernel is recorded in deployments/xlayer.json yet.');
+        return { ok: ok ? null : false, lines };
+      }
+      const { loadVault, loadRecords } = await import('../data/kernel.ts');
+      const v = await loadVault(rpc, K2, COVENANT);
+      const holds = !!v.chipOwner && v.chipOwner.toLowerCase() === K2.toLowerCase();
+      const s = v.implScan;
+      const clean = !!s && s.selectors.every((x) => x === 'approve(address,uint256)') && s.delegatecall === 0 && s.selfdestruct === 0 && s.callcode === 0;
+      const noAllowance = v.allowanceToManager === 0n && v.allowanceToRouter === 0n;
+      ok = ok && v.kind.version === 2 && v.kind.by === 'factory v2' && v.ourFactory && holds && v.clone.isClone && v.argsMatch && clean && noAllowance && v.kind.shift === shift;
+      lines.push(`kernel ${K2}: KernelFactoryV2.isKernel ${v.isKernel}; holds chip #${v.globals.chipId}: ${holds}; clean clone: ${v.clone.isClone && v.argsMatch}; owner/upgrade/pause selectors: ${s ? s.selectors.filter((x) => x !== 'approve(address,uint256)').join(', ') || 'none' : '?'}; allowance left to the Manager / router: ${v.allowanceToManager} / ${v.allowanceToRouter}`);
+      lines.push(`${unit.symbol}.isBlocked(kernel) = ${v.quoteBlocked}; ${unit.symbol}'s owner ${typeof owner === 'string' ? owner : '?'} can block the kernel and destroy its ${unit.symbol}`);
+      if (v.count > 0) {
+        const rows = await loadRecords(rpc, K2, 1, v.count, 2);
+        const curve = rows.filter((r) => (r.rec.flags & 64) === 0);
+        const codesOk = curve.every((r) => {
+          const x = inputFields(r.rec.inputs);
+          return x.TAX === lg8s(r.rec.inflow, shift) && x.TAXCUM === lg8s(r.cumInflow, shift) && x.RES === lg8s(r.rec.reserveBefore, shift);
+        });
+        ok = ok && codesOk;
+        lines.push(`${curve.length} curve record${curve.length === 1 ? '' : 's'}: every TAX, TAXCUM and RES code is lg8(amount << ${shift}): ${codesOk}`);
+        if (COVENANT.lensV2) {
+          const L = lens(COVENANT.lensV2);
+          const ns = [...new Set([1, v.count])];
+          const reps = await Promise.all(ns.flatMap((n) => [read(rpc, L.replayOn(K2, n, false)), read(rpc, L.replayOn(K2, n, true))]));
+          ok = ok && reps.every((r) => r.ok);
+          ns.forEach((n, i) =>
+            lines.push(
+              <>
+                settle <a href={`#/k/${K2}/${n}`}>#{n}</a>: LensV2 on TapeOut {reps[2 * i].ok ? 'ok' : 'FAILED'}, on the SealedVM {reps[2 * i + 1].ok ? 'ok' : 'FAILED'}
+              </>,
+            ),
+          );
+        }
+      } else lines.push('The v2 kernel has no settle yet.');
+      return { ok, lines };
+    },
+    cast: [
+      { line: `cast call ${F2 ?? '<kernel factory v2>'} "quoteShift()(uint256)" --rpc-url ${R}` },
+      { line: `cast call ${F2 ?? '<kernel factory v2>'} "isKernel(address)(bool)" ${K2 ?? '<kernel v2>'} --rpc-url ${R}` },
+      { line: `cast call ${COVENANT.lensV2 ?? '<lens v2>'} "replay(address,uint32)((bool,bool,bool,bool,bool,bool,bool,bytes14,bytes32))" ${K2 ?? '<kernel v2>'} 1 --rpc-url ${R}` },
+      { label: 'The shift and the routing, from the Python reference model (identities over 2,740,850 cases; kernel v1 reproduced with shift 0):', line: 'python3 chips/golden/kernel_model_v2.py' },
+    ],
+    more: (
+      <>
+        What differs from kernel v1: <a href={`${REPO}/blob/main/chips/INTERFACE-V2.md`}>chips/INTERFACE-V2.md</a>; the derivation of the shift and the tests:{' '}
+        <a href={`${REPO}/blob/main/contracts/core-v2/NOTES.md`}>contracts/core-v2/NOTES.md</a>. Revenue paid to a v2 kernel is routed as tax on the curve; it is routed only
+        if it is paid to the kernel, and the x402 payTo is a seller setting the operator can change.
       </>
     ),
   },
@@ -290,7 +372,7 @@ export function Judge() {
       <p class="crumbs">
         <a href="#/">Covenant</a> / judge guide
       </p>
-      <h1>Seven checks, five minutes, no wallet</h1>
+      <h1>Eight checks, five minutes, no wallet</h1>
       <p class="lede">
         Each check asks {CHAIN_LABEL} with free read calls from this page and shows the same question as a{' '}
         <span class="mono">cast</span> command for a node of your choice. A check whose contract is not deployed yet says so instead of

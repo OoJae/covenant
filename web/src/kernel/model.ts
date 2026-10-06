@@ -2,6 +2,12 @@
 // with its clamps (chips/INTERFACE.md sections 4 to 8). A port of chips/golden/kernel_model.py, which is the
 // reference; test/model.test.ts runs every routing, log-code, layout and fallback vector of
 // chips/golden/vectors.json through it. Integers only (bigint), no floats.
+//
+// Kernel v2 (USD₮0 quote, chips/INTERFACE-V2.md) adds one parameter, the code shift `s` in bits: on the curve the
+// chip sees lg8(amount << s), and every amount code coming back (the chip's CEIL, the envelope's ceilMax) is read as
+// exp8(code) >> s; the K5 floor compares lg8(reserve << s) with floorMin. A port of chips/golden/kernel_model_v2.py;
+// with s = 0 it is kernel v1 bit for bit. test/model.test.ts runs every vector of chips/golden/vectors_v2.json and
+// every settle of vectors_v2_settles.jsonl through it.
 
 export const LG8_MAX = 1023;
 
@@ -19,6 +25,41 @@ export function exp8(c: number): bigint {
   if (!Number.isInteger(c) || c < 0 || c > LG8_MAX) throw new RangeError('code out of range');
   if (c === 0) return 0n;
   return (BigInt(8 + ((c - 1) & 7)) << BigInt((c - 1) >> 3)) >> 3n;
+}
+
+/** Amounts are 128-bit in the kernel; lg8s clips there before shifting (KernelMathV2.AMOUNT_MAX). */
+export const AMOUNT_MAX = (1n << 128n) - 1n;
+/** Largest code shift a KernelFactoryV2 accepts, in bits. */
+export const MAX_SHIFT = 40;
+
+/** lg8 of an amount seen through a shift of `s` bits: lg8(min(x, 2^128 - 1) << s). lg8s(x, 0) = lg8(x). */
+export function lg8s(x: bigint, s: number): number {
+  if (!Number.isInteger(s) || s < 0 || s > MAX_SHIFT) throw new RangeError('shift out of range');
+  if (x < 0n) throw new RangeError('negative amount');
+  return lg8((x > AMOUNT_MAX ? AMOUNT_MAX : x) << BigInt(s));
+}
+
+/** exp8(c) >> s: the smallest amount of code `c` in the shifted unit, in base units, rounded down. */
+export function exp8s(c: number, s: number): bigint {
+  if (!Number.isInteger(s) || s < 0 || s > MAX_SHIFT) throw new RangeError('shift out of range');
+  return exp8(c) >> BigInt(s);
+}
+
+/**
+ * The smallest amount whose shifted code reaches `code`: the reserve at which the K5 floor starts to apply for
+ * floorMin = code (0 if every reserve, even an empty one, reaches it). Exact, by bisection on the monotone lg8s.
+ */
+export function minAmountForCode(code: number, s: number): bigint {
+  if (code <= 0) return 0n;
+  if (lg8s(AMOUNT_MAX, s) < code) return AMOUNT_MAX + 1n; // never reached
+  let lo = 1n;
+  let hi = AMOUNT_MAX;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1n;
+    if (lg8s(mid, s) >= code) hi = mid;
+    else lo = mid + 1n;
+  }
+  return lo;
 }
 
 export type Layout = readonly (readonly [name: string, offset: number, width: number])[];
@@ -140,8 +181,12 @@ export interface Routed {
  * One settle's routing of the regime asset (INTERFACE 8.2, kernel_model.route_tax). `cum` already includes
  * `inflow`; `allowPaidCum` is the allowance credited before this settle in the current regime. After graduation
  * kernel v1 pays no allowance: the T_ALLOW share joins the reserve share and K2, K2C, K2L are not evaluated.
+ *
+ * `shift` is a v2 kernel's code shift in bits for the curve regime (INTERFACE-V2 8.2, kernel_model_v2.route_tax_v2):
+ * the chip's CEIL and the envelope's ceilMax are read as exp8(code) >> shift, and K5 compares lg8(reserve0 << shift)
+ * with floorMin. Pass 0 after graduation and for kernel v1 (the default), which is route_tax exactly.
  */
-export function route(env: RouteEnv, outWord: bigint, inflow: bigint, reserve0: bigint, cum: bigint, allowPaidCum: bigint, graduated: boolean = false): Routed {
+export function route(env: RouteEnv, outWord: bigint, inflow: bigint, reserve0: bigint, cum: bigint, allowPaidCum: bigint, graduated: boolean = false, shift: number = 0): Routed {
   const o = unpack(OUTPUT_FIELDS, outWord);
   let clamp = 0;
   let [tb, th, ta, tr] = [o.T_BUY, o.T_HOLD, o.T_ALLOW, o.T_RES];
@@ -161,11 +206,11 @@ export function route(env: RouteEnv, outWord: bigint, inflow: bigint, reserve0: 
     }
     allow = (inflow * BigInt(ta)) / 256n;
     if (o.CEIL !== LG8_MAX) {
-      const own = exp8(o.CEIL);
+      const own = exp8s(o.CEIL, shift);
       if (own < allow) allow = own;
     }
-    if (env.ceilMax !== LG8_MAX && allow > exp8(env.ceilMax)) {
-      allow = exp8(env.ceilMax);
+    if (env.ceilMax !== LG8_MAX && allow > exp8s(env.ceilMax, shift)) {
+      allow = exp8s(env.ceilMax, shift);
       clamp |= K2C;
     }
     let room = (cum * BigInt(env.allowCumBps)) / 10000n - allowPaidCum;
@@ -182,7 +227,7 @@ export function route(env: RouteEnv, outWord: bigint, inflow: bigint, reserve0: 
     rel = env.relMax;
     clamp |= K3;
   }
-  if (lg8(reserve0) >= env.floorMin && rel < env.floorRel) {
+  if (lg8s(reserve0, shift) >= env.floorMin && rel < env.floorRel) {
     rel = env.floorRel;
     clamp |= K5;
   }
@@ -207,13 +252,13 @@ export const fallbackWord = (fbAllow: number, relMax: number): bigint =>
 /** What each clamp bit means, in the words a holder reads. */
 export const CLAMPS: readonly { bit: number; name: string; what: string }[] = [
   { bit: K1T, name: 'K1T', what: 'the tax shares did not sum to 256, so the whole inflow went to the reserve' },
-  { bit: K1V, name: 'K1V', what: 'the revenue shares were malformed (kernel v2)' },
+  { bit: K1V, name: 'K1V', what: 'the revenue shares were malformed (reserved for a later revenue kernel; never set by kernel v1 or kernel v2 (USD₮0 quote))' },
   { bit: K2, name: 'K2', what: 'the chip asked for a larger allowance share than capT; the excess stayed in the reserve' },
   { bit: K2C, name: 'K2C', what: "the allowance was above the envelope's per-settle ceiling and was cut to it" },
   { bit: K2L, name: 'K2L', what: 'the allowance was above the lifetime cap (allowCumBps of all inflow) and was cut to it' },
   { bit: K3, name: 'K3', what: 'the chip asked to release more of the reserve than relMax; the release was cut' },
   { bit: K5, name: 'K5', what: 'the chip released less than the floor while the reserve was above floorMin; the release was raised' },
-  { bit: K2V, name: 'K2V', what: 'the revenue allowance was above capV (kernel v2)' },
+  { bit: K2V, name: 'K2V', what: 'the revenue allowance was above capV (reserved for a later revenue kernel; never set by kernel v1 or kernel v2 (USD₮0 quote))' },
 ];
 
 /** Record flags (INTERFACE section 10). */

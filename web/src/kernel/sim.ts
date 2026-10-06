@@ -8,8 +8,7 @@ import { parse, step, type Netlist } from '@covenant/tap20';
 import fgHex from '../../../chips/out/fg.hex?raw';
 import gluttonHex from '../../../chips/cells/glutton/glutton.hex?raw';
 import glutton512Hex from '../../../chips/cells/glutton/glutton512.hex?raw';
-import type { KernelRecord } from '@covenant/chain/kernel';
-import { INPUT_FIELDS, bytesOf, lg8, pack, route, stateBytes, stateWord32, unpack, wordOf, type RouteEnv } from './model.ts';
+import { INPUT_FIELDS, bytesOf, lg8s, pack, route, stateBytes, stateWord32, unpack, wordOf, type RouteEnv } from './model.ts';
 
 export interface Chip {
   name: string;
@@ -72,7 +71,8 @@ export interface ShadowRow {
 
 export interface RecordForShadow {
   n: number;
-  rec: KernelRecord;
+  /** The fields of a kernel v1 or v2 record the shadow run reads. */
+  rec: { inputs: string; inflow: bigint; flags: number };
   cumInflow: bigint;
 }
 
@@ -80,8 +80,11 @@ export interface RecordForShadow {
  * What another chip would have routed on a kernel's recorded inflows, exactly as Lens.shadowChip computes it: the
  * shadow chip sees its own reserve (RES is recomputed), every other input is the recorded one, decided buys are
  * assumed to execute in full, and the regime totals restart at graduation.
+ *
+ * `shift` is a v2 kernel's code shift (LensV2._shadowOne): on the curve RES is lg8(reserve << shift) and the routing
+ * reads codes through the shift; after graduation the shift is 0. Kernel v1: 0.
  */
-export function shadowRun(nl: Netlist, env: RouteEnv, rows: readonly RecordForShadow[]): ShadowRow[] {
+export function shadowRun(nl: Netlist, env: RouteEnv, rows: readonly RecordForShadow[], shift: number = 0): ShadowRow[] {
   let state = '0x' + '00'.repeat(32);
   let reserve = 0n;
   let allowPaid = 0n;
@@ -94,12 +97,13 @@ export function shadowRun(nl: Netlist, env: RouteEnv, rows: readonly RecordForSh
       reserve = 0n;
       allowPaid = 0n;
     }
+    const s = g ? 0 : shift;
     const fields = unpack(INPUT_FIELDS, wordOf(rec.inputs));
-    fields.RES = lg8(reserve);
+    fields.RES = lg8s(reserve, s);
     const inputs = bytesOf(pack(INPUT_FIELDS, fields), 12);
     const b = beat(nl, state, inputs);
     state = stateWord32(b.newState);
-    const r = route(env, wordOf(b.outputs), rec.inflow, reserve, cumInflow, allowPaid, g);
+    const r = route(env, wordOf(b.outputs), rec.inflow, reserve, cumInflow, allowPaid, g, s);
     reserve = r.reserveAfter;
     allowPaid += r.allow;
     out.push({ n, inputs, outputs: b.outputs, clampBits: r.clamp, allow: r.allow, buyDecided: r.buyDecided, reserveAfter: r.reserveAfter });

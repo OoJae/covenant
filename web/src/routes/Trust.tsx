@@ -1,10 +1,11 @@
 // #/trust
 // What each party can and cannot do, stated only as far as the code enforces it (chips/INTERFACE.md section 13,
-// contracts/core/NOTES.md). The owners and thresholds are read live, so the page cannot drift from the chain.
+// contracts/core/NOTES.md; for kernel v2, chips/INTERFACE-V2.md section 13 and contracts/core-v2/NOTES.md). The
+// owners and thresholds are read live, so the page cannot drift from the chain.
 
 import type { ComponentChildren } from 'preact';
 import { readAll } from '@covenant/chain';
-import { beaconImpl, kernelFactory, ownerOf, safe } from '@covenant/chain/kernel';
+import { beaconImpl, erc20, kernelFactory, kernelFactoryV2, ownerOf, safe } from '@covenant/chain/kernel';
 import { Address } from '../components/common.tsx';
 import { SimBanner } from '../components/kit.tsx';
 import { ADDR, COVENANT, REPO, rpc } from '../config.ts';
@@ -33,16 +34,26 @@ async function readOwners() {
     const [t, os] = await readAll(rpc, [safe(o).threshold(), safe(o).owners()] as const);
     return { owner: o, threshold: t instanceof Error ? null : t, owners: os instanceof Error ? null : os.length };
   };
-  const [tapeout, ignix] = await Promise.all([who(tapeoutOwner), who(ignixOwner)]);
+  const [tapeout, ignix, tetherOwner] = await Promise.all([who(tapeoutOwner), who(ignixOwner), readTether()]);
   return {
     tapeout,
     ignix,
+    tether: tetherOwner,
     beacon: beaconAddr,
     beaconOwner: beaconOwner instanceof Error ? null : beaconOwner,
     beaconNow: beaconNow instanceof Error || !beaconAddr ? null : beaconNow,
     impl0: typeof impl0 === 'string' ? impl0 : null,
     pinsLive: typeof pins === 'boolean' ? pins : null,
   };
+}
+
+/** Kernel v2's quote asset (read from KernelFactoryV2) and its owner, once deployments/xlayer.json records a v2 factory. */
+async function readTether(): Promise<{ quote: string; symbol: string | null; owner: string | null } | null> {
+  if (!COVENANT.kernelFactoryV2) return null;
+  const [quote] = await readAll(rpc, [kernelFactoryV2(COVENANT.kernelFactoryV2).quote()] as const);
+  if (quote instanceof Error) return null;
+  const [owner, symbol] = await readAll(rpc, [ownerOf(quote), erc20(quote).symbol()] as const);
+  return { quote, symbol: symbol instanceof Error ? null : symbol, owner: owner instanceof Error ? null : owner };
 }
 
 function Safe({ w, what }: { w: Who | undefined; what: string }) {
@@ -105,6 +116,7 @@ export function Trust() {
         can={[
           'Choose a kernel’s envelope and chip once, when the kernel is created. Anyone else can create a kernel the same way.',
           'Launch the reference token from the launcher wallet and bind it (first buy 0). Anyone can call settle().',
+          'Point the Covenant Architect’s x402 payTo at a kernel v2, or away from it, at any time: payTo is a seller setting and leaves no trace on chain. Revenue is routed only if it is paid to the kernel.',
         ]}
         cannot={[
           'Change an envelope, a chip or a route after creation: kernels are fixed clones with the envelope in their bytecode, and the implementation has no owner, setter, upgrade or pause (the vault page scans its code).',
@@ -112,8 +124,9 @@ export function Trust() {
           'Stop settles. If the chip stops answering, the fallback word applies after the envelope’s fallbackEpochs (at most 30 days).',
         ]}
       >
-        Kernel, KernelFactory, Fab, SealedVM, Lens, KeeperTank, Splitter and TeamRegistry: none of them has an owner function. Sources:{' '}
-        <a href={`${REPO}/tree/main/contracts`}>contracts/</a>.
+        Kernel, KernelFactory, Fab, SealedVM, Lens, KeeperTank, Splitter and TeamRegistry, and kernel v2's KernelV2, KernelFactoryV2 and LensV2: none of them
+        has an owner function. Sources: <a href={`${REPO}/tree/main/contracts`}>contracts/</a>. The team’s own rule, which no code enforces: no team wallet
+        trades the token or pays revenue into a kernel that buys it (self-payment is forbidden).
       </Party>
 
       <Party
@@ -144,6 +157,30 @@ export function Trust() {
         ]}
         cannot={['Change a vault’s recipient: RECIPIENT is an immutable of the Directed vault contract, and the token itself is not upgradeable.', 'Change a kernel’s envelope, chip or records.']}
       />
+
+      <Party
+        name="Tether, for a kernel v2 (USD₮0 quote)"
+        can={[
+          <>
+            Block a kernel v2’s address. USD₮0’s owner is{' '}
+            {d?.tether?.owner ? <Address value={d.tether.owner} /> : COVENANT.kernelFactoryV2 ? (d ? 'not readable now' : 'reading…') : 'read here once a kernel v2 is deployed'}
+            {d?.tether?.owner ? ' (read now)' : ''}; the same owner can upgrade USD₮0. A blocked kernel still receives claims and payments and keeps settling, but its
+            buys and its credit withdrawals fail until it is unblocked.
+          </>,
+          'Destroy a blocked kernel’s USD₮0. The kernel routes what is left and never reverts. After a destruction, USD₮0 that arrives later (tax or revenue) first refills the credits the destroyed balance covered, and the chip sees none of it until they are covered.',
+          'Upgrade USD₮0. Every amount is measured by balance, so a fee on transfer would make claims arrive short and buys fail (the Manager’s exact quote no longer fills) without breaking the books.',
+        ]}
+        cannot={[
+          'Change a kernel’s envelope, chip, code shift or records, or make a settle revert.',
+          'Reach a kernel v1: it holds native OKB, not USD₮0.',
+        ]}
+      >
+        {COVENANT.kernelFactoryV2
+          ? 'Kernel v2 routes an IGNIX token quoted in USD₮0, so it holds USD₮0, which Tether controls.'
+          : 'Kernel v2 (USD₮0 quote) is built and tested on an X Layer fork but not deployed; this applies once it is.'}{' '}
+        On the curve a v2 kernel routes revenue paid to it (for example x402 with payTo = the kernel) as tax; after graduation the chip does not see revenue and a
+        fixed rule buys the token with it and burns the tokens.
+      </Party>
 
       <Party
         name="The keeper, and anyone who settles"
