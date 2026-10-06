@@ -229,5 +229,54 @@
       "0x1d6b4301bbcb0409a8ec126175656d1fcb47ffa16a048eadb624bca01e4d11b8",
       "0xee201eb30bb2feba7c7d49703ac062f1d673f4ecdff615019aea04a30c7d2812"
     ]
-  }
+  },
+  "reference": {
+    "token": "0xc562E9b465E0Fa8d403Ed603cb8783342347EEEE",
+    "name": "Covenant Reference",
+    "symbol": "CVREF",
+    "vault": "0x23C4527c7B9Da6B08867CAe59aDDfB655d98cc6e",
+    "kernel": "0xB722a4bDE4EfEe08Be938E2103d7a44C498dd356",
+    "chipId": 2,
+    "quote": "0x0000000000000000000000000000000000000000",
+    "creator": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
+    "bindTx": "0xe6a273f82a83435974db3a4a45480f9402bd4e7b3b801d56b5ed1b5cbe0a58f1",
+    "bindBlock": 72558770,
+    "bindTime": 1791327806,
+    "boundBy": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
+    "commit": "1e6e65098f9f3b7b9b5f5a36a6f37a95a4d7a70c"
+  },
+  "architectToken": {
+    "token": "0x7F53a5906F0C5Cd21C124f1Cc2a1A5BD9817EEEE",
+    "name": "Covenant Architect",
+    "symbol": "ARCH",
+    "vault": "0xd05149FfC1C3Df6a6C0e62D45C7Cc1B40e759619",
+    "kernel": "0xd50A7cb21f4ef91f795730Fe8c45EaA5E500dD75",
+    "chipId": 5,
+    "quote": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    "creator": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
+    "bindTx": "0x87f52143a29d1232e63eb6bec2fbde332ed00e90fb6223d2c10b0921379ee121",
+    "bindBlock": 72558946,
+    "bindTime": 1791327982,
+    "boundBy": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
+    "commit": "1e6e65098f9f3b7b9b5f5a36a6f37a95a4d7a70c"
+  },
+  "splitterPulls": [
+    {
+      "tx": "0xbf9a925394e4f339862b6497c0b0d751ee1f823bc1bd367169a5ebfda2d7fa5e",
+      "block": 72559111,
+      "toTankWei": "72250000000000000",
+      "toMaintainerWei": "12750000000000000",
+      "maintainerCredited": false,
+      "commit": "1e6e65098f9f3b7b9b5f5a36a6f37a95a4d7a70c"
+    }
+  ],
+  "registryInvites": [
+    {
+      "wallet": "0xBE5088307e15AAF8cF0c53bfCc4C612c9EaD6DA0",
+      "by": "0x84cE7bAe1b788C7aD985D57721cA428b401aE34D",
+      "tx": "0x3e1e7e510a990f9af504e9a0fb6d57ffe64e914f4e3dba815bc2a9fa4c9d4ef4",
+      "block": 72559293,
+      "commit": "1e6e65098f9f3b7b9b5f5a36a6f37a95a4d7a70c"
+    }
+  ]
 }
