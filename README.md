@@ -79,6 +79,8 @@ cast call 0xEe63Eb34f4B7A16A188d3D14075b9bB6A8aA5ea2 \
 
 The two states come from `chips/out/fg.witness.json`. Both were reached from a cold start by input words the kernel itself would assemble, so neither is made up. The judge guide runs the same calls in the page and checks them against a simulation of the netlist in the browser.
 
+To check that the deployed bytecode is this repository's source, run `deploy/verify-bytecode.sh` (it builds each package at the commit `deployments/xlayer.json` records and compares it with the chain; read-only).
+
 ## Asset issuance
 
 The processor's five parameters are immutable from its first block:
@@ -109,8 +111,9 @@ Nothing below is claimed until it is marked done. Adoption today is zero.
 | Covenant Architect (`services/architect`): compile endpoint, free route and x402 paid route | Live; OKX.AI listing submitted for review |
 | Launch check and team audit (`tools/`) | Done |
 | Reference token `CVREF` and its keeper (`services/keeper`) | Not launched yet |
-| Reproducible-build and explorer verification scripts | In progress |
-| Kit for outside chip authors | In progress |
+| Reproducible-build check (`deploy/verify-bytecode.sh`, [docs/VERIFY.md](docs/VERIFY.md)): every Covenant contract rebuilt at its recorded commit and compared with chain 196 | Done: 13 of 13 match. Source not yet published on OKLink |
+| Kit for outside chip authors (`chips/kit`, [docs/BUILD_YOUR_CHIP.md](docs/BUILD_YOUR_CHIP.md)): template to proven netlist to the exact tape-out and kernel commands, with a 180-gate Starter chip | Done; tested end to end on a fork |
+| Kernel v2 (USDT0 quote, agent revenue routed by a chip) | Designed and fork-probed (`contracts/probes/test/Q11`, `Q12`); not built |
 
 ## The interface
 
