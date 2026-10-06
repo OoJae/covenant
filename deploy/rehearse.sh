@@ -175,4 +175,4 @@ json.dump({
 }, open(sys.argv[1], "w"), indent=1)
 EOF
 echo "== done: $OUT"
-cat "$OUT"
+cat "$OUT"; echo
