@@ -42,3 +42,6 @@ docs/outreach/
 
 # third-party source text fetched during research: kept locally, not published
 /contracts/probes/vendor-cache/oklink-*.json
+
+# fork rehearsal output (addresses on a local fork, not mainnet)
+deploy/rehearsal.json
