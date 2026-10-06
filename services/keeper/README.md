@@ -65,7 +65,7 @@ Names with empty values are in `.env.example`.
 | `RPC_URLS` | `https://rpc.xlayer.tech,https://xlayerrpc.okx.com` | Tried in order; on an error the next one is used |
 | `CHAIN_ID` | `196` | Every reachable RPC must report it |
 | `MAX_FEE_GWEI` | `0.1` | Hard cap on `maxFeePerGas`. If base fee + tip is above it, nothing is sent |
-| `PRIORITY_FEE_GWEI` | `0.001` | Tip. Keep it at or below `0.01`: the tank refunds at most base fee + 0.01 gwei per gas |
+| `PRIORITY_FEE_GWEI` | `0.001` | Tip. Keep it at or below `0.001`: the tank refunds at most base fee + 0.001 gwei per gas |
 | `MAX_GAS_LIMIT` | `30000000` | A larger gas limit is never signed |
 | `POLL_INTERVAL_SECONDS` | `30` | Time between passes |
 | `MIN_EPOCH_LAG` | `1` | Settle when `epochNow - lastEpoch` reaches this. `2` for a backup keeper. Maximum 14 |
@@ -128,8 +128,8 @@ Everything below is done by a person. Nothing here has been deployed.
 
 ### 1. The wallet
 
-1. Create a fresh wallet used for nothing else. Record its address in `docs/WALLETS.md` and declare it in
-   `TeamRegistry` before it sends anything.
+1. Create a fresh wallet used for nothing else. Record its address in `docs/WALLETS.md`. Before it sends anything
+   else, have a listed wallet call `TeamRegistry.invite(keeper)` and then call `declare("keeper")` from the keeper.
 2. Fund it with OKB on X Layer. Start with **0.05 OKB** and watch the heartbeat; the plan budgets 0.15 OKB for
    keeper gas through judging with two kernels. The arithmetic (estimates until the first real settle is measured):
    - A settle of the Flow Governor is about 5.2M gas; at a 0.021 gwei effective price that is about 0.00011 OKB.

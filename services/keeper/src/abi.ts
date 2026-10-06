@@ -15,7 +15,7 @@ export const kernelAbi = parseAbi([
 
 /**
  * KeeperTank (contracts/issuance/src/KeeperTank.sol): settleAndRefund calls kernel.settle(), bubbles up its
- * revert unchanged, and pays the caller min(gas * min(tx.gasprice, basefee + 0.01 gwei), allowance left).
+ * revert unchanged, and pays the caller min(gas * min(tx.gasprice, basefee + 0.001 gwei), allowance left).
  */
 export const tankAbi = parseAbi([
   'function settleAndRefund(address kernel)',

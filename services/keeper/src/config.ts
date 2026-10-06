@@ -26,7 +26,7 @@ export interface Config {
   chainId: number;
   /** Upper bound on maxFeePerGas, in wei. */
   maxFeePerGasCap: bigint;
-  /** Tip, in wei. Keep it at or below 0.01 gwei: the tank refunds at most basefee + 0.01 gwei per gas. */
+  /** Tip, in wei. Keep it at or below 0.001 gwei: the tank refunds at most basefee + 0.001 gwei per gas. */
   priorityFeePerGas: bigint;
   /** Never sign a transaction with a gas limit above this. */
   maxGasLimit: bigint;

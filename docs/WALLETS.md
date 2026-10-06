@@ -1,6 +1,6 @@
 # Team wallets
 
-Every wallet the team controls is listed here and declared on-chain in the `TeamRegistry` before it acts.
+Every wallet the team controls is listed here and in the on-chain `TeamRegistry` before it acts. The deployer is entry 0 of the registry from the block that creates the processor; any other wallet is invited by a listed wallet and then declares itself.
 None of them ever buys, sells or swaps any IGNIX token, sends funds into a kernel, or trades transistors.
 
 | Role | Address | Notes |

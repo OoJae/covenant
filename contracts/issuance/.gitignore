@@ -1,0 +1,11 @@
+# build output and dependencies, at the root of this project only (reinstall with the commands in README.md).
+# The leading slash matters: without it `lib/` would also ignore src/lib and script/lib, which are source.
+/out/
+/cache/
+/lib/
+# forge script dry-run artefacts; real broadcast records (broadcast/*/196/run-*.json) are kept
+broadcast/*/*/dry-run/
+broadcast/*/31337/
+# never commit secrets
+.env
+.env.*
