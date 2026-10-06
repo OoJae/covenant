@@ -21,9 +21,21 @@ const dist = process.argv[2] ? resolve(process.argv[2]) : join(root, 'dist');
 const addresses = JSON.parse(readFileSync(join(root, 'src/addresses.json'), 'utf8'));
 
 // Hosts the code may mention: the RPC endpoints it calls, the explorer it links to, the public repository it
-// links source files on (plain links, never fetched), and the XML namespace identifiers Preact needs to create SVG
-// and MathML nodes (never fetched).
-const allowedHosts = new Set([...addresses.rpc.map((u) => new URL(u).host), 'www.oklink.com', 'github.com', 'www.w3.org']);
+// links source files on (plain links, never fetched), the XML namespace identifiers Preact needs to create SVG
+// and MathML nodes (never fetched), and the Covenant Architect endpoint that deployments/xlayer.json records (the
+// site bundles that file; the endpoint is a plain link, never fetched).
+const deployment = JSON.parse(readFileSync(join(root, '../deployments/xlayer.json'), 'utf8'));
+const architectHosts = ['endpoint', 'freeEndpoint']
+  .map((k) => deployment.architect?.[k])
+  .filter((u) => typeof u === 'string')
+  .map((u) => new URL(u).host);
+const allowedHosts = new Set([
+  ...addresses.rpc.map((u) => new URL(u).host),
+  'www.oklink.com',
+  'github.com',
+  'www.w3.org',
+  ...architectHosts,
+]);
 
 const walk = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
