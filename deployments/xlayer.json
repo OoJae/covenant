@@ -38,5 +38,20 @@
       "0xf71813daf3a370aa6ea322b73c6ee1fcbd4f7bdd1f7f9cc74476e8aa57c7acb2",
       "0x07e76b396633175c8b593b085233230ea8481507c77a20681d52dbf5b53964e7"
     ]
+  },
+  "flagship": {
+    "commit": "b5a54c07ac2daea0472575d446858464861136ff",
+    "chip": "Flow Governor",
+    "chipId": 2,
+    "kernel": "0xB722a4bDE4EfEe08Be938E2103d7a44C498dd356",
+    "netlistKeccak256": "0xe548768a1adafa7331faacfd029e1a829b00af3f7d769657f3b234ccdd7143b4",
+    "manifestHash": "0xfe8b7a49a7d0f9a75d0684b88587648284fc586f936035f8831cb6d34060e209",
+    "allowancePayee": "0xb89BCe53822a99503A937C22974F1224D9Ab6352",
+    "envelope": "LaunchChip.referenceEnvelope (contracts/core/script/LaunchChip.s.sol)",
+    "txs": [
+      "0xd431a326622b5602622528856298e970800bbcfe16935086496ee23033a5774e",
+      "0x03120b2d6e7c60f5eaf86ef21cf638d059a18d91fa3c488ea0b8698c1c06683d",
+      "0x7a412c0a42e365b7bb3bd82d63bcf683b57d7d2498c907966b27b7bdad28a4c4"
+    ]
   }
 }
