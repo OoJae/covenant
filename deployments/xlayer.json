@@ -66,5 +66,15 @@
       "0xf8a6f70dae0c8cd419db727679cf836d8c38153a9cb97f6dcb8426f9ada55588",
       "0x40a5ceecd91fbc39c5a8ddf64b05c36ea53786888e321df938311013942eb43e"
     ]
+  },
+  "architect": {
+    "okxAgentId": 14683,
+    "agentWallet": "0xbe5088307e15aaf8cf0c53bfcc4c612c9ead6da0",
+    "registrationTx": "0x61d9d945945ed9f75dd24e00ce87b1b80b9cf2d5b44c41d6bbf89a7c8eef083a",
+    "endpoint": "https://architect-production-ffbe.up.railway.app/v1/architect/chip",
+    "freeEndpoint": "https://architect-production-ffbe.up.railway.app/v1/architect/compile",
+    "priceUsdt0": "0.50",
+    "payTo": "0xbe5088307e15aaf8cf0c53bfcc4c612c9ead6da0",
+    "listing": "submitted for OKX.AI review 2026-10-06"
   }
 }
