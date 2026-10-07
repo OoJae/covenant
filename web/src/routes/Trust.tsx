@@ -8,9 +8,9 @@ import { readAll } from '@covenant/chain';
 import { beaconImpl, erc20, kernelFactory, kernelFactoryV2, ownerOf, safe } from '@covenant/chain/kernel';
 import { Address } from '../components/common.tsx';
 import { SimBanner } from '../components/kit.tsx';
-import { ADDR, COVENANT, REPO, rpc } from '../config.ts';
+import { ADDR, CHAIN, COVENANT, REPO, rpc } from '../config.ts';
 import { useAsync } from '../router.ts';
-import { PageHead } from './shared.tsx';
+import { Loading, PageHead } from './shared.tsx';
 
 const MANAGER = '0x96B51c57e5346D0C0198899243cf851D1E23C309';
 
@@ -58,8 +58,8 @@ async function readTether(): Promise<{ quote: string; symbol: string | null; own
 }
 
 function Safe({ w, what }: { w: Who | undefined; what: string }) {
-  if (!w) return <span class="muted">reading…</span>;
-  if (!w.owner) return <span class="warn">could not be read</span>;
+  // The page shows once the reads are done (Trust), so no value here means they failed.
+  if (!w?.owner) return <span class="warn">could not be read</span>;
   return (
     <>
       {what} <Address value={w.owner} />
@@ -102,6 +102,9 @@ function Party({ name, can, cannot, children }: { name: string; can: ComponentCh
 
 export function Trust() {
   const q = useAsync(readOwners, []);
+  // The owners are written into the deeds' sentences, so the page waits for them: filled in later, a sentence a reader
+  // had scrolled to would grow and push the page down. A failed read shows the page, saying what could not be read.
+  if (q.loading) return <Loading page what={`the owners from ${CHAIN.name}`} />;
   const d = q.data;
   const hosts = ADDR.rpc.map((u) => new URL(u).host);
   return (
@@ -173,7 +176,7 @@ export function Trust() {
         can={[
           <>
             Block a kernel v2’s address. USD₮0’s owner is{' '}
-            {d?.tether?.owner ? <Address value={d.tether.owner} /> : COVENANT.kernelFactoryV2 ? (d ? 'not readable now' : 'reading…') : 'read here once a kernel v2 is deployed'}
+            {d?.tether?.owner ? <Address value={d.tether.owner} /> : COVENANT.kernelFactoryV2 ? 'not readable now' : 'read here once a kernel v2 is deployed'}
             {d?.tether?.owner ? ' (read now)' : ''}; the same owner can upgrade USD₮0. A blocked kernel still receives claims and payments and keeps settling, but its
             buys and its credit withdrawals fail until it is unblocked.
           </>,
