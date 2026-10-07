@@ -1002,10 +1002,15 @@ fieldset.bits legend {
 
 .loading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--sp-4);
   color: var(--fg-2);
   font-size: var(--step-small);
+}
+/* Its first line is centred on the 44 px Seal and the text grows downwards, so the slow-node sentence that may join it
+   after a few seconds (routes/shared.tsx) moves nothing. */
+.loading__text {
+  padding-top: calc((44px - 1lh) / 2);
 }
 
 @media (prefers-reduced-motion: reduce) {
