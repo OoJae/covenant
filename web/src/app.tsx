@@ -317,19 +317,20 @@ function Colophon({ links }: { links: NavLink[] }) {
         {COVENANT.kernel && (
           <figure class="colophon__seal">
             <Seal hex={s ? s.hex : COLD} size={88} press={!!s} label={s ? 'The flagship kernel’s chip state, read now' : 'The cold seal'} />
+            {/* A new reading is new lines in a box that stays put (components.css), not the old lines rewritten. */}
             <figcaption class="micro">
               {s ? (
-                <>
+                <span key="read">
                   Kernel v1 · read now
                   <br />
                   {s.mode} · {s.hex}
-                </>
+                </span>
               ) : (
-                <>
+                <span key={String(state)}>
                   {state === 'failed' ? 'Could not read kernel v1.' : 'Kernel v1 · not read yet'}
                   <br />
-                  The cold seal: every latch 0.
-                </>
+                  The cold seal: every latch 0.
+                </span>
               )}
             </figcaption>
           </figure>

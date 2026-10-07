@@ -311,6 +311,15 @@ html.sheet-open {
   align-items: flex-end;
   gap: var(--sp-4);
 }
+/* The caption is one box beside the Seal, as tall as it, its lines at the bottom: when the reading arrives its lines
+   are replaced and the box does not move (the cold caption takes a line more than the reading on a wide screen). */
+.colophon__seal figcaption {
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
 .colophon__nav {
   display: flex;
   flex-wrap: wrap;
