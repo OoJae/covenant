@@ -46,8 +46,8 @@ const MEMORY: [field: string, name: string][] = [
   ['CLOCK', 'clock'],
 ];
 
-/** One settle in four chapters (plus chapter 0, the room the hero takes), with the demonstration's numbers. */
-export function Chapters({ demo, first }: { demo: LandingDemo | null; first: { current: HTMLElement | null } }) {
+/** The chapters' numbers read from the witness (landingFacts), or null while they load. */
+export function useLandingFacts(): LandingFacts | null {
   const [f, setF] = useState<LandingFacts | null>(null);
   useEffect(() => {
     let live = true;
@@ -59,21 +59,30 @@ export function Chapters({ demo, first }: { demo: LandingDemo | null; first: { c
       live = false;
     };
   }, []);
+  return f;
+}
+
+/**
+ * One settle in four chapters (plus chapter 0, the room the hero takes), with the demonstration's numbers. Returned
+ * as five separate children, not one component: the die stage (scene/DieStage.tsx) wraps each child in its own
+ * block, and the blocks set where each chapter of the scene starts.
+ */
+export function chapters({ demo, f, first }: { demo: LandingDemo | null; f: LandingFacts | null; first: { current: HTMLElement | null } }) {
   const ones = demo ? demo.signalsA.reduce((n, v) => n + v, 0) : null;
   const a = f?.routeA;
   const b = f?.routeB;
-  return (
-    <>
-      <section class="chapter chapter--power" data-chapter="0" aria-hidden="true" />
-      <Chapter n={1} roman="I" name="Input" title="The kernel writes the question." root={first}>
+  return [
+      <section key="0" class="chapter chapter--power" data-chapter="0" aria-hidden="true" />,
+      <Chapter key="1" n={1} roman="I" name="Input" title="The kernel writes the question." root={first}>
         <p>
           Every epoch, <span class="mono">settle()</span> builds one <D v={f && `${f.inputBits}-bit`} /> word from chain state. Nobody supplies it, not
           even the caller. This one says: tax this epoch <D v={f && `≈ ${f.tax} OKB`} />, cumulative <D v={f && `≈ ${f.taxCum} OKB`} />, reserve{' '}
           <D v={f && `≈ ${f.reserve} OKB`} />, <D v={f?.dt} /> epoch{f?.dt === 1 ? '' : 's'} since the last step.
         </p>
         <p class="chapter__data mono">x = {f ? f.x : '…'}</p>
-      </Chapter>
+      </Chapter>,
       <Chapter
+        key="2"
         n={2}
         roman="II"
         name="Beat"
@@ -92,8 +101,8 @@ export function Chapters({ demo, first }: { demo: LandingDemo | null; first: { c
             </>
           )}
         </p>
-      </Chapter>
-      <Chapter n={3} roman="III" name="Memory" title="The chip remembers.">
+      </Chapter>,
+      <Chapter key="3" n={3} roman="III" name="Memory" title="The chip remembers.">
         <p>
           Its <D v={FG_SIZE.latch} /> latches carry an average, a peak, a patience counter and a clock from one epoch to the next. That memory is the
           second input. States A and B were both reached from a cold start by real kernel words.
@@ -133,8 +142,9 @@ export function Chapters({ demo, first }: { demo: LandingDemo | null; first: { c
             ))}
           </tbody>
         </table>
-      </Chapter>
+      </Chapter>,
       <Chapter
+        key="4"
         n={4}
         roman="IV"
         name="Route"
@@ -162,7 +172,6 @@ export function Chapters({ demo, first }: { demo: LandingDemo | null; first: { c
             <span class="l-flow__node l-flow__node--res">reserve, released later</span>
           </span>
         </div>
-      </Chapter>
-    </>
-  );
+      </Chapter>,
+  ];
 }

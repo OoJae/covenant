@@ -171,6 +171,10 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
     let chapter = -1;
 
     const measure = (): void => {
+      // The stage can leave the page a moment before this effect is cleaned up (a route change from the menu
+      // sheet): a late scroll or resize then finds no chapters, and does nothing.
+      const box = chapters.current;
+      if (!box) return;
       // A height-only change smaller than RESIZE_SLACK_PX is a mobile address bar: keep the old viewport height.
       if (innerWidth !== vw || Math.abs(innerHeight - vh) >= RESIZE_SLACK_PX) {
         vw = innerWidth;
@@ -178,7 +182,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       }
       const top = tr.getBoundingClientRect().top;
       const blocks: StageBlock[] = [];
-      for (const el of chapters.current!.children as HTMLCollectionOf<HTMLElement>) {
+      for (const el of box.children as HTMLCollectionOf<HTMLElement>) {
         const r = el.getBoundingClientRect();
         blocks.push({ top: r.top - top, height: r.height });
       }
@@ -209,6 +213,8 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
     };
 
     const onScroll = (): void => {
+      const box = chapters.current;
+      if (!box) return;
       stageProgress(-tr.getBoundingClientRect().top, anchors, p);
       scene.current?.setProgress(p.t);
       flat.current?.setProgress(p.t);
@@ -218,13 +224,19 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       if (shown !== chapter) {
         chapter = shown;
         root.current?.setAttribute('data-chapter', shown < 0 ? 'end' : String(shown));
-        Array.from(chapters.current!.children).forEach((el, i) => el.toggleAttribute('data-on', i === shown));
+        Array.from(box.children).forEach((el, i) => el.toggleAttribute('data-on', i === shown));
       }
       const h = p.handoff;
       const moved = p.t !== lastT || h !== lastHandoff;
       if (h !== lastHandoff) {
         const o = smooth(span(h, PAPER_FROM, PAPER_TO));
         if (paper.current) paper.current.style.opacity = o > 0 ? o.toFixed(3) : '';
+        // Once the paper is more there than not, the stage counts as paper for the header (app.tsx).
+        const el = root.current;
+        if (el && o >= 0.5 !== el.hasAttribute('data-cover')) {
+          if (o >= 0.5) el.setAttribute('data-cover', 'paper');
+          else el.removeAttribute('data-cover');
+        }
         if (h > 0) placeSeal();
         if (h >= STAMP) setStamped(true);
         lastHandoff = h;
@@ -253,6 +265,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       removeEventListener('resize', refresh);
       update.current = () => {};
       root.current?.removeAttribute('data-chapter');
+      root.current?.removeAttribute('data-cover');
       for (const el of chapters.current?.children ?? []) el.removeAttribute('data-on');
     };
   }, [motion]);

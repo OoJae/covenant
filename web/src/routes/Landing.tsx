@@ -20,7 +20,7 @@ import { FG_SIZE, landingDemo, type LandingDemo } from '../kernel/demo.ts';
 import { jumpTo } from '../motion/lenis.ts';
 import { useAsync, type Async } from '../router.ts';
 import type { Bound } from '../kernel/bound.ts';
-import { Chapters } from './LandingChapters.tsx';
+import { chapters as chapterList, useLandingFacts } from './LandingChapters.tsx';
 
 type Stage = typeof import('../scene/DieStage.tsx').DieStage;
 type S01 = typeof import('../components/TwoStates.tsx').TwoStates;
@@ -94,7 +94,8 @@ export function Landing() {
     return () => ro.disconnect();
   }, []);
 
-  const chapters = <Chapters demo={demo} first={first} />;
+  const facts = useLandingFacts();
+  const chapters = chapterList({ demo, f: facts, first });
 
   return (
     <article class="landing">

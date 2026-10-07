@@ -84,7 +84,9 @@ function navLinks(route: Route): NavLink[] {
 /**
  * True while a full-width silicon surface (the landing's die, the vault's band, the footer) passes under the
  * header. One IntersectionObserver whose root is the strip of the viewport the header covers watches every such
- * surface; the page is scanned again when it changes (pages arrive after their data) and on resize.
+ * surface; the page is scanned again when it changes (pages arrive after their data) and on resize. A silicon
+ * surface that has paper over it (the landing's stage once its paper has come in sets data-cover="paper") does not
+ * count, so the header turns to paper with it.
  */
 function useOverSilicon(header: RefObject<HTMLElement | null>, routeKey: string): boolean {
   const [over, setOver] = useState(false);
@@ -92,17 +94,20 @@ function useOverSilicon(header: RefObject<HTMLElement | null>, routeKey: string)
     if (typeof IntersectionObserver !== 'function') return;
     let io: IntersectionObserver | null = null;
     let timer = 0;
+    let hits = new Set<Element>();
+    const COVER = '[data-cover="paper"]';
+    const update = (): void => setOver([...hits].some((el) => !el.matches(COVER) && !el.querySelector(COVER)));
     const scan = (): void => {
       io?.disconnect();
       const h = header.current?.offsetHeight ?? 64;
-      const hits = new Set<Element>();
+      hits = new Set<Element>();
       io = new IntersectionObserver(
         (entries) => {
           for (const e of entries) {
             if (e.isIntersecting) hits.add(e.target);
             else hits.delete(e.target);
           }
-          setOver(hits.size > 0);
+          update();
         },
         { rootMargin: `0px 0px ${-Math.max(0, innerHeight - h)}px 0px` },
       );
@@ -116,9 +121,10 @@ function useOverSilicon(header: RefObject<HTMLElement | null>, routeKey: string)
       timer = window.setTimeout(scan, 120);
     };
     scan();
-    const mo = new MutationObserver(later);
+    // New nodes mean a new scan; a cover coming or going only means a new answer.
+    const mo = new MutationObserver((records) => (records.some((r) => r.type === 'childList') ? later() : update()));
     const main = document.getElementById('main');
-    if (main) mo.observe(main, { childList: true, subtree: true });
+    if (main) mo.observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-cover'] });
     addEventListener('resize', later);
     return () => {
       clearTimeout(timer);

@@ -35,8 +35,6 @@
   z-index: 0;
   height: 100vh;
   height: 100lvh;
-  margin-bottom: -100vh;
-  margin-bottom: -100lvh;
   overflow: hidden;
   pointer-events: none;
   background-image: var(--grain);
@@ -120,12 +118,17 @@
 
 /* ---- the chapters, over the pin ---- */
 
+/* The chapters are pulled up over the pin (not the pin's own negative margin, which would let it stay stuck for
+   another screen past the track's end and over the next section): the pin lets go when its bottom meets the
+   track's bottom, where the handoff ends (scroll.ts). */
 .die-stage__chapters {
   position: relative;
   z-index: 1;
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
+  margin-top: -100vh;
+  margin-top: -100lvh;
 }
 
 .die-stage__block {
@@ -226,6 +229,9 @@
   position: absolute;
   inset: 0 0 auto;
   margin: 0;
+}
+.die-stage[data-motion='off'] .die-stage__chapters {
+  margin-top: 0;
 }
 .die-stage[data-motion='off'] .die-stage__block {
   flex: 0 0 auto;
