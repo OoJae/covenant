@@ -12,7 +12,8 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { DUR, EASE_REVEAL, motionAllowed } from '../motion/prefs.ts';
 
-type Tag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'div';
+// 'span' is for a heading component that renders the <h2> itself (kit.tsx Pin): the span is given display:block.
+type Tag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'div' | 'span';
 
 export interface RevealLinesProps {
   as?: Tag;
@@ -90,7 +91,7 @@ export function RevealLines({ as: T = 'h2', children, class: cls, id, delay = 0,
   }, []);
 
   return (
-    <T ref={host as never} class={cls} id={id}>
+    <T ref={host as never} class={cls} id={id} style={T === 'span' ? BLOCK : undefined}>
       <span ref={src} style={waiting ? { opacity: 0 } : undefined}>
         {children}
       </span>
@@ -101,6 +102,7 @@ export function RevealLines({ as: T = 'h2', children, class: cls, id, delay = 0,
 
 const LAYER = { position: 'absolute', inset: 0, pointerEvents: 'none' } as const;
 const HIDDEN = { display: 'none' } as const;
+const BLOCK = { display: 'block' } as const;
 
 interface Word {
   /** The text to copy: the word with the spaces around it. */

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { isAddress } from './format.ts';
+import { jumpTo } from './motion/lenis.ts';
+import { afterRender, routeEnter, withViewTransition } from './motion/transitions.ts';
 
 export type Route =
   | { page: 'landing' }
@@ -39,12 +41,23 @@ export function parseRoute(hash: string): Route {
   return { page: 'notfound', hash };
 }
 
+/**
+ * The current route. A route change runs inside a view transition where there is one (src/motion/transitions.ts:
+ * the old page fades and lifts, the new one rises, the header holds still); elsewhere the keyed <main> rises on
+ * mount, and under reduced motion the change is instant. Either way the new page starts at the top, through Lenis
+ * at once when it runs, so the smooth scroll never animates the jump.
+ */
 export function useRoute(): Route {
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {
     const onChange = (): void => {
-      setHash(location.hash);
-      scrollTo(0, 0);
+      const next = location.hash;
+      routeEnter();
+      void withViewTransition(async () => {
+        setHash(next);
+        await afterRender();
+        jumpTo(0, { immediate: true });
+      });
     };
     addEventListener('hashchange', onChange);
     return () => removeEventListener('hashchange', onChange);

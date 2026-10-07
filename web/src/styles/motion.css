@@ -1,5 +1,6 @@
-/* Motion (plan sections C and D). Transform and opacity only. Every rule here is switched off under
-   prefers-reduced-motion at the end of the file. The scripts that drive it are in src/motion/. */
+/* Motion (plan sections C and D). Transform and opacity only (and their individual properties, scale and
+   translate). Every rule here is switched off under prefers-reduced-motion at the end of the file. The scripts that
+   drive it are in src/motion/. One choreographed moment per page; everything else is a quiet acknowledgement. */
 
 :root {
   --ease-reveal: cubic-bezier(.16, 1, .3, 1);
@@ -41,9 +42,22 @@ header.top,
   animation: bond-blink var(--dur-toggle) var(--ease-toggle) 1;
 }
 
-/* Without view transitions: a keyed <main> rises on mount. */
+/* Without view transitions: the keyed <main class="route"> that app.tsx renders rises on mount, from the first
+   route change on (src/motion/transitions.ts routeEnter sets the class), so the first page keeps its own entrance. */
+.route-enter main.route,
 .page-enter {
   animation: vt-rise var(--dur-reveal) var(--ease-reveal) both;
+}
+
+/* The first page view: the header settles in over 400 ms while the page plays its own entrance (src/main.tsx). */
+.is-booting header.top,
+.is-booting .vt-header {
+  animation: boot-fade 400ms var(--ease-reveal) both;
+}
+@keyframes boot-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 @keyframes vt-leave {
@@ -66,18 +80,37 @@ header.top,
 
 /* ------------------------------------------------------------------------------- CTA press (src/motion/press.ts) */
 
+/* Every .btn of the design system and anything marked .press. The press adds to the button and never restyles it:
+   it animates the individual `scale` and `translate` properties, so it leaves the button's own `transform` and
+   `transition` alone. The impression needs the button to clip and stack its children. */
+.btn,
 .press {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  transition: transform 350ms var(--ease-reveal);
   -webkit-tap-highlight-color: transparent;
 }
+.btn.is-pressed,
 .press.is-pressed {
-  transform: scale(0.97) translateY(1px);
-  transition: transform 120ms var(--ease-toggle);
+  animation: press-in var(--dur-press, 120ms) var(--ease-toggle) forwards;
 }
-/* The square impression, under the label. A gold button sets --impression to its ink. */
+.btn.is-released,
+.press.is-released {
+  animation: press-out var(--dur-release, 350ms) var(--ease-reveal);
+}
+@keyframes press-in {
+  to {
+    scale: var(--press-scale, 0.97);
+    translate: 0 var(--press-y, 1px);
+  }
+}
+@keyframes press-out {
+  from {
+    scale: var(--press-scale, 0.97);
+    translate: 0 var(--press-y, 1px);
+  }
+}
+/* The square impression, under the label: gold, or the gold's ink on a gold button. */
 .press-impression {
   position: absolute;
   z-index: -1;
@@ -85,6 +118,9 @@ header.top,
   background: var(--impression, var(--bond, #e6b450));
   transform: scale(0);
   animation: impression var(--dur-reveal) var(--ease-reveal) forwards;
+}
+.btn--primary {
+  --impression: var(--bond-ink, #7d5710);
 }
 @keyframes impression {
   from {
@@ -96,13 +132,52 @@ header.top,
     opacity: 0;
   }
 }
-/* The wire arrow (a wire that ends in a pad) nudges forward on hover. */
-.press .wire-arrow {
+/* The wire arrow (a wire that ends in a pad) nudges forward on hover; the down arrow nudges down. */
+.press .wire-arrow,
+.btn .btn__icon {
   transition: transform var(--dur-micro) var(--ease-reveal);
 }
 @media (hover: hover) {
-  .press:hover .wire-arrow {
+  .press:hover .wire-arrow,
+  .btn:hover .btn__icon {
     transform: translateX(3px);
+  }
+  .btn:hover .btn__icon[data-dir='down'] {
+    transform: translateY(3px);
+  }
+}
+
+/* Copy buttons (src/motion/copy.tsx): "Copy" becomes "Copied" and a right-angle tick scales in. */
+.copy__tick {
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity var(--dur-micro) var(--ease-reveal),
+    transform var(--dur-micro) var(--ease-reveal);
+}
+.copy[data-state='ok'] .copy__tick {
+  opacity: 1;
+  transform: none;
+}
+.copy[data-state='idle'] .copy__tick,
+.copy[data-state='fail'] .copy__tick {
+  display: none;
+}
+
+/* A verdict plate stamped onto the page when its answer is known and in view (TwoStates, the audit plates). */
+.stamp {
+  animation: stamp 700ms var(--ease-reveal) both;
+}
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
@@ -189,15 +264,24 @@ html.lenis body {
     animation: none !important;
   }
   .page-enter,
+  .route-enter main.route,
+  .is-booting header.top,
+  .is-booting .vt-header,
   .seal-press,
   .seal-loading .seal-cell,
-  .vt-nav [data-bond-pad] {
+  .vt-nav [data-bond-pad],
+  .btn.is-pressed,
+  .btn.is-released,
+  .press.is-pressed,
+  .press.is-released,
+  .stamp {
     animation: none !important;
   }
-  .press,
-  .press.is-pressed,
   .press .wire-arrow,
-  .press:hover .wire-arrow {
+  .press:hover .wire-arrow,
+  .btn .btn__icon,
+  .btn:hover .btn__icon,
+  .copy__tick {
     transition: none !important;
     transform: none !important;
   }

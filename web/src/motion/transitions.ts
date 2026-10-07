@@ -1,8 +1,10 @@
 // Page transitions (plan section D). Where the browser has same-document view transitions and motion is allowed,
 // a route change runs inside document.startViewTransition: the old page fades and lifts over 350 ms, the new one
 // rises over 900 ms, and the header (view-transition-name: header) holds still while the Bond's gold pad blinks
-// once. Elsewhere the route change happens at once, and a keyed <main> with the `page-enter` class rises on mount
-// instead (pageEnter below). Under prefers-reduced-motion both are off. The CSS is in src/styles/motion.css.
+// once. Elsewhere the route change happens at once, and the keyed <main class="route"> that app.tsx renders rises
+// on mount instead: routeEnter() below switches that CSS on, from the first route change of the visit, so the first
+// page keeps its own load sequence. Under prefers-reduced-motion both are off. The CSS is in src/styles/motion.css.
+// useRoute (src/router.ts) is the only caller for route changes.
 
 import { motionAllowed } from './prefs.ts';
 
@@ -33,10 +35,24 @@ export function afterRender(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/** Class on <html> that lets the keyed <main class="route"> rise on mount (the fallback for view transitions). */
+export const ROUTE_ENTER = 'route-enter';
+
 /**
- * The fallback: props for <main>. Without view transitions (and with motion allowed) <main> is keyed by the route,
- * so each route mounts a fresh element and its `page-enter` animation plays; otherwise the key never changes and
- * there is no class.
+ * Called just before a route change is rendered. Without view transitions (and with motion allowed) it marks the
+ * document so the new <main> rises on mount. It is set before the new page renders, so the class never starts an
+ * animation on a page that is already on screen; and it is never set where view transitions run, so the two never
+ * play together.
+ */
+export function routeEnter(): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle(ROUTE_ENTER, !viewTransitions() && motionAllowed());
+}
+
+/**
+ * The fallback as props, for a <main> that is not keyed by app.tsx: without view transitions (and with motion
+ * allowed) <main> is keyed by the route, so each route mounts a fresh element and its `page-enter` animation plays;
+ * otherwise the key never changes and there is no class.
  */
 export function pageEnter(routeKey: string): { key: string; class: string | undefined } {
   return !viewTransitions() && motionAllowed() ? { key: routeKey, class: 'page-enter' } : { key: 'page', class: undefined };

@@ -1,12 +1,13 @@
-// The CTA press (plan section D): an element with class `press` sinks to scale .97 and 1 px down over 120 ms while
-// held, and comes back over 350 ms with the reveal ease; a square gold impression grows from the point that was
-// pressed (from the centre when a key pressed it) and fades. One set of listeners on the document serves every
-// `.press` element, present or future. The styles are in src/styles/motion.css; under prefers-reduced-motion they
-// do nothing and no impression is drawn.
+// The CTA press (plan section D): every button of the design system (`.btn`) and anything else marked `.press`
+// sinks to scale .97 and 1 px down over 120 ms while held, and comes back over 350 ms with the reveal ease; a square
+// gold impression grows from the point that was pressed (from the centre when a key pressed it) and fades. One set
+// of listeners on the document serves every such element, present or future. The press adds to `.btn`; it never
+// restyles it. The styles are in src/styles/motion.css; under prefers-reduced-motion they do nothing and no
+// impression is drawn.
 
 import { motionAllowed } from './prefs.ts';
 
-const SELECTOR = '.press';
+const SELECTOR = '.press, .btn';
 
 /**
  * Where the impression goes, in the element's own pixels: a square centred on the pressed point (x, y), large
@@ -41,12 +42,18 @@ export function impress(el: HTMLElement, x?: number, y?: number): void {
 
 let installed: (() => void) | null = null;
 
-/** Starts the press behaviour for every `.press` element under `root`. Safe to call twice; returns the uninstall. */
+/** Starts the press behaviour for every `.btn` and `.press` element under `root`. Safe to call twice; returns the uninstall. */
 export function installPress(root: Document | HTMLElement = document): () => void {
   if (installed) return installed;
   const held = new Set<HTMLElement>();
+  // The press and the release are CSS animations of `scale` and `translate` (not transitions of `transform`), so
+  // they never replace a transition the button's own styles declare. `is-released` lives for the release.
   const release = (): void => {
-    for (const el of held) el.classList.remove('is-pressed');
+    for (const el of held) {
+      el.classList.remove('is-pressed');
+      el.classList.add('is-released');
+      setTimeout(() => el.classList.remove('is-released'), 400);
+    }
     held.clear();
   };
   const down = (e: Event): void => {
@@ -58,6 +65,7 @@ export function installPress(root: Document | HTMLElement = document): () => voi
     const r = el.getBoundingClientRect();
     const sx = r.width > 0 ? el.offsetWidth / r.width : 1;
     const sy = r.height > 0 ? el.offsetHeight / r.height : 1;
+    el.classList.remove('is-released');
     el.classList.add('is-pressed');
     held.add(el);
     impress(el, (p.clientX - r.left) * sx, (p.clientY - r.top) * sy);
@@ -67,6 +75,7 @@ export function installPress(root: Document | HTMLElement = document): () => voi
     if ((k.key !== 'Enter' && k.key !== ' ') || k.repeat) return;
     const el = pressable(k.target);
     if (!el || el !== k.target) return; // the key must be on the control itself, not on a field inside it
+    el.classList.remove('is-released');
     el.classList.add('is-pressed');
     held.add(el);
     impress(el);
