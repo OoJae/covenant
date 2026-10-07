@@ -320,6 +320,9 @@ main.route {
   display: block;
   min-height: 70vh;
   padding-top: var(--header-h);
+  /* A stamp landing (scale > 1 for a moment) must not widen the page. clip, not hidden: hidden would make main a
+     scroll container and stop the landing's sticky stage (styles/scene.css). */
+  overflow-x: clip;
 }
 main.route[data-page='landing'] {
   padding-top: 0;
@@ -340,4 +343,14 @@ main.route > .plate {
 .page > .plate {
   margin-inline: var(--gutter);
   padding-inline: var(--sp-5);
+}
+
+/* Read by screen readers, not shown (a live status, a hidden label). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

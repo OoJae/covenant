@@ -109,6 +109,23 @@ header.top::before {
 header.top.is-over::before {
   opacity: 0;
 }
+/* Over silicon the header is clear, but text scrolling under it (the hero's ledger, a chapter leaving) must not
+   run into the wordmark: a band of the silicon ground that fades out just below the header. */
+header.top::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 calc(-1 * var(--sp-5));
+  z-index: -2;
+  background: var(--wafer) var(--grain-si);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-micro) var(--ease-toggle);
+}
+header.top.is-over::after {
+  opacity: 1;
+}
 .top__in,
 .sheet__top {
   display: flex;
@@ -547,6 +564,35 @@ li.checkrow {
     border: 0;
     padding-block: var(--sp-2);
   }
+}
+
+/* The same ledger with each key and value grouped in a div (valid in a dl; the landing's ledgers): one line per
+   group in the data face, the key joined to its value by a dotted leader. */
+.ledger > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding-block: var(--sp-1);
+  font: var(--step-small) / 1.4 var(--font-mono);
+}
+.ledger > div > dt {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+  color: var(--fg-2);
+}
+.ledger > div > dt::after {
+  content: '';
+  flex: 1;
+  min-width: var(--sp-4);
+  border-bottom: var(--hairline) dotted var(--rule-strong);
+}
+.ledger > div > dd {
+  min-width: 0;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
 }
 
 /* The envelope: its terms numbered as clauses. */

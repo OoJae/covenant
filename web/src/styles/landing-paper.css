@@ -14,10 +14,23 @@
 .l-sec {
   padding-top: var(--sp-section);
 }
-/* The clause number hangs in the gutter from 1024 px: the text column starts after it. */
+/* The clause head is kit.tsx Pin: span.clause__no (the § number), then h2.clause__title. The number sits over the
+   title; from 1024 px it hangs in the gutter and the text column starts after it, as in the site's clauses. */
+.l-sec .clause__no {
+  display: block;
+  margin-bottom: var(--sp-2);
+}
 @media (min-width: 1024px) {
   .l-sec > .l-wrap {
+    position: relative;
     padding-left: calc(var(--grid-margin) + var(--clause-gutter));
+  }
+  .l-sec .clause__no {
+    position: absolute;
+    left: var(--grid-margin);
+    width: var(--clause-gutter);
+    margin: 0;
+    padding-top: 0.9em;
   }
 }
 .l-body {
