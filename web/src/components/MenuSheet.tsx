@@ -40,6 +40,9 @@ export function MenuSheet({ open, links, routeKey, onClosed }: { open: boolean; 
     d.classList.toggle('is-first', !opened.current);
     opened.current = true;
     d.showModal();
+    // The dialog itself takes the focus, not its first link: a tap must not ring the wordmark (Safari gives a link
+    // focused this way :focus-visible). The next Tab reaches the wordmark, with its ring.
+    d.focus();
     document.documentElement.classList.add('sheet-open');
     requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('is-open')));
   }, [open]);
@@ -58,6 +61,7 @@ export function MenuSheet({ open, links, routeKey, onClosed }: { open: boolean; 
     <dialog
       ref={dlg}
       class="sheet silicon"
+      tabIndex={-1}
       aria-label="Menu"
       data-lenis-prevent
       onCancel={(e) => {

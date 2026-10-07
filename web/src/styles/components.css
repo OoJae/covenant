@@ -239,6 +239,10 @@ dialog.sheet.is-open {
 dialog.sheet::backdrop {
   background: transparent;
 }
+/* The open sheet holds the focus itself (MenuSheet.tsx): no ring around the whole screen. */
+dialog.sheet:focus {
+  outline: none;
+}
 .sheet__nav {
   margin-top: var(--sp-7);
   border-top: var(--hairline) solid var(--rule);
