@@ -49,3 +49,5 @@ deploy/rehearsal-v2.json
 # DeWEB research captures (third-party gateway and contract sources, kept local) and fork broadcast records
 /tools/deweb/research/
 /tools/deweb/sim/broadcast/
+# agent worktrees
+/.claude/

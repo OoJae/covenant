@@ -12,6 +12,8 @@ What is here, by section of the pin-manifest draft:
 and of the stateful-consumer draft:
   state_word(), state_string(), is_canonical()   the state string and its word form  (section 3)
   replay()                                       the reader's check of a consumer's records  (section 5.3)
+The stateful-consumer helpers are also published with that draft's assets, as replay_reference.py, so that each
+draft's asset directory stands alone; the two copies are the same code.
 
 keccak256() is Keccak-f[1600] with the original Keccak padding byte 0x01 (the hash Ethereum uses, not
 NIST SHA3-256). It follows the structure of the Keccak team's public-domain CompactFIPS202.py.
@@ -23,8 +25,8 @@ import json
 import re
 
 MAX_FILE_BYTES = 65_536
-MAX_PINS = 1 << 16                # TAP-20 section 2: nIn and nOut are at most 65,536
-MAX_STATE = 1 << 24               # TAP-20 section 3, condition 7
+MAX_PINS = 1 << 16                # TAP-02 section 2: nIn and nOut are at most 65,536
+MAX_STATE = 1 << 24               # TAP-02 section 3, condition 7
 MAX_SAFE = (1 << 53) - 1
 FORBIDDEN_NAMES = ("__proto__", "constructor", "prototype")
 ENCODINGS = ("uint", "int", "bool", "enum", "flags", "log", "zero", "bits")
@@ -318,7 +320,7 @@ def validate(m: dict) -> list:
 # ------------------------------------------------------------------------------------------------ netlists
 
 def scan(netlist: bytes) -> dict:
-    """Counts of a TAP-20 netlist from its bytes alone, and whether it is latches-first."""
+    """Counts of a TAP-02 netlist from its bytes alone, and whether it is latches-first."""
     p, nand, latch, ref, seen_nand, latches_first = 0, 0, 0, 0, False, True
     while p < len(netlist):
         op = netlist[p]
@@ -403,7 +405,7 @@ def conforms(m: dict, profile: dict, profile_bytes: bytes | None = None) -> list
 # ------------------------------------------------------------------------------------------------ codec (5)
 
 def get_bits(data: bytes, offset: int, width: int) -> int:
-    """Raw value of a field. Bit i of a vector is bit i mod 8 of byte i // 8 (TAP-20 section 5); a bit
+    """Raw value of a field. Bit i of a vector is bit i mod 8 of byte i // 8 (TAP-02 section 5); a bit
     whose byte is beyond the end of the string reads as 0."""
     v = 0
     for k in range(width):
@@ -552,7 +554,7 @@ def state_string(word: bytes, n_state: int) -> bytes:
 def replay(beat, n_in: int, n_out: int, n_state: int, initial: bytes, records: list):
     """Check a consumer's records against the replay rule (stateful-consumer draft, section 5).
 
-    beat(state_string, input_string) -> (new_state_string, output_string) is one TAP-20 beat of the bound
+    beat(state_string, input_string) -> (new_state_string, output_string) is one TAP-02 beat of the bound
     circuit. Each record is (source, inputs, outputs, state_after), all byte strings; source 0 is a record
     without a beat. Returns None when every record holds, else (record number, reason). Record numbers start
     at 1.

@@ -95,9 +95,9 @@ def shape_from_interface(text: str) -> dict:
     n_in, n_out = one(r"`nIn = (\d+)`, `nOut = (\d+)`")
     assert (n_in, n_out) == (km.IN_BITS, km.OUT_BITS), "INTERFACE.md and kernel_model.py disagree on nIn / nOut"
     lo, hi = one(r"`(\d+) <= nState <= (\d+)`")
-    (gates,) = one(r"`nNand \+ nLatch <= (\d+)`")
+    (gates,) = one(r"`(?:\d+ <= )?nNand \+ nLatch <= (\d+)`")      # the profile has no lower bound on gates
     nand_bytes, latch_bytes, max_bytes = one(r"`(\d+)\*nNand \+ (\d+)\*nLatch <= (\d+)` bytes")
-    assert (nand_bytes, latch_bytes) == (7, 4), "TAP-20 record lengths are 7 (NAND) and 4 (LATCH)"
+    assert (nand_bytes, latch_bytes) == (7, 4), "TAP-02 record lengths are 7 (NAND) and 4 (LATCH)"
     assert re.search(r"NAND \(`0x00`\) and LATCH \(`0x01`\) only\. No REF\.", s), "flat-netlist sentence not found"
     assert re.search(r"are LATCH records and no LATCH follows them", s), "latches-first sentence not found"
     return {"nStateMin": lo, "nStateMax": hi, "flat": True, "latchesFirst": True,

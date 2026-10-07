@@ -2,12 +2,12 @@
 tap: TBD
 title: Stateful Circuit Consumers
 description: How a contract that runs a sequential circuit keeps the circuit's latch state between beats, records every beat so that anyone can replay it, and notices when the evaluator behind it has changed.
-author: <Name> (@OoJae)
-discussions-to: <URL of the Idea issue>
+author: <NAME> (@OoJae)
+discussions-to: <ISSUE-URL>
 status: Draft
 type: Application
 created: 2026-10-04
-requires: TAP-20
+requires: TAP-02
 license: CC0-1.0
 ---
 
@@ -19,11 +19,11 @@ This TAP sets out how a smart contract that uses a TapeOut circuit with memory k
 
 ## Abstract
 
-A circuit with LATCH records has state, but a processor contract stores none: `step` is a view function that takes the state from its caller and returns the next one (TAP-20 §6). A contract that wants a circuit to remember anything must keep the state itself. This TAP calls such a contract a **consumer** and specifies: the byte string in which the state is kept and its one-word form for circuits of up to 256 latches; what a consumer passes to `step` and which results it may accept; the record it keeps of every beat (inputs, outputs, state after) and the **replay rule** by which anyone checks those records against the netlist; the values a consumer pins when it is bound to a circuit, so that it notices a change of the upgradeable circuit implementation; and a small read interface through which explorers and auditors can read any consumer the same way. The netlist format, the state layout, the beat and the bit packing are those of TAP-20 and are referenced, not restated.
+A circuit with LATCH records has state, but a processor contract stores none: `step` is a view function that takes the state from its caller and returns the next one (TAP-02 §6). A contract that wants a circuit to remember anything must keep the state itself. This TAP calls such a contract a **consumer** and specifies: the byte string in which the state is kept and its one-word form for circuits of up to 256 latches; what a consumer passes to `step` and which results it may accept; the record it keeps of every beat (inputs, outputs, state after) and the **replay rule** by which anyone checks those records against the netlist; the values a consumer pins when it is bound to a circuit, so that it notices a change of the upgradeable circuit implementation; and a small read interface through which explorers and auditors can read any consumer the same way. The netlist format, the state layout, the beat and the bit packing are those of TAP-02 and are referenced, not restated.
 
 ## Motivation
 
-On X Layer at block 72,371,934, 286 of the 2,820 taped-out circuits had state. None of that state lives in TapeOut's contracts. The processor contract offers `step(id, state, inputs)`, which computes one beat from a state the caller supplies. TAP-20 §6 also mentions a state-changing `beat(address cpu, uint256 id, bytes inputs)` (`0x1fc0021d`) "that keeps state on chain". That selector is not in the code of the circuit implementation on X Layer, Base or BNB Smart Chain (read on 2026-10-04, Deployments), and a call to it on a processor contract reverted on X Layer and on BNB Smart Chain. Whoever uses a sequential circuit on chain therefore writes a contract that stores the state, and today each such contract decides alone:
+On X Layer at block 72,371,934, 286 of the 2,820 taped-out circuits had state. None of that state lives in TapeOut's contracts. The processor contract offers `step(id, state, inputs)`, which computes one beat from a state the caller supplies. TAP-02 §6 (numbered TAP-20 until PR #45) also mentions a state-changing `beat(address cpu, uint256 id, bytes inputs)` (`0x1fc0021d`) "that keeps state on chain". That selector is not in the code of the circuit implementation on X Layer, Base or BNB Smart Chain (read on 2026-10-04, Deployments), and a call to it on a processor contract reverted on X Layer and on BNB Smart Chain. Whoever uses a sequential circuit on chain therefore writes a contract that stores the state, and today each such contract decides alone:
 
 - how the state bits are laid out in storage, and what is passed to `step`;
 - what to do when `step` returns a string of an unexpected length;
@@ -38,14 +38,14 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ### 1. Terms
 
-- **Circuit**, **processor contract**, **netlist**, **beat**: as defined in TAP-20 §1. `step`, `circuitInfo` and `netlist` are the functions of TAP-20 §6. `nIn`, `nOut` and `nState` are the values `circuitInfo` returns.
+- **Circuit**, **processor contract**, **netlist**, **beat**: as defined in TAP-02 §1. `step`, `circuitInfo` and `netlist` are the functions of TAP-02 §6. `nIn`, `nOut` and `nState` are the values `circuitInfo` returns.
 - **Consumer**: a contract that runs beats of one circuit and keeps the state between them.
 - **Bound circuit**: the circuit a consumer is bound to (§2).
-- **State string**: the packing of the state vector (TAP-20 §4) into bytes as in TAP-20 §5: exactly `L = ceil(nState / 8)` bytes, state bit `i` at bit `i mod 8` of byte `floor(i / 8)`, and every unused bit of the last byte zero. It is the form in which `step` returns `newState`. The **input string** (`ceil(nIn / 8)` bytes) and the **output string** (`ceil(nOut / 8)` bytes) are packed the same way.
+- **State string**: the packing of the state vector (TAP-02 §4) into bytes as in TAP-02 §5: exactly `L = ceil(nState / 8)` bytes, state bit `i` at bit `i mod 8` of byte `floor(i / 8)`, and every unused bit of the last byte zero. It is the form in which `step` returns `newState`. The **input string** (`ceil(nIn / 8)` bytes) and the **output string** (`ceil(nOut / 8)` bytes) are packed the same way.
 - **State word**: a state string of at most 32 bytes, followed by zero bytes up to 32 bytes (§3.2).
 - **Record**: what a consumer keeps of one beat (§5).
-- **Evaluator**: the code that computes a beat. The **processor evaluator** is `step` of the bound processor contract. An **alternate evaluator** is any other code that computes one beat of TAP-20 §4 over a copy of the bound circuit's netlist (§6.3).
-- **Pinned value**: a value that a consumer records when it is bound and compares on later reads, as TAP-10 §6.1 does for implementations. The word has nothing to do with the input and output pins of a circuit.
+- **Evaluator**: the code that computes a beat. The **processor evaluator** is `step` of the bound processor contract. An **alternate evaluator** is any other code that computes one beat of TAP-02 §4 over a copy of the bound circuit's netlist (§6.3).
+- **Pinned value**: a value that a consumer records when it is bound and compares on later reads. The word has nothing to do with the input and output pins of a circuit.
 - **Latches-first**: a netlist is latches-first when it has no REF record and no LATCH record comes after a NAND record.
 - **Reader**: software that reads a consumer's records and checks them.
 
@@ -74,7 +74,7 @@ A consumer that uses the word form MUST refuse to be bound to a circuit whose `n
 
 #### 3.3 Latches-first circuits
 
-A circuit made to be used by a consumer SHOULD be latches-first. Then state bit `i` is LATCH record `i`, it occupies netlist bytes `4i` to `4i + 3`, its output is signal `2 + nIn + i`, and `nState` is the number of leading LATCH records. For other netlists the state layout is that of TAP-20 §4: each LATCH and each REF takes the next state bits in record order, wherever it stands.
+A circuit made to be used by a consumer SHOULD be latches-first. Then state bit `i` is LATCH record `i`, it occupies netlist bytes `4i` to `4i + 3`, its output is signal `2 + nIn + i`, and `nState` is the number of leading LATCH records. For other netlists the state layout is that of TAP-02 §4: each LATCH and each REF takes the next state bits in record order, wherever it stands.
 
 ### 4. One beat
 
@@ -82,8 +82,8 @@ A consumer runs a beat in these steps:
 
 1. **Inputs.** It assembles an input string of exactly `ceil(nIn / 8)` bytes whose unused bits are zero. Where the input bits come from is outside this TAP.
 2. **Evaluator.** It decides which evaluator to use (§6.2).
-3. **Call.** It calls the evaluator with the stored state and the input string. For the processor evaluator the call is `step(id, state, inputs)`. The `state` argument is the state string or, in the word form, the 32 bytes of the state word; the result is the same (TAP-20 §5).
-4. **Result.** It accepts the result only if the call succeeded, `newState` is exactly `L` bytes and `outputs` is exactly `ceil(nOut / 8)` bytes. It SHOULD also require that no bit of `newState` is set at position `nState` or above; a conforming evaluator never sets one (TAP-20 §5). Anything else is a **failed beat**.
+3. **Call.** It calls the evaluator with the stored state and the input string. For the processor evaluator the call is `step(id, state, inputs)`. The `state` argument is the state string or, in the word form, the 32 bytes of the state word; the result is the same (TAP-02 §5).
+4. **Result.** It accepts the result only if the call succeeded, `newState` is exactly `L` bytes and `outputs` is exactly `ceil(nOut / 8)` bytes. It SHOULD also require that no bit of `newState` is set at position `nState` or above; a conforming evaluator never sets one (TAP-02 §5). Anything else is a **failed beat**.
 5. **Store.** After an accepted result it stores `newState` as its state, in its form of storage with all padding zero, and writes the record of §5, in the same transaction. In the word form, the bytes after the first `L` MUST be written as zero whatever lies in memory beyond the returned string.
 
 Further rules:
@@ -118,7 +118,7 @@ A consumer MAY write a record for a transaction in which it acted without a beat
 
 For every record with `source` `1` or `2`:
 
-> One beat of TAP-20 §4 over the bound circuit's netlist, from the state before the record and with the record's `inputs`, yields exactly the record's `stateAfter` and `outputs`.
+> One beat of TAP-02 §4 over the bound circuit's netlist, from the state before the record and with the record's `inputs`, yields exactly the record's `stateAfter` and `outputs`.
 
 A consumer MUST satisfy this rule for every record it writes, and its current state MUST equal the `stateAfter` of its last record (or the initial state, if it has none).
 
@@ -129,7 +129,7 @@ A reader checks a consumer as follows:
 3. It sets `state` to the initial state, and for each record in order:
    - it requires `stateAfter` to be exactly `L` bytes with no bit set at `nState` or above;
    - for `source` `0`, it requires `stateAfter` to equal `state`;
-   - otherwise it requires `inputs` to be exactly `ceil(nIn / 8)` bytes with its unused bits zero, computes one beat with a conforming evaluator (TAP-20 §6) from `state` and `inputs`, and requires the result to equal `stateAfter` and `outputs`;
+   - otherwise it requires `inputs` to be exactly `ceil(nIn / 8)` bytes with its unused bits zero, computes one beat with a conforming evaluator (TAP-02 §6) from `state` and `inputs`, and requires the result to equal `stateAfter` and `outputs`;
    - it sets `state` to `stateAfter`.
 4. It requires the consumer's current state to equal `state`.
 
@@ -139,7 +139,7 @@ A reader MAY compute the beats with `eth_call` to `step` on the processor contra
 
 #### 6.1 What is pinned
 
-Processor contracts are beacon proxies, and until the processor factory is sealed its owner can change the implementation behind the beacon (TAP-20 §3). When it is bound, a consumer SHOULD record:
+Processor contracts are beacon proxies, and until the processor factory is sealed its owner can change the implementation behind the beacon (TAP-02 §3). When it is bound, a consumer SHOULD record:
 
 | Pinned value | How it is read | What a difference means |
 |---|---|---|
@@ -161,7 +161,7 @@ A consumer MAY use an alternate evaluator at any time; the record's `source` say
 
 An alternate evaluator used by a consumer:
 
-- MUST compute one beat exactly as TAP-20 §4 and §5, over netlist bytes whose `keccak256` equals the pinned `netlistHash`, with the pinned `nIn` and `nOut`;
+- MUST compute one beat exactly as TAP-02 §4 and §5, over netlist bytes whose `keccak256` equals the pinned `netlistHash`, with the pinned `nIn` and `nOut`;
 - MUST NOT have an upgrade path, and its copy of the netlist MUST NOT be changeable;
 - for a netlist with REF records, MUST hold copies of every netlist in the REF closure under the same conditions.
 
@@ -199,28 +199,28 @@ A reader MUST compare the `beacon` that `pinnedEvaluator()` returns with the add
 
 ## Rationale
 
-- **Why a convention at all.** TAP-20 makes the evaluator a pure function and leaves the state to the caller, which is what allows a REF'd circuit to run on a slice of its caller's state. The price is that each consumer is a small piece of the protocol's state handling. A convention lets a reader check any consumer with one procedure, and puts the places where consumers go wrong in writing.
+- **Why a convention at all.** TAP-02 makes the evaluator a pure function and leaves the state to the caller, which is what allows a REF'd circuit to run on a slice of its caller's state. The price is that each consumer is a small piece of the protocol's state handling. A convention lets a reader check any consumer with one procedure, and puts the places where consumers go wrong in writing.
 - **The state string is what `step` returns.** Storing exactly the returned bytes means that a record can be compared with a replay byte for byte, with no conversion in between.
 - **A word form.** One storage slot per state is the cheapest form, and 256 bits cover most circuits: on X Layer at block 72,371,934, 285 of the 286 circuits with state had at most 256 state bits and one had 288. Padding on the right is what Solidity does when it converts `bytes` of at most 32 bytes to `bytes32`, and it keeps byte `j` of the string at byte `j` of the word. §3.2 spells out the bit positions because the other natural reading, the integer whose bit `i` is state bit `i`, puts every bit somewhere else.
-- **The word may be passed to `step`.** TAP-20 §5 says that callers should send exactly `ceil(n / 8)` bytes, and requires every conforming evaluator to ignore what lies beyond. Passing the 32-byte word saves a consumer the copy that trims it. This TAP allows it because the result is defined by TAP-20 to be the same, and requires in return that the bits beyond `nState` be zero, so that what is stored is one canonical string. On X Layer the equivalence was observed on four deployed circuits and on the example circuit (Test Cases).
+- **The word may be passed to `step`.** TAP-02 §5 says that callers should send exactly `ceil(n / 8)` bytes, and requires every conforming evaluator to ignore what lies beyond. Passing the 32-byte word saves a consumer the copy that trims it. This TAP allows it because the result is defined by TAP-02 to be the same, and requires in return that the bits beyond `nState` be zero, so that what is stored is one canonical string. On X Layer the equivalence was observed on four deployed circuits and on the example circuit (Test Cases).
 - **Length checks are requirements.** `step` reads a short state as if the missing bits were zero. A consumer that stored 32 bytes of a longer state would therefore clear the higher latches at every beat without any error. A consumer that accepted a short `newState` would do the same once. Both are excluded by §3.2 and §4.
 - **Records in storage, not only in events.** An event is enough to replay a beat, and costs less. But a reader with only public nodes often cannot get old events: the two public X Layer endpoints refused log queries over more than 100 blocks on 2026-10-04, and TAP-10 §11 notes that most public nodes do not serve `eth_getLogs`. A view function is read with `eth_call` at any block a node serves. The rule requires one of the two and recommends both.
 - **Records without a beat.** A consumer that moves value has to do something when its evaluator fails; refusing to run would leave the value stuck. Giving such records a `source` of their own keeps the sequence complete and keeps the replay rule exact for the others.
-- **Three pinned values.** The implementation address detects a replacement. The code hash costs one opcode and removes the question of whether code at an address can ever differ from what was there. The netlist hash and the pin counts detect a change of what is stored, which a replacement that is later undone could make without leaving a difference in the first two. TAP-10 §13.4 pins the beacon's implementation and the code hash of the processor proxy for the DeWEB hub; this TAP pins the implementation's own code hash and adds the netlist. The cost is small next to a beat: `eth_estimateGas` for a beat of a 3,035-gate circuit on X Layer returned 7,140,062 gas at block 72,375,573, about 2,350 gas per gate; TAP-20 measured about 2,317 on BNB Smart Chain.
+- **Three pinned values.** The implementation address detects a replacement. The code hash costs one opcode and removes the question of whether code at an address can ever differ from what was there. The netlist hash and the pin counts detect a change of what is stored, which a replacement that is later undone could make without leaving a difference in the first two. Pinning is borrowed from TAP-10, which pins the implementations of the site contracts (§6.1) and, for the DeWEB hub, the beacon's implementation and the code hash of the processor proxy (§13.4); this TAP pins the implementation's own code hash and adds the netlist. The cost is small next to a beat: `eth_estimateGas` for a beat of a 3,035-gate circuit on X Layer returned 7,140,062 gas at block 72,375,573, about 2,350 gas per gate; TAP-02 measured about 2,317 on BNB Smart Chain.
 - **A changed evaluator stops the processor path, and no more.** This TAP does not tell a consumer whether to halt or to continue on an alternate evaluator; that depends on what the consumer holds. It requires that the choice is visible in every record.
 - **An interface that is recommended, not required.** The requirements of §2 to §6 are about bytes and can be met by a consumer with fixed-size types and its own function names. The interface exists so that a generic reader needs no per-consumer code; a consumer that cannot implement it can be given an adapter. `circuit()` returns the pin counts because `nIn` and `nOut` are not in the netlist bytes and a replay needs them.
 - **Latches-first.** It is recommended because it makes the state layout readable from the first `4·nState` bytes of the netlist and lets a simple alternate evaluator find the latches without a scan. Of the 55 circuits with state and without REF on X Layer at block 72,371,934, 53 were latches-first.
-- **Left out.** How inputs are assembled, who may trigger a beat and how often, and what a consumer does with outputs are the consumer's own design. Names for the bits of the three vectors are the subject of the Circuit Pin Manifest draft; a consumer can commit to a manifest in the way that draft describes.
+- **Left out.** How inputs are assembled, who may trigger a beat and how often, and what a consumer does with outputs are the consumer's own design. Names for the bits of the three vectors are the subject of the Circuit Pin Manifest draft; a consumer can commit to a manifest in the way that draft describes. Connecting stateful circuits to each other (who owns which state, reset, feedback), which Idea #50 lists among its open questions, is also left out: this TAP is about one contract that keeps the state of one bound circuit.
 
 ## Backwards Compatibility
 
-This TAP adds no contract and changes nothing in TAP-20. It restricts nothing that a caller of `step` may do; it describes a way of using `step` that a contract may claim to follow.
+This TAP adds no contract and changes nothing in TAP-02. It restricts nothing that a caller of `step` may do; it describes a way of using `step` that a contract may claim to follow.
 
 A consumer deployed before this TAP that stores its state as a right-padded `bytes32`, passes it to `step` and records inputs, outputs and the state after each beat already meets §3 to §5 if it also checks the returned lengths. If its functions have other names, an adapter (§7) makes it readable through the interface.
 
 ## Test Cases
 
-The files are in `assets/tap-draft-stateful-consumers/`. `make_vectors.py` regenerates `replay-vectors.json` byte for byte with the reference evaluator of TAP-20.
+The files are in `assets/tap-draft-stateful-consumers/`. `make_replay_vectors.py` regenerates `replay-vectors.json` byte for byte with `replay_reference.py` and the reference evaluator of TAP-02 (`assets/tap-02/reference.py`).
 
 **The example circuit** `shift-toggle` has `nIn = 2` (`d`, `en`), `nOut = 2` (`oldest_n`, `phase_next`) and `nState = 9`: an 8-bit shift register in state bits 0 to 7 and a toggle in state bit 8. It is latches-first, 71 bytes:
 
@@ -249,13 +249,13 @@ The file also contains:
 - state words for `nState` 1, 8, 9, 64, 255 and 256, and four byte strings that are not state strings (a bit set beyond `nState`, one byte too few, one byte too many, a word with a non-zero byte after the string);
 - a valid sequence of seven records, with one record without a beat (`source` 0) in the middle and three beats with `source` 2 after it, and seven invalid sequences with the record at which the check of §5.3 fails: a flipped bit in `stateAfter`, wrong `outputs`, a record without a beat that changes the state, a `stateAfter` with a bit beyond `nState`, a `stateAfter` that is one byte short, `inputs` with a bit beyond `nIn`, and a missing record.
 
-**Checked against the deployed implementation.** On 2026-10-04, on a local fork of X Layer at block 72,374,876 (no transaction was sent to the chain), the example circuit and a variant with the same function that is not latches-first were taped out on a new processor contract, which runs the deployed circuit implementation `0x977f217887E085D298Cb3819cDAD5A0ee35F29B2`. `step` returned the values of the file for all 41 calls made: the 12 beats on both netlists, the 12 beats with the state word as argument, and the five other `state` arguments. On X Layer itself, at block 72,373,447, `step` was called read-only on four existing circuits with 1, 9, 16 and 288 state bits. For each, the result equalled that of the TAP-20 reference evaluator; `newState` had `ceil(nState / 8)` bytes (1, 2, 2 and 36) with its unused bits zero; the state word, where one exists, gave the same result as the state string; bits and bytes beyond `nState` were ignored; and a state string one byte short was read with the missing bits as zero.
+**Checked against the deployed implementation.** On 2026-10-04, on a local fork of X Layer at block 72,374,876 (no transaction was sent to the chain), the example circuit and a variant with the same function that is not latches-first were taped out on a new processor contract, which runs the deployed circuit implementation `0x977f217887E085D298Cb3819cDAD5A0ee35F29B2`. `step` returned the values of the file for all 41 calls made: the 12 beats on both netlists, the 12 beats with the state word as argument, and the five other `state` arguments. On X Layer itself, at block 72,373,447, `step` was called read-only on four existing circuits with 1, 9, 16 and 288 state bits. For each, the result equalled that of the TAP-02 reference evaluator; `newState` had `ceil(nState / 8)` bytes (1, 2, 2 and 36) with its unused bits zero; the state word, where one exists, gave the same result as the state string; bits and bytes beyond `nState` were ignored; and a state string one byte short was read with the missing bits as zero.
 
 ## Reference Implementation
 
 - `assets/tap-draft-stateful-consumers/ReferenceConsumer.sol` (MIT, 181 lines, not audited): a consumer in the word form that checks its pinned values before every beat, performs no beat when one differs, stores one record per beat and implements `ICircuitConsumer`. Its caller supplies the input string, which a real consumer must not do. On a local fork of X Layer at block 72,376,024 it was bound to the example circuit: `beatAt` returned the 12 records of `replay-vectors.json`, an input string with a bit beyond `nIn` was refused, and after the factory owner's `upgradeCircuits` was simulated with a copy of the same code at another address, `beat` reverted until the original implementation was restored.
-- `replay` in `pins_reference.py` (MIT) is the reader's check of §5.3; `state_word`, `state_string` and `is_canonical` are §3.
-- The Covenant kernel, the contract this TAP was drawn from, keeps a chip's state in the word form, checks the returned lengths, pins the implementation, its code hash, the pin counts and the netlist hash, falls back to an alternate evaluator over its own copy of the netlist, and stores every record. It uses fixed-size types and its own function names and does not implement `ICircuitConsumer`. A link to that repository at a fixed commit will be added before this TAP moves to Review.
+- `assets/tap-draft-stateful-consumers/replay_reference.py` (MIT, Python without dependencies): `replay` is the reader's check of §5.3; `state_word`, `state_string` and `is_canonical` are §3.
+- The Covenant kernel, the contract this TAP was drawn from, keeps a chip's state in the word form, checks the returned lengths, pins the implementation, its code hash, the pin counts and the netlist hash, falls back to an alternate evaluator over its own copy of the netlist, and stores every record. It uses fixed-size types and its own function names and does not implement `ICircuitConsumer`. The source, at commit `fc90bbf`: [`contracts/core/src/Kernel.sol`](https://github.com/OoJae/covenant/blob/fc90bbf/contracts/core/src/Kernel.sol), its second version [`contracts/core-v2/src/KernelV2.sol`](https://github.com/OoJae/covenant/blob/fc90bbf/contracts/core-v2/src/KernelV2.sol), and the alternate evaluator [`contracts/evaluator/src/SealedVM.sol`](https://github.com/OoJae/covenant/blob/fc90bbf/contracts/evaluator/src/SealedVM.sol).
 
 ## Deployments
 
@@ -297,7 +297,7 @@ As long as the processor factory can be upgraded, this TAP cannot become Final (
 
 ### Open questions
 
-1. TAP-20 §6 names a state-changing `beat(address cpu, uint256 id, bytes inputs)` (`0x1fc0021d`) that keeps state on chain. The selector is not in the circuit implementation on any of the three chains (Deployments). If such a function exists in another contract, or is planned, this TAP should refer to it and align its record with it.
+1. TAP-02 §6 names a state-changing `beat(address cpu, uint256 id, bytes inputs)` (`0x1fc0021d`) that keeps state on chain. The selector is not in the circuit implementation on any of the three chains (Deployments). If such a function exists in another contract, or is planned, this TAP should refer to it and align its record with it.
 2. Whether the interface should expose pinned values for the REF closure, or whether consumers should be told to use circuits without REF records.
 3. Whether a consumer can be given a safe on-chain way to stop comparing once the factory is sealed.
 4. Whether the `Beat` event should be required rather than recommended.

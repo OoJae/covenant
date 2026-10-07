@@ -2,12 +2,12 @@
 tap: TBD
 title: Circuit Pin Manifest
 description: A JSON file that names the bit fields of a circuit's input, output and state vectors, the rule that ties it to one netlist, the place where it is published, and the way a contract commits to it.
-author: <Name> (@OoJae)
-discussions-to: <URL of the Idea issue>
+author: <NAME> (@OoJae)
+discussions-to: <ISSUE-URL>
 status: Draft
 type: Application
 created: 2026-10-04
-requires: TAP-10, TAP-20
+requires: TAP-02, TAP-10
 license: CC0-1.0
 ---
 
@@ -19,19 +19,21 @@ This TAP lets whoever makes or holds a TapeOut circuit publish a small file sayi
 
 ## Abstract
 
-A taped-out circuit is a netlist with `nIn` inputs and `nOut` outputs; nothing on chain says what any of those bits mean. This TAP defines a **pin manifest**: a JSON file that divides a circuit's input vector, output vector and state vector into named fields, each with an offset, a width and an encoding (unsigned or signed integer, boolean, enumeration, flags, a logarithmic amount code, always-zero, or uninterpreted bits). A manifest is bound to a circuit by the keccak256 of the circuit's netlist and by its pin counts, so it can be written before tape-out and cannot be attached to another circuit. It is published as the file `.well-known/tape-pins.json` in the circuit's container and read with the verification rules of TAP-10. Because whoever can write that site can replace the file, a contract that depends on the meaning of the pins can commit to the SHA-256 of a manifest through one view function, and a reader can then tell a committed manifest from one that is only published. A manifest without a circuit binding is a **profile**: a pin layout that many circuits can implement and that a circuit manifest claims by digest. Evaluation semantics, signal numbering and bit packing are those of TAP-20 and are referenced, not restated.
+A taped-out circuit is a netlist with `nIn` inputs and `nOut` outputs; nothing on chain says what any of those bits mean. This TAP defines a **pin manifest**: a JSON file that divides a circuit's input vector, output vector and state vector into named fields, each with an offset, a width and an encoding (unsigned or signed integer, boolean, enumeration, flags, a logarithmic amount code, always-zero, or uninterpreted bits). A manifest is bound to a circuit by the keccak256 of the circuit's netlist and by its pin counts, so it can be written before tape-out and cannot be attached to another circuit. It is published as the file `.well-known/tape-pins.json` in the circuit's container and read with the verification rules of TAP-10. Because whoever can write that site can replace the file, a contract that depends on the meaning of the pins can commit to the SHA-256 of a manifest through one view function, and a reader can then tell a committed manifest from one that is only published. A manifest without a circuit binding is a **profile**: a pin layout that many circuits can implement and that a circuit manifest claims by digest. Evaluation semantics, signal numbering and bit packing are those of TAP-02 and are referenced, not restated.
 
 ## Motivation
 
-TAP-20 defines what a circuit computes on bit vectors. It does not say what the bits stand for, and the chain holds nothing that does: a processor contract stores the netlist bytes, `nIn`, `nOut`, `nState` and `gateCount`, and its `tokenURI` returns an empty string (X Layer, 2026-10-04). On X Layer at block 72,371,934 there were 2,820 circuits on 275 processor contracts. 493 of them have more than 16 input and output pins, the widest have 161 inputs and 199 outputs, and 286 keep state, up to 288 bits. For each of them the meaning of the pins exists only in its author's source files.
+TAP-02 (numbered TAP-20 until PR #45) defines what a circuit computes on bit vectors. It does not say what the bits stand for, and the chain holds nothing that does: a processor contract stores the netlist bytes, `nIn`, `nOut`, `nState` and `gateCount`, and its `tokenURI` returns an empty string (X Layer, 2026-10-04). On X Layer at block 72,371,934 there were 2,820 circuits on 275 processor contracts. 493 of them have more than 16 input and output pins, the widest have 161 inputs and 199 outputs, and 286 keep state, up to 288 bits. For each of them the meaning of the pins exists only in its author's source files.
 
 Three kinds of software need that meaning and cannot get it:
 
 - **Explorers and die-shot viewers** can draw gates and wires but cannot label a pin or a latch.
 - **Contracts that consume a circuit, and their front ends**, pack application values into input bits and unpack output bits with hand-written code. Anyone who wants to show what a recorded beat meant has to copy that code.
-- **SDKs and agents** that call `eval` or `step` need a mapping from named, typed values to bit ranges. The Idea "Semantic Port Mapping for TAP-20 Circuit Interfaces" (issue #44) describes this gap for stateless circuits, and the errors it caused in one implementation.
+- **SDKs and agents** that call `eval` or `step` need a mapping from named, typed values to bit ranges. Idea #44 (semantic port mapping) describes this gap for stateless circuits, and the errors it caused in one implementation.
 
 TAP-11 describes the methods of a service; its `params` and `returns` are informative type names, not bit ranges. No existing TAP maps names to bits.
+
+Where such a mapping belongs is still open. #44 asks whether it should be (1) an optional section or profile around TAP-02, (2) "a companion application profile", or (3) part of the component-interface work that the Rationale of TAP-02 mentions, which has not been published in the TAPs repository. This TAP takes the second placement: a separate Application TAP next to TAP-02, which leaves the netlist format, the evaluation and the bit packing unchanged. (In this TAP the word *profile* has the narrower meaning of §6.) On Idea #50 its author proposes a boundary between what a component exposes (#44), how compatible components are connected (#50) and how the resulting netlist is represented (TAP-02). This TAP is on the first side of that boundary: it describes the pins of one circuit and says nothing about connections between circuits.
 
 A file format alone would not be enough. If the labels are a file that the circuit's holder can rewrite, a reader cannot know whether the labels it sees today are the ones a contract was built against. This TAP therefore also says how a manifest is tied to one netlist and how a contract commits to one manifest. It uses only what TapeOut already provides: the netlist bytes, the container's site store, and one view function on whichever contract wants to commit.
 
@@ -41,12 +43,12 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ### 1. Terms and notation
 
-- **Circuit**, **processor contract**, **#ID**, **netlist**, **signal**, **beat**: as defined in TAP-20 §1. **Container**, **holder**, **opened**, **site store**, **pinned block**, **default agreement**: as defined in TAP-10 §1.
-- **Vector**: one of the three bit vectors of a circuit. The **input vector** has `nIn` bits; its bit `i` is signal `2 + i`. The **output vector** has `nOut` bits; its bit `i` is signal `S − nOut + i`, where `S` is the number of signals. The **state vector** has `nState` bits, laid out as TAP-20 §4 says. Vectors are packed into bytes as in TAP-20 §5.
+- **Circuit**, **processor contract**, **#ID**, **netlist**, **signal**, **beat**: as defined in TAP-02 §1. **Container**, **holder**, **opened**, **site store**, **pinned block**, **default agreement**: as defined in TAP-10 §1.
+- **Vector**: one of the three bit vectors of a circuit. The **input vector** has `nIn` bits; its bit `i` is signal `2 + i`. The **output vector** has `nOut` bits; its bit `i` is signal `S − nOut + i`, where `S` is the number of signals. The **state vector** has `nState` bits, laid out as TAP-02 §4 says. Vectors are packed into bytes as in TAP-02 §5.
 - **Field**: a run of consecutive bits of one vector, with a name and an encoding (§3.3, §5).
 - **Manifest**: the file of §3. A **circuit manifest** has a `circuit` member and describes the circuits that have one given netlist (§4). A **profile** has no `circuit` member and describes a pin layout (§6).
 - **Manifest digest**: the SHA-256 of the bytes of a manifest file.
-- **Netlist hash**: `keccak256` of the netlist bytes of TAP-20 §2, which are the bytes that `netlist(id)` returns.
+- **Netlist hash**: `keccak256` of the netlist bytes of TAP-02 §2, which are the bytes that `netlist(id)` returns.
 - **Latches-first**: a netlist is latches-first when it has no REF record and no LATCH record comes after a NAND record. In such a netlist, state bit `i` is record `i`, occupies netlist bytes `4i` to `4i + 3`, and its output is signal `2 + nIn + i`.
 - **Publisher**: whoever writes a manifest. **Reader**: software that obtains a manifest and uses it to name or convert bits.
 - Hashes and digests are written as `0x` followed by 64 lowercase hex digits. `keccak256` is the Keccak-256 hash used by Ethereum (original Keccak padding, not NIST SHA3-256). Other notation is that of TAP-10 §1.
@@ -61,7 +63,7 @@ To read it, a reader makes all reads at one pinned block of the circuit's chain,
 
 1. **Identity.** Resolve the circuit as in TAP-10 §4.1–§4.3. The result is the chain, the processor contract, the #ID, the container, the holder and whether the container is opened. An identity outcome other than a resolved circuit (TAP-10 §4.4) ends resolution.
 2. **Site status.** Compute the site status as in TAP-10 §6.2, including the implementation checks of TAP-10 §6.1. A reader that keeps a blocklist (TAP-10 §10) MUST consult it here. `store-changed`, `not-opened` and `blocked` end resolution with that status. `unpaid` does not: the reader continues and keeps the status for §8.
-3. **Circuit.** Read `circuitInfo(#ID)` and `netlist(#ID)` from the processor contract (TAP-20 §6) and compute the netlist hash.
+3. **Circuit.** Read `circuitInfo(#ID)` and `netlist(#ID)` from the processor contract (TAP-02 §6) and compute the netlist hash.
 4. **File.** Read `fileInfo(container, ".well-known/tape-pins.json")` from the site store that TAP-10 §6.1 selects. Only this exact key is read; the landing rules of TAP-10 §7.2 step 4 (index files, fallback path) MUST NOT be applied. Then:
    - `chunkCount` 0 means `no-manifest`;
    - a declared `size` above 65,536 bytes means `manifest-invalid`, and the file MUST NOT be read;
@@ -161,7 +163,7 @@ A circuit manifest **describes** a circuit, read on the chain with chain ID `c`,
 
 A reader MUST check all four against values it read from the chain at the pinned block, never against values supplied with the manifest.
 
-`nIn` and `nOut` are compared because they are not part of the netlist bytes (TAP-20 §2): the same bytes taped out with another `nIn` are another circuit. A manifest does not name a processor contract or an #ID. It describes every circuit that has this netlist and these pin counts, and it can be written, and its digest computed, before the circuit is taped out.
+`nIn` and `nOut` are compared because they are not part of the netlist bytes (TAP-02 §2): the same bytes taped out with another `nIn` are another circuit. A manifest does not name a processor contract or an #ID. It describes every circuit that has this netlist and these pin counts, and it can be written, and its digest computed, before the circuit is taped out.
 
 ### 5. Encodings
 
@@ -173,7 +175,7 @@ For a field with offset `o` and width `w`, the **raw value** is
 r = b[o]·2^0 + b[o + 1]·2^1 + … + b[o + w − 1]·2^(w − 1)
 ```
 
-where `b[i]` is bit `i` of the vector, which in the packed byte string is bit `i mod 8` of byte `floor(i / 8)` (TAP-20 §5). A field may be wider than 64 or 256 bits; raw values are non-negative integers of any size. Where this TAP writes a raw value in JSON (the keys of `values`), it is a decimal string without leading zeros.
+where `b[i]` is bit `i` of the vector, which in the packed byte string is bit `i mod 8` of byte `floor(i / 8)` (TAP-02 §5). A field may be wider than 64 or 256 bits; raw values are non-negative integers of any size. Where this TAP writes a raw value in JSON (the keys of `values`), it is a decimal string without leading zeros.
 
 A reader MUST take each bit from the packed byte string in this way. It MUST NOT read a byte string as one big-endian integer and apply offsets to that integer. A vector held in a fixed-size word, such as a state kept in a `bytes32`, is the packed byte string followed by zero bytes: bit `i` is still bit `i mod 8` of byte `floor(i / 8)` of the word.
 
@@ -298,7 +300,7 @@ A commitment says which manifest a contract was deployed with. It does not say t
 - **A commitment for stability.** `putFile` replaces an existing file (TAP-10 Appendix A), so a published manifest is what the site's writers say today. The alternatives considered for making one manifest stick:
   - *A hash recorded by the contract that tapes out.* This works, and §7 covers it, but only for circuits taped out through a contract, and a processor contract keeps no record of the tape-out caller that `eth_call` can read: the caller appears only in the `TapedOut` and `Transfer` logs. §7 therefore lets any contract commit, and a taping-out contract is one case.
   - *An event.* A contract cannot read an event, and neither can `eth_call`. Public nodes restrict log queries: the two public X Layer endpoints refused ranges above 100 blocks on 2026-10-04, and TAP-10 §11 notes that most public nodes do not serve `eth_getLogs`. An event can accompany a commitment; it cannot be one.
-  - *The netlist itself.* A netlist has no header and no free bytes, and `tapeout` rejects every opcode but three (TAP-20 §2, §3). The only carrier would be gates that drive nothing, which cost transistors and change `gateCount`.
+  - *The netlist itself.* A netlist has no header and no free bytes, and `tapeout` rejects every opcode but three (TAP-02 §2, §3). The only carrier would be gates that drive nothing, which cost transistors and change `gateCount`.
   - *A registry contract.* It would be a new contract on every chain with its own owner or its own immutability question, to hold one word per circuit that the interested contract can hold itself.
   - *A holder signature over the manifest*, as TAP-11 §5 has. It proves that one holder approved the content at some time, not that the content has stayed. It can be added later without changing this TAP.
 - **SHA-256 of the file bytes.** It is the hash the site store records for every file and the one a TAP-10 client already verifies, so a published manifest needs no second hash, and a contract can compute it with the SHA-256 precompile. The digest lives outside the file, so no canonical form of JSON is needed. TAP-11 §6 needs one because its signature is a member of the file it signs.
@@ -306,20 +308,21 @@ A commitment says which manifest a contract was deployed with. It does not say t
 - **Self-contained circuit manifests.** A circuit manifest repeats the fields of the profile it claims instead of inheriting them. A reader then needs one file to decode a vector, and no rule is needed for what happens when a profile and a manifest disagree: they are compared (§6.3).
 - **Profiles by digest.** A name registry would need an owner. A digest needs none, and a profile can live in a TAP's assets, a repository or a site.
 - **A short list of encodings, and `bits` for the rest.** Each encoding is something every reader has to implement, so the list is short. An unknown encoding falls back to `bits`, so a later version can add one without breaking a reader. `log` is on the list because amounts on chain have up to 256 bits and circuits have few pins; a floor-logarithm code with a few mantissa bits is the usual way through, and stating it once lets a generic reader show an amount where it would otherwise show a code.
-- **Offsets index the TAP-20 vector.** The least significant bit of a field is the bit at `offset`, in the bit order TAP-20 §5 already fixes, so there is no separate byte-order question. §5.1 states this for a `bytes32` because that is where it has gone wrong: the same bytes read as a big-endian integer put bit 0 at position 248.
+- **Offsets index the TAP-02 vector.** The least significant bit of a field is the bit at `offset`, in the bit order TAP-02 §5 already fixes, so there is no separate byte-order question. §5.1 states this for a `bytes32` because that is where it has gone wrong: the same bytes read as a big-endian integer put bit 0 at position 248.
 - **Offset order and no overlap.** One order makes two manifests with the same fields comparable, and a bit with two names would have two meanings.
-- **Relation to Idea #44.** That Idea asks for the mapping between named values and bit ranges, and asks how a mapping should be bound to a circuit and where it should live (its questions 5 to 7). This draft is offered as a text for that discussion. It does not derive TAP-11 method descriptors or tool schemas from a manifest; that can be built on top.
-- **Left out.** Names for signals inside the netlist (a map from records to source blocks, for die shots) are larger, tool-specific and not needed to convert a vector. A manifest stored in contract storage would need its own reading rules.
+- **A companion TAP, not a part of TAP-02.** TAP-01 §3 lists metadata formats among the conventions of Application TAPs, and a circuit is evaluated the same way with or without names. Of the three placements #44 lists (Motivation), a section of TAP-02 would tie a convention that tools may adopt to the Standards TAP that every evaluator follows, and the component-interface draft has not been published, so there is nothing yet to add to. A companion TAP keeps TAP-02 as it is and can change without it.
+- **Relation to Ideas #44 and #50.** #44 asks for the mapping between named values and bit ranges, and asks how a mapping should be bound to a circuit and where it should live (its questions 5 to 7). This draft is offered as a text for that discussion. Under the boundary proposed on #50, connections between circuits, the check that one circuit's outputs fit another's inputs, and the generation of REF netlists from such connections belong to #50; a connection format can refer to fields by the names and offsets defined here. This TAP does not derive TAP-11 method descriptors or tool schemas from a manifest either; that can be built on top.
+- **Left out.** Names for signals inside the netlist (a map from records to source blocks, for die shots) are larger, tool-specific and not needed to convert a vector. A manifest stored in contract storage would need its own reading rules. Connections between circuits are the subject of Idea #50.
 
 ## Backwards Compatibility
 
-This TAP adds no contract and changes nothing in TAP-10 or TAP-20. A TAP-10 client that does not implement it sees the manifest as an ordinary site file. A circuit without a manifest is unaffected.
+This TAP adds no contract and changes nothing in TAP-10 or TAP-02. A TAP-10 client that does not implement it sees the manifest as an ordinary site file. A circuit without a manifest is unaffected.
 
 Tools that already keep pin names in their own files can convert them. The Covenant chip toolchain, for example, uses a file with `name`, `lsb` and `width` per field; `lsb` is this TAP's `offset`.
 
 ## Test Cases
 
-The files are in `assets/tap-draft-circuit-pin-manifest/`. `make_vectors.py` regenerates `shift-toggle.pins.json` and `manifest-vectors.json` byte for byte from the reference implementation of this TAP and the reference evaluator of TAP-20. `pin-manifest.schema.json` is a JSON Schema (draft 2020-12) for §3 to §6; its description lists the rules that a schema cannot express.
+The files are in `assets/tap-draft-circuit-pin-manifest/`. `make_manifest_vectors.py` regenerates `shift-toggle.pins.json` and `manifest-vectors.json` byte for byte from the reference implementation of this TAP and the reference evaluator of TAP-02 (`assets/tap-02/reference.py`). `pin-manifest.schema.json` is a JSON Schema (draft 2020-12) for §3 to §6; its description lists the rules that a schema cannot express.
 
 **`shift-toggle.pins.json`** is a circuit manifest of 1,323 bytes with the digest `0x990990d0522a05d95881ae22eab2798d5dcb9f8e49236e97968bca6b26a0237a`. Its circuit is an example made for this TAP: `nIn = 2`, `nOut = 2`, `nState = 9`, nine LATCH records and five NAND records, latches-first, 71 bytes:
 
@@ -365,11 +368,11 @@ Both files were generated from the Covenant reference model, which also checked 
 
 ## Reference Implementation
 
-`assets/tap-draft-circuit-pin-manifest/pins_reference.py` (MIT): about 600 lines of Python without dependencies. `parse` is §3.1; `validate` is §3 to §6; `check_binding` is §4; `decode_vector`, `encode_vector`, `log_code` and `log_floor` are §5; `conforms` and `check_shape` are §6.3. `check_assets.py` runs the JSON Schema and `validate` over every manifest in the vector files and reports how many invalid manifests the schema alone refuses (15 of 24).
+`assets/tap-draft-circuit-pin-manifest/pins_reference.py` (MIT): about 600 lines of Python without dependencies. `parse` is §3.1; `validate` is §3 to §6; `check_binding` is §4; `decode_vector`, `encode_vector`, `log_code` and `log_floor` are §5; `conforms` and `check_shape` are §6.3. `check_assets.py` checks the digests of the two example manifests, runs the JSON Schema and `validate` over every manifest in the vector files, and reports how many invalid manifests the schema alone refuses (15 of 24).
 
 No reference contract is given for §7: the commitment is one view function that returns one stored word.
 
-The Covenant project generates `covenant-v1.pins.json` from its reference model with `gen_covenant_manifest.py`. A link to that repository at a fixed commit will be added before this TAP moves to Review.
+The Covenant project generates `covenant-v1.pins.json` from its reference model, [`chips/golden/kernel_model.py`](https://github.com/OoJae/covenant/blob/fc90bbf/chips/golden/kernel_model.py), with [`docs/taps/assets/gen_covenant_manifest.py`](https://github.com/OoJae/covenant/blob/fc90bbf/docs/taps/assets/gen_covenant_manifest.py) (commit `fc90bbf`). Its Fab contract, [`contracts/evaluator/src/Fab.sol`](https://github.com/OoJae/covenant/blob/fc90bbf/contracts/evaluator/src/Fab.sol), records for every chip it tapes out a manifest digest that the caller supplies, and returns it from `chipInfo`. It does not check the digest and does not implement `pinManifestOf` (§7).
 
 ## Deployments
 
@@ -394,8 +397,8 @@ As long as the factory, the site store and the payment contract can be upgraded,
 - **Change of holder.** A buyer of the circuit inherits the site and its manifest and can replace it. An operator stops being valid when the holder that set it stops being the holder. If the holder is a contract with no call into the site store, nobody can write the site any more: a wrong manifest then stays wrong, and a right one cannot be replaced. Anyone can open another holder's container, but opening it gives no right to write to it.
 - **Declared hashes.** The site store records the SHA-256 that the uploader declares and does not check it. A reader verifies the bytes it read (TAP-10 §7.1). A contract that compares a commitment with `fileInfo` on chain compares two declarations, not bytes.
 - **Commitments are as fixed as the committing contract.** §7 requires the value never to change, but a reader cannot check that from outside. A contract behind a proxy, or with a setter, can break the requirement. A reader that needs certainty reads the contract's code.
-- **The wrong circuit.** §4 keeps a manifest from being presented for a circuit with another netlist or other pin counts, whoever publishes it. It does not keep it from being presented for another circuit with the same netlist and pin counts, which is intended. For netlists with REF records, `chainId` separates chains; the meaning of the referenced circuits is still only as fixed as their own netlists (TAP-20 Security Considerations).
-- **Upgradeable contracts.** Until the processor factory is sealed, the circuit implementation behind the beacon can change. If `netlist(id)` then returns other bytes, §4 fails and the manifest is no longer accepted. If the bytes stay the same but the new implementation evaluates them differently, the manifest still passes and its field positions may no longer mean what they did; a reader that cares records the circuit implementation at the pinned block, as TAP-20 §7 recommends. Pinned implementations make a lasting change of the site store fail closed, but cannot reveal an upgrade that restores an accepted implementation within one transaction (TAP-10 §13.8).
+- **The wrong circuit.** §4 keeps a manifest from being presented for a circuit with another netlist or other pin counts, whoever publishes it. It does not keep it from being presented for another circuit with the same netlist and pin counts, which is intended. For netlists with REF records, `chainId` separates chains; the meaning of the referenced circuits is still only as fixed as their own netlists (TAP-02 Security Considerations).
+- **Upgradeable contracts.** Until the processor factory is sealed, the circuit implementation behind the beacon can change. If `netlist(id)` then returns other bytes, §4 fails and the manifest is no longer accepted. If the bytes stay the same but the new implementation evaluates them differently, the manifest still passes and its field positions may no longer mean what they did; a reader that cares records the circuit implementation at the pinned block, as TAP-02 §7 recommends. Pinned implementations make a lasting change of the site store fail closed, but cannot reveal an upgrade that restores an accepted implementation within one transaction (TAP-10 §13.8).
 - **State held in a word.** A contract that keeps a circuit's state in a `bytes32` keeps the packed byte string followed by zero bytes. Reading that word as an integer and applying field offsets gives wrong values without any error (§5.1). A decoder also needs `nState` from the manifest: the word does not say how many of its bits are state, and bits above `nState` must be 0.
 - **Saturation and labels.** The largest `log` code stands for every larger amount. If a field also gives that code a label in `values`, an encoder turns a very large amount into the labelled value. A publisher who needs both meanings uses a wider field.
 - **Parsing and display.** A manifest is attacker-controlled input. The size bound, the refusal of repeated and prototype member names and the plain-text rule of §8 limit parser differences, prototype pollution and markup injection. Field names are restricted to ASCII letters, digits and `_`, so two names that look alike are spelled alike; descriptions and labels are free text and can still mislead.
@@ -404,12 +407,13 @@ As long as the factory, the site store and the payment contract can be upgraded,
 
 ### Open questions
 
-1. Whether this text and the Idea in issue #44 should become one TAP, and under whose authorship.
+1. Whether this text and Idea #44 should become one TAP with joint authorship, or two TAPs with a stated boundary between them.
 2. Whether a manifest in a site whose status is `unpaid` may be used (this draft: yes, with the status shown), or whether TAP-11's rule should apply (Rationale).
 3. The key `.well-known/tape-pins.json` and the version member name `tapepins`: both are proposals.
 4. Whether a processor contract should expose the tape-out caller of a circuit in a view function. Today it can be found only in logs, which makes a commitment by the taping-out contract hard to discover with `eth_call`.
-5. How this TAP relates to the "component interface" draft that the Rationale of TAP-20 mentions. That draft was not found in the TAPs repository.
+5. How this TAP relates to the "component interface" draft that the Rationale of TAP-02 mentions. That draft was not found in the TAPs repository; #44 and #50 ask the same question.
 6. Whether `log` belongs in the list of encodings or should be left to profiles.
+7. The member names. This draft uses `name`, `offset`, `width` and `encoding`; the experiment in #44 uses `name`, `port`, `bitOffset`, `bitWidth` and `type`. If the two texts become one, the names are a detail to settle there.
 
 ## Copyright
 
