@@ -203,11 +203,11 @@ The brand system of `docs/brand/README.md` ("Sealed by a die") now runs the whol
   computes: the header while it sits over silicon, the footer, plates (verdicts, the warn plate of the SIMULATION
   banner), terminal blocks, the die, the vault's "Clock and money" band, the circuit bench. Everything people wrote
   stays on paper.
-- **Stylesheets.** `src/styles/all.ts` imports `tokens.css`, `fonts.css`, `base.css`, `components.css`, `pages.css` in
-  that order; `main.tsx` then imports `landing.css` and `motion.css`. `src/style.css` is gone: its type, links, tables,
+- **Stylesheets.** `src/styles/all.ts` imports `tokens.css`, `fonts.css`, `base.css`, `components.css` in that order;
+  `main.tsx` then imports `landing.css` and `motion.css`. `src/style.css` is gone: its type, links, tables,
   controls and page frame are in `base.css`; buttons, labels, clauses, plates, ledgers, the register, terminals, marks
   and tags, stat bands, route bars, cards, switches, the die, the bit editor and the site chrome in `components.css`;
-  the page-specific rules in `pages.css`. The rules for the landing's old markup (`.hero`, `.flow`, `.twostates`,
+  the page-specific rules in `pages.css`, which is not in the entry stylesheet (see "Entry headroom" below). The rules for the landing's old markup (`.hero`, `.flow`, `.twostates`,
   `.tiles`, `ul.live`, `.xword`, `.eyebrow`) were not carried over: the landing is rebuilt with its own `landing.css`.
   Components read semantic tokens only; radius 0, no shadows, grain per material.
 - **Frame** (`src/app.tsx`). A skip button that focuses `<main id="main">`; a fixed header with the Bond and the
@@ -269,6 +269,40 @@ tampered copy per rule):
 Unchanged: no CDN, no external `url()`, no `@import`, no source maps, relative paths only, the static-import walk
 of 3.5. `index.html`'s font preloads count towards first paint, its icons are images, everything else it names is
 entry.
+
+**Entry headroom** (2026-10-07, after the polish pass). The entry had 1.4 KB left (110,638 of 112,000; first paint
+191,586 of 196,000), so any change to the first screen had to find room first. No limit was raised. Two stylesheets
+that the first paint never uses left the entry stylesheet and now travel with the chunks that use them, as
+`landing-paper.css` already did (one `<style>` element at the end of `<head>`, added once when the chunk is
+evaluated, before its component renders; the DeWEB gateway's CSP allows `style-src 'unsafe-inline'`; the text has no
+`url()` and no `@import`, so the budget's rules hold for it):
+
+- `scene.css`, the 3D stage's: `styles/scene.ts`. `Landing.tsx` imports it in parallel with `scene/DieStage.tsx`
+  (`Promise.all`) and calls `sceneStyles()` before setting the stage, so the stage never renders unstyled and nothing
+  waits on a second round trip. Every state the stage has (3D, Canvas 2D fallback, still frame, reduced motion) is
+  rendered by DieStage, so none of its rules is needed earlier; until the stage arrives the chapters are stacked on
+  plain silicon (`landing.css`). Its own chunk (`scene-*.js`, 4.9 KB) falls under the 24,000-byte stage rule. It is not
+  in the DieStage chunk itself, which would then be over that rule.
+- `pages.css`, the inner pages': `styles/pages.ts`, imported and called by `routes/kernelPages.tsx`,
+  `routes/guidePages.tsx`, `routes/Circuit.tsx` and `routes/NotFound.tsx`; the bundler gives it one shared chunk
+  (`pages-*.js`, 5.6 KB). A probe of every route in a real browser found no rule of `pages.css` that matches anything
+  on the landing and none on the processor page, which therefore does not load it. Its `@keyframes stamp` was
+  dropped: the bundled stylesheet already kept only `motion.css`'s, and as a later `<style>` it would have replaced
+  that one everywhere.
+
+Checked by comparing every element's computed style (all properties but the layout-resolved ones) on the landing
+(top and chapter III, with motion, reduced motion and without WebGL) and every page (vault v1 and v2, audit, hostile,
+judge, trust, processor, circuit, 404) at 1440 and 375 px, loaded directly and after in-app navigation in both orders,
+between the build before and after: no difference. `test/scene.test.ts` checks that neither `main.tsx`, `all.ts` nor
+DieStage imports `scene.css` and that the landing loads `styles/scene.ts` beside the stage.
+
+| | Before | After |
+|---|---|---|
+| Entry | 110,638 B (98.8%) | 100,624 B (89.8%): stylesheet 49,670 to 39,548, `index-*.js` +108 for the parallel load |
+| First paint | 191,586 B (97.7%) | 181,572 B (92.6%) |
+| Total | 457,007 B | 457,748 B (+741: two small chunks' wrapping) |
+| DieStage chunk | 21,797 B | 21,890 B |
+| Stage styles, inner-page styles | in the entry | `scene-*.js` 4,893 B, `pages-*.js` 5,592 B, on demand |
 
 ### 3.8 Landing and stage, merged (2026-10-07, redesign phase 1)
 
@@ -366,6 +400,12 @@ Chromium driven through Playwright, production build served as static files by `
 - With `processor` set in `addresses.json` (tried with a stand-in address, then reverted) the landing page shows the processor and probe links and hides the examples.
 
 ### 4.5 Sizes
+
+After the entry-headroom change (2026-10-07, 3.7 "Entry headroom"), `node scripts/check-budget.mjs`: **total 457,748 of
+520,000 (88.0%)**, **entry 100,624 of 112,000 (89.8%)**, **first paint 181,572 of 196,000 (92.6%)**, fonts 89,676 of
+100,000. Entry: stylesheet 39,548, `index-*.js` 36,770, `prefs-*.js` 13,934, `config-*.js` 3,608, `index.html` 2,413,
+`rpc-*.js` 1,705, `preload-helper-*.js` 1,544, `bits-*.js` 1,102. On demand: DieStage 21,890 (limit 24,000), `scene-*.js`
+4,893 (same limit), `pages-*.js` 5,592, Lenis 14,181 (limit 20,000). 11,376 bytes of entry left.
 
 After the redesign's phase 1 (2026-10-07, before the new landing), `node scripts/check-budget.mjs`: **total 367,618 of
 520,000 (70.7%)**, **entry 111,510 of 112,000 (99.6%)**, **first paint 192,458 of 196,000 (98.2%)**, fonts 89,676 of

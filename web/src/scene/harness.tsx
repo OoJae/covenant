@@ -14,6 +14,7 @@ import { useEffect, useState } from 'preact/hooks';
 import '../styles/tokens.css';
 import '../styles/fonts.css';
 import '../styles/motion.css';
+import '../styles/scene.css';
 import { fgModeName, pct256 } from '../kernel/chip.ts';
 import { landingDemo, type LandingDemo } from '../kernel/demo.ts';
 import { DieStage, type StageHandle } from './DieStage.tsx';

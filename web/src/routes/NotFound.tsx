@@ -3,7 +3,11 @@
 
 import { Icon } from '../components/Icon.tsx';
 import { Seal } from '../components/Seal.tsx';
+import { pageStyles } from '../styles/pages.ts';
 import { PageHead } from './shared.tsx';
+
+// The page's rules (.nf__seal, .nf__text) are in pages.css, added when this chunk loads.
+pageStyles();
 
 export function NotFound({ hash }: { hash: string }) {
   return (

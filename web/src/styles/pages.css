@@ -1,5 +1,7 @@
 /* Page by page (plan section D). Each page keeps one choreographed moment: the audit's plates stamp down in
-   sequence, the judge's clauses resolve in order, the hostile page's switch slides, the bench's cells flip. */
+   sequence, the judge's clauses resolve in order, the hostile page's switch slides, the bench's cells flip.
+   Not in the site's stylesheet: styles/pages.ts adds this file as one <style> element when the first page that uses
+   it loads (none of these rules applies to the landing). No url() and no @import. */
 
 /* ------------------------------------------------------------------------------------------------ vault */
 
@@ -195,12 +197,9 @@ table.history td:first-child {
     animation-delay: calc(500ms + var(--i, 0) * 160ms);
   }
 }
-@keyframes stamp {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(1.035);
-  }
-}
+/* `stamp` itself is motion.css's (the verdict plates' stamp). This file must not define it again: it is added after
+   the entry stylesheet (styles/pages.ts), so a second `@keyframes stamp` here would replace motion.css's on every
+   page, the landing's §01 plates included. */
 @keyframes stamp-word {
   from {
     opacity: 0;

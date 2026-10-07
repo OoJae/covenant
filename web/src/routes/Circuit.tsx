@@ -13,7 +13,11 @@ import { ADDR, CHAIN, rpc } from '../config.ts';
 import { beatMethod, castFacts, castLine, chainBeat, loadCircuit, localBeat, sameBeat, type BeatResult, type CircuitData } from '../data/circuit.ts';
 import { fmtInt, shortHex } from '../format.ts';
 import { useAsync } from '../router.ts';
+import { pageStyles } from '../styles/pages.ts';
 import { Failure, Loading, PageHead } from './shared.tsx';
+
+// The bench's rules (.bench, .beat-plate) are in pages.css, added when this chunk loads.
+pageStyles();
 
 type Status = 'checking' | 'match' | 'mismatch' | 'unverified';
 

@@ -5,8 +5,8 @@
 //
 // The entry script carries the hero and the chapters' text (LandingChapters.tsx) and nothing else. When the page
 // mounts, four things load in parallel: the die stage (src/scene/DieStage.tsx), the demonstration (kernel/demo.ts:
-// the simulator and the netlist), §01 (components/TwoStates.tsx) and §02 to §05 (LandingClauses.tsx), the last two
-// with their own styles. Each clause holds a placeholder of about its own height until it arrives, so nothing on
+// the simulator and the netlist), §01 (components/TwoStates.tsx) and §02 to §05 (LandingClauses.tsx), each with its
+// own styles (the stage's beside it, styles/scene.ts; the clauses' with them, styles/landing-paper.ts). Each clause holds a placeholder of about its own height until it arrives, so nothing on
 // screen moves. Until the stage arrives, or if it cannot load, the chapters are stacked on plain silicon. The hero
 // and the stage share one grid cell, so the die starts behind the headline; chapter 0 is a spacer of the hero's
 // height, measured before the first paint.
@@ -25,7 +25,12 @@ import { chapters as chapterList, useLandingFacts } from './LandingChapters.tsx'
 type Stage = typeof import('../scene/DieStage.tsx').DieStage;
 type S01 = typeof import('../components/TwoStates.tsx').TwoStates;
 type Rest = typeof import('./LandingClauses.tsx').Clauses;
-const loadStage = (): Promise<Stage> => import('../scene/DieStage.tsx').then((m) => m.DieStage);
+/** The stage and its styles (styles/scene.ts), fetched side by side; the styles go in before the stage first renders. */
+const loadStage = (): Promise<Stage> =>
+  Promise.all([import('../scene/DieStage.tsx'), import('../styles/scene.ts')]).then(([m, s]) => {
+    s.sceneStyles();
+    return m.DieStage;
+  });
 const loadS01 = (): Promise<S01> => import('../components/TwoStates.tsx').then((m) => m.TwoStates);
 const loadRest = (): Promise<Rest> => import('./LandingClauses.tsx').then((m) => m.Clauses);
 

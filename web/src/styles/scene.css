@@ -1,7 +1,9 @@
 /* The landing's stage (src/scene/DieStage.tsx): a silicon section whose scroll track, 400vh tall (300vh on small
    screens), holds a sticky full-height canvas behind the landing's chapter blocks. Native scroll drives the
    chapters; nothing is scroll-jacked. The canvas is transparent (the silicon ground and its grain show through)
-   and aria-hidden: the chapters' text carries the meaning. Imported by DieStage.tsx itself.
+   and aria-hidden: the chapters' text carries the meaning. Not in the site's stylesheet: styles/scene.ts adds this
+   file as one <style> element, loaded beside DieStage.tsx and added before the stage first renders. No url() and no
+   @import.
 
    Track geometry. DieStage wraps each chapter (the landing's <section class="chapter">) in a block,
    .die-stage__block[data-block="0".."4"]. Block 0, the hero, fills the first screen and scrolls away. Blocks I to

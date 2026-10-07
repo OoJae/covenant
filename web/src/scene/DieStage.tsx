@@ -13,14 +13,15 @@
 //     (fallback.ts, loaded only then).
 //   - The canvas is aria-hidden: the chapters' text carries the meaning. Drawing pauses offscreen and in hidden tabs.
 //
-// Styles: src/styles/scene.css. Data: a LandingDemo (kernel/demo.ts); this chunk never bundles the netlist.
+// Styles: src/styles/scene.css, which travels beside this chunk, not inside it (styles/scene.ts; this chunk stays
+// under its 24 KB limit): whoever loads DieStage calls sceneStyles() before it first renders, as Landing.tsx does.
+// Data: a LandingDemo (kernel/demo.ts); this chunk never bundles the netlist.
 
 import { Fragment, toChildArray, type ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Seal } from '../components/Seal.tsx';
 import type { LandingDemo } from '../kernel/demo.ts';
 import { motionAllowed, onMotionChange } from '../motion/prefs.ts';
-import '../styles/scene.css';
 import type { FlatDie } from './fallback.ts';
 import { RESIZE_SLACK_PX, buildScene, mountScene, type Scene, type SceneData, type SceneOptions } from './index.ts';
 import { span } from './math.ts';

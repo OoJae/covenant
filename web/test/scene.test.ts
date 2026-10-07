@@ -424,7 +424,6 @@ describe('the lazy stage chunk', () => {
     '../kernel/demo.ts',
     '../kernel/model.ts',
     '../motion/prefs.ts',
-    '../styles/scene.css',
     '@covenant/tap20',
     '@covenant/dieshot',
     './fallback.ts',
@@ -446,6 +445,15 @@ describe('the lazy stage chunk', () => {
 
   test('the fallback is loaded on demand only', () => {
     expect(read('DieStage.tsx')).toMatch(/import\('\.\/fallback\.ts'\)/);
+  });
+
+  test('its styles travel beside it, in neither the entry stylesheet nor the chunk', () => {
+    // scene.css is added as a <style> element by styles/scene.ts, which the landing loads in parallel with the stage
+    // and runs before the stage first renders (web/NOTES.md 3.7).
+    const src = (f: string): string => readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8');
+    for (const f of ['main.tsx', 'styles/all.ts', 'scene/DieStage.tsx']) expect(src(f), f).not.toMatch(/^import [^;]*scene\.css/m);
+    expect(src('styles/scene.ts')).toMatch(/import css from '\.\/scene\.css\?inline';/);
+    expect(src('routes/Landing.tsx')).toMatch(/Promise\.all\(\[import\('\.\.\/scene\/DieStage\.tsx'\), import\('\.\.\/styles\/scene\.ts'\)\]\)[\s\S]{0,80}sceneStyles\(\)/);
   });
 });
 
