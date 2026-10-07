@@ -1,4 +1,5 @@
-// Small display pieces shared by the kernel pages: route bars, check marks, stat tiles, the simulation banner.
+// Small display pieces shared by the kernel pages: route bars, check marks, stat instruments, the simulation
+// banner and clause heads. Styles: src/styles/components.css.
 
 import type { ComponentChildren } from 'preact';
 import { SIMULATION } from '../config.ts';
@@ -12,7 +13,7 @@ export function RouteBar({ view, compact }: { view: RouteView; compact?: boolean
         <div class="bar">
           <span class="seg res" style={{ flex: 1 }} />
         </div>
-        <p class="muted">
+        <p class="muted small">
           Malformed shares (buy {view.buy}, hold {view.hold}, allowance {view.allow}, reserve {view.res}; they must sum to 256). The
           kernel treats this as 100% reserve.
         </p>
@@ -45,30 +46,41 @@ export function RouteBar({ view, compact }: { view: RouteView; compact?: boolean
   );
 }
 
-/** A check mark: true, false, or null for "could not be checked". */
+/** A check mark in a square cell: true, false, or null for "could not be checked". */
 export function Mark({ ok }: { ok: boolean | null | undefined }) {
-  if (ok === true) return <span class="mark ok" aria-label="yes">✓</span>;
-  if (ok === false) return <span class="mark bad" aria-label="no">✗</span>;
+  if (ok === true)
+    return (
+      <span class="mark ok" role="img" aria-label="yes">
+        ✓
+      </span>
+    );
+  if (ok === false)
+    return (
+      <span class="mark bad" role="img" aria-label="no">
+        ✗
+      </span>
+    );
   return (
-    <span class="mark wait" aria-label="not checked">
+    <span class="mark wait" role="img" aria-label="not checked">
       ?
     </span>
   );
 }
 
-/** One line of a checklist. */
+/** One line of a checklist: a ledger row. */
 export function CheckRow({ ok, children, note }: { ok: boolean | null | undefined; children: ComponentChildren; note?: ComponentChildren }) {
   return (
     <li class="checkrow">
       <Mark ok={ok} />
       <div>
-        {children}
-        {note && <div class="muted">{note}</div>}
+        <div class="checkrow__claim">{children}</div>
+        {note && <div class="checkrow__note">{note}</div>}
       </div>
     </li>
   );
 }
 
+/** One instrument of a stat band: a label, a reading, a line of context. */
 export function Stat({ label, value, sub }: { label: string; value: ComponentChildren; sub?: ComponentChildren }) {
   return (
     <div class="stat">
@@ -79,23 +91,28 @@ export function Stat({ label, value, sub }: { label: string; value: ComponentChi
   );
 }
 
-/** Shown on every page when the site reads the local fork fixture instead of X Layer. */
+/** Shown on every page when the site reads the local fork fixture instead of X Layer: a warn plate. */
 export function SimBanner() {
   if (!SIMULATION) return null;
   return (
-    <div class="simbanner" role="note">
+    <div class="plate warn silicon simbanner" role="note">
       <strong>SIMULATION</strong> This build reads a local anvil fork of X Layer (block {SIMULATION.block}) made by{' '}
       <span class="mono">web/scripts/fork-fixture.sh</span>. Nothing shown here happened on X Layer.
     </div>
   );
 }
 
-/** A section heading with a small silicon-style label. */
+/**
+ * A clause head: the section number hangs in the gutter (§01), the title is set in the display face. Put it first
+ * in a `<section class="clause">`; both parts are grid items of the clause.
+ */
 export function Pin({ id, children }: { id: string; children: ComponentChildren }) {
   return (
-    <h2 class="pin">
-      <span class="pinid">{id}</span>
-      {children}
-    </h2>
+    <>
+      <span class="clause__no" aria-hidden="true">
+        §{id}
+      </span>
+      <h2 class="clause__title">{children}</h2>
+    </>
   );
 }

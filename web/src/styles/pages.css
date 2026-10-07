@@ -1,0 +1,395 @@
+/* Page by page (plan section D). Each page keeps one choreographed moment: the audit's plates stamp down in
+   sequence, the judge's clauses resolve in order, the hostile page's switch slides, the bench's cells flip. */
+
+/* ------------------------------------------------------------------------------------------------ vault */
+
+/* The die breaks the grid as a silicon plate, with the live Seal beside it naming its fields. */
+.vault-chip,
+.audit-die {
+  display: grid;
+  gap: var(--sp-5);
+  padding: var(--sp-5);
+  border: var(--hairline) solid var(--rule);
+}
+.vault-chip .die,
+.audit-die .die {
+  padding: 0;
+  border: 0;
+}
+.vault-chip .row {
+  margin-top: var(--sp-3);
+  align-items: flex-start;
+}
+.vault-chip .row .hover {
+  flex: 1 1 16rem;
+  min-height: 0;
+}
+.vault-chip__seal {
+  display: grid;
+  gap: var(--sp-3);
+  align-content: start;
+  justify-items: start;
+}
+.vault-chip__field {
+  min-height: 4.5em;
+  font-size: var(--step-small);
+}
+@media (min-width: 900px) {
+  .vault-chip {
+    grid-template-columns: minmax(0, 1fr) 13rem;
+  }
+  .vault-chip__seal {
+    padding-left: var(--sp-5);
+    border-left: var(--hairline) solid var(--rule);
+  }
+}
+
+.statebox {
+  display: grid;
+  gap: var(--sp-3);
+}
+table.fields td,
+table.fields th,
+table.match td,
+table.clip td,
+table.limits td,
+table.limits th {
+  white-space: normal;
+}
+table.fields th {
+  width: 6rem;
+  font-weight: 400;
+}
+table.fields td.num {
+  width: 5.5rem;
+}
+table.clip td:first-child {
+  min-width: 10rem;
+}
+
+/* History: the settle number stays in view while the table scrolls sideways on a phone. */
+table.history th:first-child,
+table.history td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding-inline: 0 var(--sp-4);
+  background-color: var(--bg);
+}
+
+/* The chip against a fixed split: bars in the paper route hues, sitting on the deed itself. */
+.cf {
+  display: grid;
+  gap: var(--sp-4);
+}
+.cfrow {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: var(--sp-1) var(--sp-4);
+  align-items: center;
+}
+.cfname {
+  font-weight: var(--wght-body-strong);
+}
+.cf .bar {
+  height: 1.25rem;
+  background: none;
+  box-sizing: content-box;
+  border-bottom: var(--hairline) solid var(--rule-strong);
+}
+.cfrow .seg {
+  flex: none;
+}
+.cfrow .cfnums {
+  grid-column: 2;
+  color: var(--fg-2);
+}
+@media (max-width: 639px) {
+  .cfrow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cfrow .cfnums {
+    grid-column: 1;
+  }
+}
+
+/* Kernel v2: how the kernel shows USD₮0 to its chip. */
+.codeshift {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  padding: var(--sp-5);
+  background: var(--bg-2);
+  border-left: var(--wire) solid var(--rule-strong);
+}
+.codeshift p,
+.codeshift ul {
+  max-width: var(--measure);
+}
+
+/* ------------------------------------------------------------------------------------------------ audit */
+
+.evaluators {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.evaluator {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.evaluator__head {
+  display: grid;
+  gap: var(--sp-1);
+}
+.evaluator__rows {
+  display: grid;
+  gap: var(--sp-3);
+}
+.evaluator__rows dd {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+.evaluator .verdict {
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: var(--hairline) solid var(--rule);
+}
+.evaluator .verdict strong {
+  font-size: 1.125rem;
+}
+.audit-sum {
+  --i: 4;
+}
+
+/* The page's beat: each answer stamps down 160 ms after the one before, then the verdict. Once, on arrival. */
+@media (prefers-reduced-motion: no-preference) {
+  .evaluator,
+  .audit-sum {
+    animation: stamp 700ms var(--ease-reveal) both;
+    animation-delay: calc(250ms + var(--i, 0) * 160ms);
+  }
+  .evaluator .verdict strong,
+  .beat-plate .verdict strong,
+  .judgecheck__result .mark {
+    animation: stamp-word 500ms var(--ease-reveal) both;
+  }
+  .evaluator .verdict strong {
+    animation-delay: calc(500ms + var(--i, 0) * 160ms);
+  }
+}
+@keyframes stamp {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(1.035);
+  }
+}
+@keyframes stamp-word {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@media (min-width: 900px) {
+  .audit-die {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+.audit-seals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+}
+.audit-seals figure {
+  display: grid;
+  gap: var(--sp-2);
+}
+.audit-seals__arrow {
+  color: var(--accent);
+}
+.audit-seals button {
+  flex-basis: 100%;
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-6);
+  padding-top: var(--sp-4);
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------------------------------------ hostile */
+
+.controls {
+  display: grid;
+  gap: var(--sp-2) var(--grid-gap);
+  align-items: center;
+}
+@media (min-width: 640px) {
+  .controls {
+    grid-template-columns: 14rem minmax(0, 1fr);
+  }
+  .controls > .segmented {
+    justify-self: start;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ judge */
+
+ol.judge {
+  list-style: none;
+  padding-block: 0;
+}
+.judgecheck {
+  margin: 0;
+  transition: border-color var(--dur-toggle) var(--ease-toggle);
+}
+/* As each check resolves, the rule above its clause takes the verdict's colour: the list resolves top down. */
+.judgecheck[data-state='pass'] {
+  border-top-color: var(--ok);
+}
+.judgecheck[data-state='fail'],
+.judgecheck[data-state='error'] {
+  border-top-color: var(--bad);
+}
+.judgecheck[data-state='running'] {
+  border-top-color: var(--accent);
+}
+.judgecheck__run {
+  margin-top: var(--sp-2);
+}
+.judgecheck__result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.jlines {
+  display: grid;
+  gap: var(--sp-2);
+  padding-left: 1.1em;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  list-style: square;
+}
+.jlines li {
+  margin: 0;
+}
+.judge-run {
+  display: grid;
+  gap: var(--sp-3);
+  justify-items: start;
+  margin-top: var(--sp-2);
+}
+.judge-foot {
+  padding-top: var(--sp-6);
+}
+
+/* ------------------------------------------------------------------------------------------------ trust */
+
+.party .clause__no {
+  color: var(--fg-2);
+}
+.cancannot {
+  display: grid;
+  gap: var(--sp-6) var(--grid-gap);
+  margin-top: var(--sp-3);
+}
+@media (min-width: 768px) {
+  .cancannot {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.deed {
+  border-top: var(--hairline) solid var(--rule-strong);
+}
+/* What the code guarantees sits under the page's one gold rule. */
+.deed--cannot {
+  border-top: var(--wire) solid var(--accent);
+}
+.deed h3 {
+  padding-top: var(--sp-3);
+}
+.deed--cannot h3 {
+  color: var(--fg);
+}
+.deed ul,
+.party > ul {
+  list-style: none;
+  padding: 0;
+}
+.deed li,
+.party > ul > li {
+  margin: 0;
+  padding: var(--sp-3) 0;
+  border-bottom: var(--hairline) solid var(--rule);
+}
+
+/* ------------------------------------------------------------------------------------------------ circuit bench */
+
+.bench .die {
+  background-color: var(--bg-2);
+}
+.bench > .plate,
+.bench > .terminal {
+  margin-top: var(--sp-2);
+}
+.beat-plate .hexes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-1) var(--grid-gap);
+}
+.beat-plate .hexes dd {
+  margin-bottom: var(--sp-2);
+  font-size: var(--step-small);
+}
+@media (min-width: 640px) {
+  .beat-plate .hexes {
+    grid-template-columns: 13rem minmax(0, 1fr);
+  }
+  .beat-plate .hexes dd {
+    margin: 0;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ not found */
+
+.nf__seal {
+  display: grid;
+  gap: var(--sp-3);
+  justify-items: start;
+  padding: var(--sp-6);
+  border: var(--hairline) solid var(--rule);
+}
+.nf__text {
+  display: grid;
+  gap: var(--sp-5);
+  align-content: start;
+  max-width: var(--measure);
+}
+@media (min-width: 768px) {
+  .nf__seal,
+  .nf__text {
+    grid-row: 1;
+  }
+  .nf__seal {
+    grid-column: 1 / 4;
+  }
+  .nf__text {
+    grid-column: 4 / -1;
+  }
+}
+@media (min-width: 1024px) {
+  .nf__seal {
+    grid-column: 3 / 6;
+  }
+  .nf__text {
+    grid-column: 6 / 12;
+  }
+}

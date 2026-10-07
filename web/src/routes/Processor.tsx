@@ -3,11 +3,12 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { Address } from '../components/common.tsx';
+import { Icon } from '../components/Icon.tsx';
 import { ADDR, CHAIN, rpc } from '../config.ts';
 import { loadCircuits, loadProcessor, type CircuitRow, type ProcessorData } from '../data/processor.ts';
 import { fmtInt, fmtUnits } from '../format.ts';
 import { useAsync } from '../router.ts';
-import { Failure, Loading } from './shared.tsx';
+import { Failure, Loading, PageHead } from './shared.tsx';
 
 const PAGE = 100;
 
@@ -45,21 +46,24 @@ function View({ p }: { p: ProcessorData }) {
 
   const left = p.supplyCap !== null && p.minted !== null ? p.supplyCap - p.minted : null;
   return (
-    <article>
-      <p class="crumbs">
-        <a href="#/">Covenant</a> / processor
-      </p>
-      <h1>
-        {p.name || 'Unnamed processor'} <span class="muted">{p.symbol}</span>
-      </h1>
-      <p class="lede">
-        A TapeOut processor on {CHAIN.name}: an ERC-721 contract that stores circuits, and an ERC-1155 contract whose transistors are
-        burned, one per gate, to tape a circuit out.
-      </p>
+    <article class="page page--processor">
+      <PageHead
+        crumbs={
+          <>
+            <a href="#/">Covenant</a> / processor
+          </>
+        }
+        title={
+          <>
+            {p.name || 'Unnamed processor'} <em>{p.symbol}</em>
+          </>
+        }
+        lede={`A TapeOut processor on ${CHAIN.name}: an ERC-721 contract that stores circuits, and an ERC-1155 contract whose transistors are burned, one per gate, to tape a circuit out.`}
+      />
 
-      <section>
-        <h2>Terms</h2>
-        <dl class="facts">
+      <section class="clause">
+        <h2 class="clause__title">Terms</h2>
+        <dl class="facts ledger">
           <dt>Processor</dt>
           <dd>
             <Address value={p.address} full />{' '}
@@ -95,8 +99,8 @@ function View({ p }: { p: ProcessorData }) {
         </p>
       </section>
 
-      <section>
-        <h2>Circuits</h2>
+      <section class="clause">
+        <h2 class="clause__title">Circuits</h2>
         {p.circuits === 0 && <p>No circuit has been taped out on this processor.</p>}
         {rows.length > 0 && (
           <div class="scroll">
@@ -131,9 +135,14 @@ function View({ p }: { p: ProcessorData }) {
         {busy && <Loading what="circuits" />}
         {error && <Failure error={error} retry={() => more(next)} />}
         {!busy && !error && next <= p.circuits && (
-          <button type="button" onClick={() => more(next)}>
-            Show circuits {next} to {Math.min(p.circuits, next + PAGE - 1)}
-          </button>
+          <p>
+            <button type="button" class="btn btn--secondary press" onClick={() => more(next)}>
+              Show circuits {next} to {Math.min(p.circuits, next + PAGE - 1)}
+              <span class="btn__icon">
+                <Icon name="arrow-down" />
+              </span>
+            </button>
+          </p>
         )}
         <p class="muted">
           Read with batched <span class="mono">circuitInfo</span> and <span class="mono">ownerOf</span> calls, {PAGE} circuits per request.

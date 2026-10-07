@@ -1,6 +1,6 @@
 # Web and packages: notes
 
-Scope: `packages/tap20`, `packages/chain`, `packages/dieshot`, `web`. Written 2026-10-04; kernel pages, judge guide, trust model and design pass added 2026-10-06; kernel v2 (USD₮0 quote) support added 2026-10-06 (section 3.6).
+Scope: `packages/tap20`, `packages/chain`, `packages/dieshot`, `web`. Written 2026-10-04; kernel pages, judge guide, trust model and design pass added 2026-10-06; kernel v2 (USD₮0 quote) support added 2026-10-06 (section 3.6); the brand system wired app-wide 2026-10-07 (section 3.7).
 Everything here reads X Layer mainnet (chain 196) with `eth_call` only. Nothing sends a transaction, holds a key or loads a wallet library.
 
 ## 1. What exists
@@ -27,7 +27,8 @@ Files worth knowing in `web/`:
 - `src/components/TwoStates.tsx`: the landing page's demonstration (same inputs, two reachable states, two routes).
 - `src/routes/Vault.tsx`, `Audit.tsx`, `Hostile.tsx` (on demand, one chunk); `Judge.tsx`, `Trust.tsx` (on demand, another chunk).
 - `src/data/processor.ts`, `src/data/circuit.ts`, `src/routes/Circuit.tsx`: the circuit reader, unchanged in substance.
-- `scripts/check-budget.mjs`: fails the build if the output breaks the size budget or is not self-contained. Now also counts every script the entry imports statically (see 3.5).
+- `scripts/check-budget.mjs`: fails the build if the output breaks the size budget or is not self-contained. Now also counts every script the entry imports statically (see 3.5), and the font, image, first-paint and on-demand rules of 3.7.
+- `src/styles/`: the brand tokens, faces and the site's stylesheets (3.7); `src/components/Icon.tsx`: the Bond, the wordmark and the icons, inline.
 - `scripts/verify-live.ts`: the circuit reader from a terminal. `scripts/verify-kernel.ts`: the landing demonstration and every record of a kernel, four ways, from a terminal.
 - `scripts/fork-fixture.sh`: the local fork with a kernel v1 and a kernel v2 that have records (section 2).
 
@@ -113,7 +114,7 @@ It writes `web/.fork/deployment.json` (git-ignored): the deployment file's shape
 - After a beat the new state becomes the state for the next beat. Pressing Clock twice with the same inputs is the "same inputs, two states" demonstration. A row of the beats table can be loaded back into the editors.
 - The plate shows MATCH only when both the outputs and the new state returned by the chain equal the local ones. If the chain cannot be asked the plate says NOT CHECKED, never MATCH.
 - "Not found" (the chain answered that the circuit or processor does not exist) is shown differently from "could not read the chain".
-- Colours: page follows `prefers-color-scheme` unless the header toggle chose light or dark (a `data-theme` attribute, remembered in localStorage when allowed); the die has a dark and a light palette and switches live with either. `prefers-reduced-motion` skips the animation.
+- Colours: two materials, paper and silicon, and no theme toggle (3.7; until 2026-10-07 the page followed `prefers-color-scheme` or a header toggle). The die is always drawn on silicon. `prefers-reduced-motion` skips the animation.
 - All strings read from the chain (names, story) are rendered as text. Links are built only from addresses that passed a hex check.
 - The icon is an inline `data:` SVG so no `/favicon.ico` request is made.
 
@@ -129,7 +130,7 @@ It writes `web/.fork/deployment.json` (git-ignored): the deployment file's shape
 - **Counterfactual** is `Lens.counterfactual` over records 1..count, paged with `counterfactualFrom` in pages of 400 so no `eth_call` grows too large.
 - **Chunk accounting**: Vite 8 (rolldown) splits a module that the entry imports statically into its own chunk when a lazy chunk also imports it, so the entry is index.js plus the scripts it imports. `check-budget.mjs` used to count only the files index.html names; it now follows `import … from "./x.js"` through every script reached. That raised the measured entry (honestly) and is why the judge and trust pages moved behind `import()`.
 - **RPC**: `createRpc` now also falls back to `application/json` when an endpoint answers the `text/plain` form with HTTP 200 and a request-level error (`-32600` / `-32700`, no id). Anvil does that; it closes the open item of 5 below for such endpoints.
-- **Design**: a die-shot palette (logic gold = buy and lock, wire blue = allowance, latch teal = reserve) on a faint routing grid; chip-package cards; numbered section pins; one-sentence lede on every page; light and dark; every page checked at 360 px.
+- **Design** (2026-10-06, replaced by 3.7): a die-shot palette on a faint routing grid; chip-package cards; numbered section pins; one-sentence lede on every page; light and dark; every page checked at 360 px.
 
 ### 3.6 kernel v2 (USD₮0 quote)
 
@@ -192,6 +193,83 @@ lens}`, `.flagshipV2 {chipId, kernel}`). Without them nothing v2 appears except 
   anvil's public test key 0 before). Revenue on the fork is a plain USD₮0 `transfer` to the kernel from an unrelated
   account: what an x402 settlement amounts to on chain (the EIP-3009 path itself is in `contracts/core-v2`'s fork tests).
 
+### 3.7 Design system and budget (2026-10-07, redesign phase 1)
+
+The brand system of `docs/brand/README.md` ("Sealed by a die") now runs the whole site. What changed, and why:
+
+- **Two materials, no toggle.** `src/theme.tsx` and its header button are gone, and no stylesheet follows
+  `prefers-color-scheme` or a `data-theme` attribute (`test/tokens.test.ts` checks both). The page is paper; a
+  surface turns to silicon with `class="silicon"`, which re-points the semantic tokens. Silicon is what the chip
+  computes: the header while it sits over silicon, the footer, plates (verdicts, the warn plate of the SIMULATION
+  banner), terminal blocks, the die, the vault's "Clock and money" band, the circuit bench. Everything people wrote
+  stays on paper.
+- **Stylesheets.** `src/styles/all.ts` imports `tokens.css`, `fonts.css`, `base.css`, `components.css`, `pages.css` in
+  that order; `main.tsx` then imports `landing.css` and `motion.css`. `src/style.css` is gone: its type, links, tables,
+  controls and page frame are in `base.css`; buttons, labels, clauses, plates, ledgers, the register, terminals, marks
+  and tags, stat bands, route bars, cards, switches, the die, the bit editor and the site chrome in `components.css`;
+  the page-specific rules in `pages.css`. The rules for the landing's old markup (`.hero`, `.flow`, `.twostates`,
+  `.tiles`, `ul.live`, `.xword`, `.eyebrow`) were not carried over: the landing is rebuilt with its own `landing.css`.
+  Components read semantic tokens only; radius 0, no shadows, grain per material.
+- **Frame** (`src/app.tsx`). A skip button that focuses `<main id="main">`; a fixed header with the Bond and the
+  outlined wordmark (`components/Icon.tsx`, inline SVG, no font needed), transparent over full-width silicon (one
+  IntersectionObserver whose root is the strip the header covers) and deed with a hairline over paper, crossfaded by
+  opacity; the nav's current page carries the gold wire (scaleX). Below 768 px a Menu button opens a modal `<dialog>`
+  on silicon (`components/MenuSheet.tsx`, loaded on first hover, focus or press): focus stays inside, Esc closes it,
+  focus returns to the button, links in the display face rise once. The footer is a silicon colophon: the lockup, the
+  honesty line ("Unaudited. Adoption is zero."), where the copy on X Layer lives, the font credits, the source, the
+  page links, and the flagship kernel's live Seal, read with one `eth_call` of `state()` when the footer comes near the
+  screen (`components/flagshipState.ts`, on demand), the cold seal until then or if the read fails. `<main>` is keyed by
+  the route and takes `motion/transitions.ts`'s `pageEnter` class; nothing else in the frame animates the route change.
+- **Pages.** Every page opens with `PageHead` (`routes/shared.tsx`): crumbs in the clause gutter, the title in Bodoni
+  with one clause in italic, rising by line once (`RevealLines`), the lede. `Pin` is now a clause head: the § number
+  hangs in the gutter. Per page: vault (ledger of checks; the silicon "Clock and money" band; the envelope's terms
+  numbered as clauses by a CSS counter; the die as a silicon plate breaking the grid with the live Seal beside it,
+  naming the Flow Governor's fields on hover; counterfactual bars in the paper route hues on the deed itself; the
+  history table's first column sticky on a phone); audit (the four answers as four plates that stamp down in sequence,
+  then the verdict; the state before and after as Seals; terminal blocks); hostile (a segmented v1/v2 switch whose thumb
+  slides with the toggle ease, `components/Segmented.tsx`); judge ("Run the eight checks" runs them in order and each
+  clause resolves as its reads return, its rule taking the verdict's colour); trust (each party a deed, Can and Cannot,
+  Cannot under the page's one gold rule); processor and circuit (ledger facts, the bench on silicon, bit cells drawn
+  as the Seal's cells with pin 1 in gold, a cell that changes flips with scaleY over 200 ms); 404 (the cold Seal, the
+  plain line, a button home); loading (the Seal filling in level order).
+- **The die on silicon.** `Die.tsx` builds a theme from the tokens (logic that holds 1 in Bond gold, latches in quartz,
+  cells that hold 0 at quartz 8%, wires in quartz and the state loop in gold at the renderer's 8%) and passes it to
+  `createDieShot`; `packages/dieshot` is unchanged. The renderer draws every lit pad in one colour, so output pads
+  cannot take a route hue each without changing the package; lit pads use the reserve hue.
+- **Wording.** The trust page's "none is bound yet" was no longer true (read on chain 2026-10-07: kernel v1 is bound to
+  `0xc562…eeee` with 35 settles, kernel v2 to `0x7f53…eeee` with 36); it now says the only tokens bound to Covenant's
+  kernels are the two the team launched itself. "Adoption is zero" and "Unaudited" are kept and also in the footer.
+- **Entry savings** to fit the frame and the brand stylesheet: the processor page, the 404 page, the menu sheet and the
+  footer's chain read are on-demand chunks; `vite.config.ts` bundles only the fields of `deployments/xlayer.json` that
+  `src/config.ts` reads (minus 5 KB; a field added to `Deployment` there must be added to `DEPLOYMENT_READ` too); the
+  wordmark path is rounded to whole font units and written with relative commands (3.7 KB instead of 8.4 KB, the same
+  outline, checked by replaying both); `shared.tsx` tells `Missing` errors by name, so the processor loader and keccak
+  stay out of the entry.
+- **Fonts.** A `vite.config.ts` plugin writes `<link rel=preload as=font type=font/woff2 crossorigin>` for the hashed
+  Bodoni roman, Bodoni italic and Instrument Sans files after bundling (Fragment Mono is not preloaded). With
+  `font-display: optional` in `fonts.css`, nothing shifts when a face is late.
+- **index.html.** The Bond (16 px cut) on wafer as an inline `data:` SVG icon, `theme-color` #0B0D10, `color-scheme`
+  light, the README tagline as description, Open Graph and Twitter `summary_large_image` tags naming
+  `https://oojae.github.io/covenant/og.jpg` (the image itself comes later), and `public/apple-touch-icon.png` (180 px,
+  171 bytes, three colours).
+
+**Budget** (`scripts/check-budget.mjs`; `test/budget.test.ts` runs it against made-up builds, a clean one and one
+tampered copy per rule):
+
+| Rule | Value | Why |
+|---|---|---|
+| Total | 520,000 B | the four faces (89,676), the OG image, the 3D stage and Lenis on demand; a DeWEB republish costs gas per byte |
+| Entry | 112,000 B, fonts excluded | the frame (header, menu, footer, wordmark), the brand stylesheet and the landing |
+| First paint | 196,000 B | the entry plus the preloaded faces (80,948 B) |
+| Fonts | woff2 only; each at most 40,000; all at most 100,000; each referenced by a stylesheet; at most 3 preloaded | the subsets of `docs/brand/tools/build_fonts.py`; an unreferenced font is dead weight on chain; every preload delays first paint |
+| Images | only `og.jpg` (at most 110,000) and `apple-touch-icon.png` (at most 8,000), at the root | crawlers and iOS ask for them by name; every mark on the site is inline SVG |
+| On-demand | any chunk named `scene*` or `DieStage*` at most 24,000; the Lenis chunk at most 20,000 | the 3D stage and smooth scroll must not grow unnoticed |
+| Hosts | also `oojae.github.io` and `1-2-283.tapekit.org` | the OG tags name the image on GitHub Pages; the footer links the copy on DeWEB |
+
+Unchanged: no CDN, no external `url()`, no `@import`, no source maps, relative paths only, the static-import walk
+of 3.5. `index.html`'s font preloads count towards first paint, its icons are images, everything else it names is
+entry.
+
 ## 4. Verified
 
 All on 2026-10-04 from this machine, read-only.
@@ -242,6 +320,12 @@ Chromium driven through Playwright, production build served as static files by `
 - With `processor` set in `addresses.json` (tried with a stand-in address, then reverted) the landing page shows the processor and probe links and hides the examples.
 
 ### 4.5 Sizes
+
+After the redesign's phase 1 (2026-10-07, before the new landing), `node scripts/check-budget.mjs`: **total 367,618 of
+520,000 (70.7%)**, **entry 111,510 of 112,000 (99.6%)**, **first paint 192,458 of 196,000 (98.2%)**, fonts 89,676 of
+100,000. Entry: `index-*.js` 73,933, stylesheet 33,496 (tokens, faces, base, components, pages and motion),
+`rpc-*.js` 1,705, `index.html` 2,376. The landing that replaces the current one has 490 bytes of entry left as the rule
+stands. Tampered builds are now a test (`test/budget.test.ts`, 11 cases).
 
 After kernel v2 support (2026-10-06, evening), `node scripts/check-budget.mjs`: **total 235,094 of 240,000 (98.0%)**,
 **entry 84,330 of 96,000 (87.8%)**. Entry `index-*.js` 69,061 (`.site` no longer bundled: minus 2.7 KB; the shift

@@ -8,11 +8,12 @@ import { byteLength, bytesToHex, getBit, packBits, unpackBits, type Netlist } fr
 import { BitEditor } from '../components/BitEditor.tsx';
 import { Address, Command, CopyButton } from '../components/common.tsx';
 import { Die } from '../components/Die.tsx';
+import { Icon } from '../components/Icon.tsx';
 import { ADDR, CHAIN, rpc } from '../config.ts';
 import { beatMethod, castFacts, castLine, chainBeat, loadCircuit, localBeat, sameBeat, type BeatResult, type CircuitData } from '../data/circuit.ts';
 import { fmtInt, shortHex } from '../format.ts';
 import { useAsync } from '../router.ts';
-import { Failure, Loading } from './shared.tsx';
+import { Failure, Loading, PageHead } from './shared.tsx';
 
 type Status = 'checking' | 'match' | 'mismatch' | 'unverified';
 
@@ -109,20 +110,23 @@ function Bench({ c }: { c: CircuitData }) {
   const tooBig = nl.gateCount * GAS_PER_GATE > CALL_GAS_CAP;
 
   return (
-    <article>
-      <p class="crumbs">
-        <a href="#/">Covenant</a> / <a href={`#/p/${c.processor}`}>{c.processorName || 'processor'}</a> / circuit {c.id.toString()}
-      </p>
-      <h1>
-        {c.processorName || 'Circuit'} #{c.id.toString()}
-      </h1>
-      <p class="lede">
-        {fmtInt(nl.gateCount)} gates, read from {CHAIN.name} as {fmtInt(nl.byteLength)} bytes. Everything below is computed in your
-        browser from those bytes; the chain is asked only to confirm.
-      </p>
+    <article class="page page--circuit">
+      <PageHead
+        crumbs={
+          <>
+            <a href="#/">Covenant</a> / <a href={`#/p/${c.processor}`}>{c.processorName || 'processor'}</a> / circuit {c.id.toString()}
+          </>
+        }
+        title={
+          <>
+            {c.processorName || 'Circuit'} <em>#{c.id.toString()}</em>
+          </>
+        }
+        lede={`${fmtInt(nl.gateCount)} gates, read from ${CHAIN.name} as ${fmtInt(nl.byteLength)} bytes. Everything below is computed in your browser from those bytes; the chain is asked only to confirm.`}
+      />
 
-      <section>
-        <h2>Facts</h2>
+      <section class="clause">
+        <h2 class="clause__title">Facts</h2>
         <dl class="facts">
           <dt>Pins</dt>
           <dd>
@@ -194,8 +198,8 @@ function Bench({ c }: { c: CircuitData }) {
         )}
       </section>
 
-      <section>
-        <h2>Die shot</h2>
+      <section class="clause band silicon bench">
+        <h2 class="clause__title">Die shot</h2>
         <Die
           netlist={nl}
           onReady={(d) => {
@@ -223,8 +227,8 @@ function Bench({ c }: { c: CircuitData }) {
         </p>
       </section>
 
-      <section>
-        <h2>Run one beat</h2>
+      <section class="clause band silicon bench">
+        <h2 class="clause__title">Run one beat</h2>
         {nl.nIn > 0 ? (
           <BitEditor label="Inputs" noun="input" n={nl.nIn} value={inputs} onChange={setInputs} />
         ) : (
@@ -236,8 +240,11 @@ function Bench({ c }: { c: CircuitData }) {
           <p class="muted">This circuit has no state: its outputs depend on the inputs alone.</p>
         )}
         <div class="row">
-          <button type="button" class="primary" onClick={clock}>
+          <button type="button" class="btn btn--primary press" onClick={clock}>
             Clock: run one beat
+            <span class="btn__icon">
+              <Icon name="arrow-right" />
+            </span>
           </button>
           <span class="muted">
             Runs here, then asks the chain the same question with a free <span class="mono">{method}</span> call.
@@ -251,7 +258,7 @@ function Bench({ c }: { c: CircuitData }) {
           </p>
         )}
 
-        {shown ? <Plate beat={shown} nState={nl.nState} method={method} /> : <div class="plate idle">No beat run yet.</div>}
+        {shown ? <Plate key={shown.n} beat={shown} nState={nl.nState} method={method} /> : <div class="plate idle">No beat run yet.</div>}
 
         <Command
           label={shown ? `The same check from a terminal (beat ${shown.n}; needs Foundry's cast):` : "What the check will ask the chain (needs Foundry's cast):"}
@@ -266,8 +273,8 @@ function Bench({ c }: { c: CircuitData }) {
       </section>
 
       {beats.length > 0 && (
-        <section>
-          <h2>Beats on this page</h2>
+        <section class="clause">
+          <h2 class="clause__title">Beats on this page</h2>
           <div class="scroll">
             <table>
               <thead>
@@ -295,7 +302,7 @@ function Bench({ c }: { c: CircuitData }) {
                     <td>
                       <button
                         type="button"
-                        class="small"
+                        class="small press"
                         title="Put this beat's inputs and starting state back into the editors"
                         onClick={() => {
                           setInputs(b.inputs);
@@ -324,9 +331,10 @@ function Plate({ beat, nState, method }: { beat: Beat; nState: number; method: s
   const chain = beat.chain;
   const statesAgree = chain !== null && chain.newState === beat.local.newState;
   return (
-    <div class={`plate ${TAG[beat.status]}`} role="status">
+    <div class={`plate silicon beat-plate ${TAG[beat.status]}`} role="status">
       <div class="verdict">
-        <strong>{TITLE[beat.status]}</strong>
+        {/* a new element per status, so the verdict stamps in when the chain answers */}
+        <strong key={beat.status}>{TITLE[beat.status]}</strong>
         <span>
           beat {beat.n}
           {beat.status === 'match' && `: your browser and the chain's ${method}() agree bit for bit`}

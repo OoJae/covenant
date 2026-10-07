@@ -12,14 +12,15 @@ import { Address, Command } from '../components/common.tsx';
 import { Die } from '../components/Die.tsx';
 import { CodeShift, EnvelopeWords } from '../components/EnvelopeWords.tsx';
 import { CheckRow, Pin, SimBanner, Stat } from '../components/kit.tsx';
+import { Seal } from '../components/Seal.tsx';
 import { CAST_RPC, CHAIN, COVENANT, REPO, rpc } from '../config.ts';
 import { loadCounterfactual, loadNetlist, loadRecords, loadVault, quoteLegIn, type RecordRow, type VaultData } from '../data/kernel.ts';
-import { amount, approx, FG_KECCAK, fgModeName, fgState, FG_STATE_NOTES, pct256, routeView, type Unit } from '../kernel/chip.ts';
+import { amount, approx, FG_KECCAK, fgModeName, fgState, FG_STATE, FG_STATE_NOTES, pct256, routeView, type Unit } from '../kernel/chip.ts';
 import { bitsOf, CLAMPS, RECORD_FLAGS, stateBytes } from '../kernel/model.ts';
 import { chipFromBytes, replayLocal, type Chip } from '../kernel/sim.ts';
 import { fmtDuration, fmtInt, fmtTime, fmtUnits } from '../format.ts';
 import { useAsync } from '../router.ts';
-import { Failure, Loading } from './shared.tsx';
+import { Failure, Loading, PageHead } from './shared.tsx';
 
 const PAGE = 20;
 const same = (a: string | null | undefined, b: string | null | undefined): boolean => !!a && !!b && a.toLowerCase() === b.toLowerCase();
@@ -67,22 +68,27 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
   const progress = v.curve && v.curve.sellable > 0n ? Number((v.curve.sold * 10000n) / v.curve.sellable) / 100 : null;
 
   return (
-    <article>
+    <article class="page page--vault">
       <SimBanner />
-      <p class="crumbs">
-        <a href="#/">Covenant</a> / vault
-      </p>
-      <h1>
-        {bound ? (
+      <PageHead
+        crumbs={
           <>
-            {v.token!.name ?? 'Token'} <span class="mono muted">{sym}</span> vault
+            <a href="#/">Covenant</a> / vault{v2 ? ' v2' : ''}
           </>
-        ) : (
-          'Kernel, not bound yet'
-        )}
-      </h1>
-      <p class="lede">
-        {bound ? (
+        }
+        title={
+          bound ? (
+            <>
+              {v.token!.name ?? 'Token'} <span class="mono muted">{sym}</span> <em>vault</em>
+            </>
+          ) : (
+            <>
+              Kernel, <em>not bound yet</em>
+            </>
+          )
+        }
+        lede={
+        bound ? (
           <>
             This kernel receives {sym}'s trading tax{v2 ? ` in ${qu.symbol}, and any ${qu.symbol} paid to it directly (revenue, routed as tax),` : ''} and, once per{' '}
             {fmtDuration(e.epochLen)} epoch, routes it by chip #{String(g.chipId)}
@@ -93,10 +99,11 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
             This kernel holds chip #{String(g.chipId)} and waits for a token whose IGNIX vault names it as recipient{v2 ? ` and whose quote is ${qu.symbol}` : ''}.{' '}
             <span class="mono">bind(token)</span> succeeds once, for such a token only.
           </>
-        )}
-      </p>
+        )
+        }
+      />
 
-      <section>
+      <section class="clause">
         <Pin id="01">Facts the chain proves</Pin>
         <p class="muted small">
           {v2 ? (
@@ -170,7 +177,7 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
       </section>
 
       {bound && (
-        <section>
+        <section class="clause band silicon">
           <Pin id="02">Clock and money</Pin>
           <div class="stats">
             <Stat label="Epoch now" value={fmtInt(epochNow)} sub={`bound ${fmtTime(v.bindTime)}`} />
@@ -213,7 +220,7 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
         </section>
       )}
 
-      <section>
+      <section class="clause">
         <Pin id="03">The envelope, fixed at creation</Pin>
         <p class="muted">What any chip in this kernel can and cannot route. Read from <span class="mono">envelope()</span>; the same bytes are in the kernel's code.</p>
         <EnvelopeWords e={e} unit={qu} shift={v.kind.shift} payeeNote={same(e.allowancePayee, COVENANT.keeperTank) ? 'the KeeperTank, which pays for settles' : undefined} />
@@ -228,7 +235,7 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
 
       <History v={v} isFG={isFG} qu={qu} />
 
-      <section>
+      <section class="clause">
         <Pin id="07">Repeat from a terminal</Pin>
         <Command label="Settles so far, then any record:" line={`cast call ${v.kernel} "count()(uint32)" --rpc-url ${CAST_RPC}`} />
         <Command
@@ -240,7 +247,7 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
           Source:{' '}
           {v2 ? <a href={`${REPO}/blob/main/contracts/core-v2/src/KernelV2.sol`}>contracts/core-v2/src/KernelV2.sol</a> : <a href={`${REPO}/blob/main/contracts/core/src/Kernel.sol`}>contracts/core/src/Kernel.sol</a>}. Read at block{' '}
           {v.block?.toString() ?? '?'}.{' '}
-          <button type="button" class="small" onClick={reload}>
+          <button type="button" class="small press" onClick={reload}>
             read again
           </button>
         </p>
@@ -265,8 +272,9 @@ function ChipSection({ v, chip, chipErr, source, isFG }: { v: VaultData; chip: C
     void d.animate(null, b.signals, toBytes(stateBytes(r.stateBefore, g.nState)), toBytes(stateBytes(r.rec.stateAfter, g.nState)), still ? 0 : undefined);
   };
   useEffect(play, [chip, last.data]);
+  const [field, setField] = useState<{ name: string; value: number } | null>(null);
   return (
-    <section>
+    <section class="clause">
       <Pin id="04">The chip and its state</Pin>
       <p>
         Chip #{String(g.chipId)}: {fmtInt(g.gateCount)} gates of which {g.nState} are latches; netlist {fmtInt(g.netlistLen)} bytes, keccak256{' '}
@@ -274,22 +282,53 @@ function ChipSection({ v, chip, chipErr, source, isFG }: { v: VaultData; chip: C
         {isFG && <span class="tag ok">the Flow Governor as built and proven in chips/out</span>}
       </p>
       {chipErr && <p class="warn">{chipErr.message}</p>}
-      {chip && (
-        <>
-          <Die maxHeight={440} netlist={chip.netlist} onReady={(d) => {
-              die.current = d;
-              play();
-            }} onHover={(c) => setHover(c ? `signal ${c.signal}${c.output >= 0 ? `, output ${c.output}` : ''}` : '')} onPick={() => {}} label={`Die shot of chip ${g.chipId}, ${g.gateCount} gates, showing the kernel's current latch state`} />
-          <div class="row">
-            <button type="button" class="small" onClick={play}>
-              replay the last settle on the die
-            </button>
-            <span class="muted small">
-              {hover || `Laid out from the ${source === 'fab' ? "Fab's snapshot" : "netlist TapeOut stores"}; the register strip on the right is the state the kernel holds now.`}
-            </span>
-          </div>
-        </>
-      )}
+      <div class="vault-chip bleed silicon">
+        <div class="vault-chip__die">
+          {chip ? (
+            <>
+              <Die
+                maxHeight={440}
+                netlist={chip.netlist}
+                onReady={(d) => {
+                  die.current = d;
+                  play();
+                }}
+                onHover={(c) => setHover(c ? `signal ${c.signal}${c.output >= 0 ? `, output ${c.output}` : ''}` : '')}
+                onPick={() => {}}
+                label={`Die shot of chip ${g.chipId}, ${g.gateCount} gates, showing the kernel's current latch state`}
+              />
+              <div class="row">
+                <button type="button" class="small press" onClick={play}>
+                  replay the last settle on the die
+                </button>
+                <span class="hover">
+                  {hover || `Laid out from the ${source === 'fab' ? "Fab's snapshot" : "netlist TapeOut stores"}; the register strip on the right is the state the kernel holds now.`}
+                </span>
+              </div>
+            </>
+          ) : (
+            !chipErr && <Loading what={`chip #${String(g.chipId)}'s netlist`} />
+          )}
+        </div>
+        <aside class="vault-chip__seal" aria-label="The kernel's latch state as a seal">
+          <Seal hex={state} n={g.nState} size={168} press fields={isFG ? FG_STATE : undefined} onField={setField} label="The kernel's state now" />
+          <p class="micro">
+            The Seal · bit 0 top left · {g.nState} latches
+          </p>
+          {isFG && (
+            <p class="vault-chip__field" aria-live="polite">
+              {field ? (
+                <>
+                  <b class="mono">{field.name}</b> = {field.name === 'MODE' ? fgModeName(field.value) : field.value}
+                  <span class="muted"> · {FG_STATE_NOTES[field.name]}</span>
+                </>
+              ) : (
+                <span class="muted">Point at the Seal to name a field.</span>
+              )}
+            </p>
+          )}
+        </aside>
+      </div>
       <div class="statebox">
         <div class="mono small">
           state() = {state}
@@ -317,7 +356,7 @@ function Counterfactuals({ v, qu }: { v: VaultData; qu: Unit }) {
   const L = v.kind.lens;
   const q = useAsync(() => (L ? loadCounterfactual(rpc, L, v.kernel, v.count) : Promise.resolve(null)), [v.kernel, v.count]);
   return (
-    <section>
+    <section class="clause">
       <Pin id="05">The chip against a fixed split</Pin>
       <p class="muted">
         Lens{v.kind.version === 2 ? 'V2' : ''}.counterfactual replays the same recorded {v.kind.version === 2 ? 'inflow' : 'tax'} through two baselines with this kernel's envelope: the fixed split the kernel
@@ -379,7 +418,7 @@ function History({ v, isFG, qu }: { v: VaultData; isFG: boolean; qu: Unit }) {
   const v2 = v.kind.version === 2;
   const grad = (r: RecordRow): boolean => (r.rec.flags & 64) !== 0;
   return (
-    <section>
+    <section class="clause">
       <Pin id="06">Every settle</Pin>
       {v.count === 0 ? (
         <p class="plate idle">
@@ -505,7 +544,7 @@ function Revenue({ v, qu }: { v: VaultData; qu: Unit }) {
   const payTo = COVENANT.architectPayTo;
   const here = same(payTo, v.kernel);
   return (
-    <section>
+    <section class="clause">
       <Pin id="03b">Revenue, routed as tax</Pin>
       <p>
         Anyone can pay {qu.symbol} to this kernel, for example an x402 payment whose <span class="mono">payTo</span> is the kernel. The kernel cannot tell

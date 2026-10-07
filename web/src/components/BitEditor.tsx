@@ -1,7 +1,8 @@
-// The bit editor used on the circuit page.
+// The bit editor used on the circuit page. Its cells are the Seal's cells: square, a 1 in the text colour, a 0 at
+// 8% of it, bit 0 (pin 1) marked in gold. A cell that changes flips (scaleY, 200 ms) once the editor is on screen.
 
-import { useEffect, useState } from 'preact/hooks';
-import { bytesToHex, getBit, packBits, unpackBits } from '@covenant/tap20';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { bytesToHex, packBits, unpackBits } from '@covenant/tap20';
 import { packedFromHex } from '../data/circuit.ts';
 import { cleanHex } from '../format.ts';
 
@@ -26,9 +27,22 @@ export function BitEditor({ label, n, value, onChange, noun }: BitEditorProps) {
   const hex = bytesToHex(value);
   const [draft, setDraft] = useState(hex);
   const [bad, setBad] = useState(false);
+  // The first render draws the cells as they are. From then on a cell whose bit changes gets a new key (its count
+  // of changes), so it is a new element and its flip plays once; cells that did not change stay still.
+  const bits = unpackBits(value, n);
+  const gen = useRef<Uint16Array>(new Uint16Array(n));
+  const prev = useRef<Uint8Array | null>(null);
+  if (gen.current.length !== n) gen.current = new Uint16Array(n);
+  if (prev.current && prev.current.length === n) for (let i = 0; i < n; i++) if (bits[i] !== prev.current[i]) gen.current[i]++;
+  prev.current = bits;
+  // A flipped cell is a new element: give it the focus its old element had, so the keyboard stays in place.
+  const grid = useRef<HTMLDivElement>(null);
+  const refocus = useRef<number | null>(null);
   useEffect(() => {
     setDraft(hex);
     setBad(false);
+    if (refocus.current !== null) grid.current?.querySelector<HTMLElement>(`[data-i="${refocus.current}"]`)?.focus();
+    refocus.current = null;
   }, [hex]);
 
   const commit = (text: string): void => {
@@ -54,7 +68,7 @@ export function BitEditor({ label, n, value, onChange, noun }: BitEditorProps) {
   };
 
   let ones = 0;
-  for (let i = 0; i < n; i++) ones += getBit(value, i);
+  for (let i = 0; i < n; i++) ones += bits[i];
 
   const groups: number[][] = [];
   if (n <= GRID_LIMIT) for (let i = 0; i < n; i += 8) groups.push(Array.from({ length: Math.min(8, n - i) }, (_, k) => i + k));
@@ -75,31 +89,46 @@ export function BitEditor({ label, n, value, onChange, noun }: BitEditorProps) {
           onInput={(e) => setDraft((e.target as HTMLInputElement).value)}
           onChange={(e) => commit((e.target as HTMLInputElement).value)}
         />
-        <button type="button" class="small" onClick={() => fill(() => 0)}>all 0</button>
-        <button type="button" class="small" onClick={() => fill(() => 1)}>all 1</button>
-        <button type="button" class="small" onClick={random}>random</button>
+        <button type="button" class="small" onClick={() => fill(() => 0)}>
+          all 0
+        </button>
+        <button type="button" class="small" onClick={() => fill(() => 1)}>
+          all 1
+        </button>
+        <button type="button" class="small" onClick={random}>
+          random
+        </button>
       </div>
       {bad && <div class="warn">Not hex. Use an even number of digits 0-9 a-f; bit 0 is the lowest bit of the first byte.</div>}
       {n <= GRID_LIMIT ? (
         <div
+          ref={grid}
           class="bitgrid"
           onClick={(e) => {
-            const i = (e.target as HTMLElement).dataset?.i;
-            if (i !== undefined) toggle(Number(i));
+            const t = e.target as HTMLElement;
+            const i = t.dataset?.i;
+            if (i === undefined) return;
+            if (t === document.activeElement) refocus.current = Number(i);
+            toggle(Number(i));
           }}
         >
           {groups.map((g) => (
             <span class="byte" key={g[0]}>
-              {g.map((i) => (
-                <button
-                  type="button"
-                  key={i}
-                  data-i={i}
-                  class={getBit(value, i) ? 'bit on' : 'bit'}
-                  aria-pressed={getBit(value, i) === 1}
-                  title={`${noun} ${i}`}
-                />
-              ))}
+              {g.map((i) => {
+                const on = bits[i];
+                const flips = gen.current[i];
+                return (
+                  <button
+                    type="button"
+                    key={`${i}:${flips}`}
+                    data-i={i}
+                    class={`bit${on ? ' on' : ''}${flips ? ' flip' : ''}`}
+                    aria-pressed={on === 1}
+                    aria-label={`${noun} ${i}`}
+                    title={`${noun} ${i}`}
+                  />
+                );
+              })}
             </span>
           ))}
         </div>
