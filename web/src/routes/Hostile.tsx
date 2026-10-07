@@ -323,7 +323,7 @@ function ShadowTable({ d, capBps, unit }: { d: { local: ShadowRow[]; chain: Shad
   const share = (x: bigint): string => (d.actual.inflow > 0n ? `${(Number((x * 10000n) / d.actual.inflow) / 100).toFixed(2)}%` : '–');
   return (
     <>
-      <div class="scroll" tabIndex={0} role="region" aria-label="The real chip and the Glutton on the same records">
+      <div class="scroll" tabIndex={0} role="region" aria-label={`The real chip and the Glutton on kernel ${unit.symbol === 'OKB' ? 'v1' : 'v2'}'s records`}>
       <table class="cmp">
         <thead>
           <tr>

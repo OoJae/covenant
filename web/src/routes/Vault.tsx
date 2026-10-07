@@ -324,7 +324,7 @@ function ChipSection({ v, chip, chipErr, source, isFG }: { v: VaultData; chip: C
                   <span class="muted"> · {FG_STATE_NOTES[field.name]}</span>
                 </>
               ) : (
-                <span class="muted">Point at the Seal to name a field.</span>
+                <span class="muted">Tap or point at the Seal to name a field.</span>
               )}
             </p>
           )}

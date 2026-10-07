@@ -213,7 +213,7 @@ function Bench({ c }: { c: CircuitData }) {
           onPick={pick}
         />
         <p class="hover mono" aria-live="off">
-          {hover ? describe(nl, die.current, hover, signals.current, state, inputs) : 'Point at a cell to read it. Click an input pad or a register cell to flip it.'}
+          {hover ? describe(nl, die.current, hover, signals.current, state, inputs) : 'Tap or point at a cell to read it. Tap or click an input pad or a register cell to flip it.'}
         </p>
         <ul class="legend">
           <li><i class="k pad" /> pads: inputs on the left, outputs on the right</li>
