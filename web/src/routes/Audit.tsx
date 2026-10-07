@@ -10,6 +10,8 @@ import { toBytes } from '@covenant/chain';
 import type { Replay } from '@covenant/chain/kernel';
 import { Command } from '../components/common.tsx';
 import { Die } from '../components/Die.tsx';
+import { Icon } from '../components/Icon.tsx';
+import { Seal } from '../components/Seal.tsx';
 import { CheckRow, Pin, RouteBar, SimBanner } from '../components/kit.tsx';
 import { CAST_RPC, CHAIN, COVENANT, rpc } from '../config.ts';
 import { loadAudit, loadNetlist, quoteLegIn, type AuditData } from '../data/kernel.ts';
@@ -18,7 +20,7 @@ import { bitsOf, CLAMPS, exp8s, fallbackWord, bytesOf, inputFields, lg8, lg8s, L
 import { beat, chipFromBytes, replayLocal } from '../kernel/sim.ts';
 import { fmtTime, fmtUnits, shortHex } from '../format.ts';
 import { useAsync } from '../router.ts';
-import { Failure, Loading } from './shared.tsx';
+import { Failure, Loading, PageHead } from './shared.tsx';
 
 export function Audit({ kernel, n }: { kernel: string; n: number }) {
   const q = useAsync(async () => {
@@ -81,62 +83,77 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
   };
 
   return (
-    <article>
+    <article class="page page--audit">
       <SimBanner />
-      <p class="crumbs">
-        <a href="#/">Covenant</a> / <a href={`#/k/${kernel}`}>vault</a> / settle {n}
-      </p>
-      <h1>Settle #{n}, recomputed three ways</h1>
-      {v2 && (
-        <p class="muted small">
-          Kernel v2 (USD₮0 quote): amounts are {qu.symbol} on the curve, project tokens after graduation; the chip reads them through a fixed shift of{' '}
-          {d.kind.shift} bits (<a href={`#/k/${kernel}`}>vault page</a>, section 03).
-        </p>
-      )}
-      <p class="lede">
-        The kernel stored what its chip answered on {fmtTime(r.time)} (epoch {r.epoch}). Below, the chain's two evaluators and this browser
-        compute the same step again from the stored state and inputs, and the kernel's routing is recomputed from the stored answer.
-      </p>
+      <PageHead
+        crumbs={
+          <>
+            <a href="#/">Covenant</a> / <a href={`#/k/${kernel}`}>vault</a> / settle {n}
+          </>
+        }
+        title={
+          <>
+            Settle #{n}, <em>recomputed three ways</em>
+          </>
+        }
+        lede={
+          <>
+            The kernel stored what its chip answered on {fmtTime(r.time)} (epoch {r.epoch}). Below, the chain's two evaluators and this browser
+            compute the same step again from the stored state and inputs, and the kernel's routing is recomputed from the stored answer.
+          </>
+        }
+      >
+        {v2 && (
+          <p class="muted small">
+            Kernel v2 (USD₮0 quote): amounts are {qu.symbol} on the curve, project tokens after graduation; the chip reads them through a fixed shift of{' '}
+            {d.kind.shift} bits (<a href={`#/k/${kernel}`}>vault page</a>, section 03).
+          </p>
+        )}
+      </PageHead>
 
-      <div class={`plate ${allMatch && amountsOk ? 'ok' : 'bad'}`}>
+      <section class="clause audit-verdict" aria-label="Four answers to the same step">
+        <span class="clause__no" aria-hidden="true">
+          Verdict
+        </span>
+        {/* The page's one beat: the four answers stamp down one after another, then the verdict. */}
+        <div class="evaluators bleed">
+          {cells.map((c, k) => {
+            const cell = c.c;
+            const verdict = cell === null || cell instanceof Error ? null : eq(cell, 'outputs') === true && eq(cell, 'state') === true;
+            return (
+              <div key={c.name} class={`plate silicon evaluator ${verdict === null ? 'warn' : verdict ? 'ok' : 'bad'}`} style={{ '--i': k }}>
+                <div class="evaluator__head">
+                  <b>{c.name}</b>
+                  <span class="micro">{c.note}</span>
+                </div>
+                {cell instanceof Error ? (
+                  <p class="small warn">{cell.message}</p>
+                ) : cell ? (
+                  <dl class="evaluator__rows">
+                    {(['outputs', 'state'] as const).map((key) => (
+                      <div key={key}>
+                        <dt class="micro">{key === 'outputs' ? 'outputs (14 bytes)' : 'new state'}</dt>
+                        <dd class="mono small">
+                          <span class={`mark ${eq(cell, key) ? 'ok' : 'bad'}`}>{eq(cell, key) ? '✓' : '✗'}</span>{' '}
+                          {shortHex(key === 'state' ? '0x' + cell.state.slice(2, 2 + 2 * Math.ceil(g.nState / 8)) : cell.outputs, 8)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
+                <div class="verdict">
+                  <strong>{verdict === null ? 'NOT ASKED' : verdict ? 'MATCH' : 'MISMATCH'}</strong>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      <div class={`plate silicon audit-sum ${allMatch && amountsOk ? 'ok' : 'bad'}`}>
         <div class="verdict">
           <strong>{allMatch && amountsOk ? 'MATCH' : 'MISMATCH'}</strong>
           <span>
             {allMatch ? 'outputs and new state agree four ways' : 'the four answers do not all agree'}; {amountsOk ? 'the routed amounts follow from the envelope' : 'the routed amounts do not follow'}
           </span>
-        </div>
-        <div class="scroll">
-          <table class="match">
-            <thead>
-              <tr>
-                <th />
-                {cells.map((c) => (
-                  <th key={c.name}>
-                    {c.name}
-                    <div class="muted small mono">{c.note}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(['outputs', 'state'] as const).map((k) => (
-                <tr key={k}>
-                  <th>{k === 'outputs' ? 'outputs (14 bytes)' : 'new state'}</th>
-                  {cells.map((c) => (
-                    <td key={c.name} class="mono small">
-                      {c.c instanceof Error ? (
-                        <span class="warn">{c.c.message}</span>
-                      ) : c.c ? (
-                        <>
-                          <span class={`mark ${eq(c.c, k) ? 'ok' : 'bad'}`}>{eq(c.c, k) ? '✓' : '✗'}</span> {shortHex(k === 'state' ? '0x' + c.c.state.slice(2, 2 + 2 * Math.ceil(g.nState / 8)) : c.c.outputs, 8)}
-                        </>
-                      ) : null}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
         {fallback && <p class="small">This record applied the fallback word (flag 1): no evaluator answered, the state was left as it was.</p>}
         <ul class="checks small">
@@ -156,8 +173,9 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
           </CheckRow>
         </ul>
       </div>
+      </section>
 
-      <section>
+      <section class="clause">
         <Pin id="01">What went in</Pin>
         <dl class="facts">
           <dt>Input word</dt>
@@ -186,13 +204,36 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
           <dt>State before</dt>
           <dd class="mono small">{stateBytes(row.stateBefore, g.nState)}{n === 1 && ' (zero: the first step)'}</dd>
         </dl>
-        <Die maxHeight={440} netlist={chip.netlist} onReady={(dd) => { die.current = dd; play(); }} onHover={() => {}} onPick={() => {}} label={`This settle's step drawn on chip ${g.chipId}`} />
-        <button type="button" class="small" onClick={play} disabled={!local}>
-          play this step again
-        </button>
+        <div class="audit-die bleed silicon">
+          <Die
+            maxHeight={440}
+            netlist={chip.netlist}
+            onReady={(dd) => {
+              die.current = dd;
+              play();
+            }}
+            onHover={() => {}}
+            onPick={() => {}}
+            label={`This settle's step drawn on chip ${g.chipId}`}
+          />
+          <div class="audit-seals">
+            <figure>
+              <Seal hex={stateBytes(row.stateBefore, g.nState)} n={g.nState} size={104} label="State before this settle" />
+              <figcaption class="micro">before</figcaption>
+            </figure>
+            <Icon name="arrow-right" size={24} class="audit-seals__arrow" />
+            <figure>
+              <Seal hex={stateBytes(r.stateAfter, g.nState)} n={g.nState} size={104} label="State after this settle, as recorded" />
+              <figcaption class="micro">after, as recorded</figcaption>
+            </figure>
+            <button type="button" class="small press" onClick={play} disabled={!local}>
+              play this step again
+            </button>
+          </div>
+        </div>
       </section>
 
-      <section>
+      <section class="clause">
         <Pin id="02">What the chip asked, and what the envelope let through</Pin>
         <div class="pair">
           <div class="chipcard">
@@ -288,7 +329,7 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
         )}
       </section>
 
-      <section>
+      <section class="clause">
         <Pin id="03">Would a different state have routed differently?</Pin>
         {fallback ? (
           <p>Not asked for a fallback record: the chip did not answer.</p>
@@ -325,7 +366,7 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
         )}
       </section>
 
-      <section>
+      <section class="clause">
         <Pin id="04">Repeat from a terminal</Pin>
         <Command label="The record:" line={`cast call ${kernel} "records(uint32)((uint32,uint40,uint16,uint8,bytes12,bytes14,bytes32,uint128,uint128,uint128,uint128,uint128,uint128,uint128))" ${n} --rpc-url ${CAST_RPC}`} />
         <Command
@@ -338,11 +379,11 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
             <Command line={`cast call ${d.kind.lens} "stateMatters(address,uint32)(bool,bytes14,bytes14)" ${kernel} ${n} --rpc-url ${CAST_RPC}`} />
           </>
         )}
-        <p class="row">
+        <nav class="pager" aria-label="Settles">
           {n > 1 && <a href={`#/k/${kernel}/${n - 1}`}>← settle {n - 1}</a>}
           <a href={`#/k/${kernel}`}>all settles</a>
           {n < d.count && <a href={`#/k/${kernel}/${n + 1}`}>settle {n + 1} →</a>}
-        </p>
+        </nav>
       </section>
     </article>
   );

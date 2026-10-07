@@ -10,6 +10,7 @@ import { kernel as kernelCalls, kernelV2 as kernelV2Calls, type Envelope } from 
 import { Command } from '../components/common.tsx';
 import { EnvelopeWords } from '../components/EnvelopeWords.tsx';
 import { Pin, RouteBar, SimBanner } from '../components/kit.tsx';
+import { Segmented } from '../components/Segmented.tsx';
 import { CAST_RPC, COVENANT, rpc } from '../config.ts';
 import { loadRecords, loadShadowChip } from '../data/kernel.ts';
 import { amount, approx, OKB_UNIT, pct256, REF_ENVELOPE, routeView, V2_REFERENCE, witness, type Unit } from '../kernel/chip.ts';
@@ -17,6 +18,7 @@ import { bitsOf, bytesOf, CLAMPS, exp8s, INPUT_FIELDS, lg8s, pack, route, wordOf
 import { beat, flowGovernor, glutton, glutton512, shadowRun, type ShadowRow } from '../kernel/sim.ts';
 import { fmtUnits } from '../format.ts';
 import { useAsync } from '../router.ts';
+import { PageHead } from './shared.tsx';
 
 const OKB = 10n ** 18n;
 const TAX_CHOICES: [string, bigint][] = [
@@ -103,19 +105,29 @@ export function Hostile() {
   ];
 
   return (
-    <article>
+    <article class="page page--hostile">
       <SimBanner />
-      <p class="crumbs">
-        <a href="#/">Covenant</a> / hostile chip
-      </p>
-      <h1>A chip that asks for everything gets the envelope's cap and nothing more</h1>
-      <p class="lede">
-        Anyone can write a chip, and a kernel cannot know what a stranger's chip will answer. So the kernel clips every answer to its
-        envelope before any money moves. The Glutton (<span class="mono">chips/cells/glutton</span>, 113 NAND + 1 latch) demands the whole
-        tax as allowance and the whole reserve every settle, whatever its inputs.
-      </p>
+      <PageHead
+        crumbs={
+          <>
+            <a href="#/">Covenant</a> / hostile chip
+          </>
+        }
+        title={
+          <>
+            A chip that asks for everything gets <em>the envelope's cap and nothing more</em>
+          </>
+        }
+        lede={
+          <>
+            Anyone can write a chip, and a kernel cannot know what a stranger's chip will answer. So the kernel clips every answer to its envelope
+            before any money moves. The Glutton (<span class="mono">chips/cells/glutton</span>, 113 NAND + 1 latch) demands the whole tax as
+            allowance and the whole reserve every settle, whatever its inputs.
+          </>
+        }
+      />
 
-      <section>
+      <section class="clause">
         <Pin id="01">What it asks for, and what it gets</Pin>
         <div class="pair">
           <div class="chipcard">
@@ -144,19 +156,23 @@ export function Hostile() {
         </details>
       </section>
 
-      <section>
+      <section class="clause">
         <Pin id="02">One settle, clipped</Pin>
         <p class="muted">
           Local simulation of the kernel's clip, tested against the golden vectors (<span class="mono">chips/golden/vectors.json</span> and{' '}
           <span class="mono">vectors_v2.json</span>, the same ones the Solidity kernels pass). The chips are the real netlist bytes, stepped in your browser.
         </p>
-        <div class="row">
-          <span>Kernel:</span>
-          {([false, true] as const).map((x) => (
-            <button type="button" key={String(x)} class={`small${x === v2 ? ' on' : ''}`} aria-pressed={x === v2} onClick={() => setV2(x)}>
-              {x ? 'v2, USD₮0 quote' : 'v1, OKB quote'}
-            </button>
-          ))}
+        <div class="controls">
+          <span class="label">Kernel</span>
+          <Segmented
+            label="Kernel"
+            value={v2}
+            onChange={setV2}
+            options={[
+              { value: false, text: 'v1, OKB quote' },
+              { value: true, text: 'v2, USD₮0 quote' },
+            ]}
+          />
         </div>
         {v2 && (
           <p class="small muted">
@@ -164,21 +180,29 @@ export function Hostile() {
             {env.ceilMax} is read as {amount(exp8s(env.ceilMax, sh), USDT0)} per settle.
           </p>
         )}
-        <div class="row">
-          <span>{v2 ? 'Inflow this settle (tax and revenue):' : 'Tax this settle:'}</span>
-          {taxChoices.map(([label], i) => (
-            <button type="button" key={label} class={`small${i === tax ? ' on' : ''}`} aria-pressed={i === tax} onClick={() => setTax(i)}>
-              {label} {unit.symbol}
-            </button>
-          ))}
+        <div class="controls">
+          <span class="label" id="tax-label">
+            {v2 ? 'Inflow this settle (tax and revenue)' : 'Tax this settle'}
+          </span>
+          <div class="chips" role="group" aria-labelledby="tax-label">
+            {taxChoices.map(([label], i) => (
+              <button type="button" key={label} class="small" aria-pressed={i === tax} onClick={() => setTax(i)}>
+                {label} {unit.symbol}
+              </button>
+            ))}
+          </div>
         </div>
-        <div class="row">
-          <span>Reserve before:</span>
-          {resChoices.map(([label], i) => (
-            <button type="button" key={label} class={`small${i === res ? ' on' : ''}`} aria-pressed={i === res} onClick={() => setRes(i)}>
-              {label} {unit.symbol}
-            </button>
-          ))}
+        <div class="controls">
+          <span class="label" id="res-label">
+            Reserve before
+          </span>
+          <div class="chips" role="group" aria-labelledby="res-label">
+            {resChoices.map(([label], i) => (
+              <button type="button" key={label} class="small" aria-pressed={i === res} onClick={() => setRes(i)}>
+                {label} {unit.symbol}
+              </button>
+            ))}
+          </div>
         </div>
         <div class="scroll">
           <table class="clip">
@@ -252,7 +276,7 @@ function ShadowSection({ count, env, kernel, lensAddr, shift, unit, pin }: { cou
   }, [count, kernel, shift]);
 
   return (
-    <section>
+    <section class="clause">
       <Pin id={pin}>{v2 ? "On the kernel v2 token's real inflow (USD₮0 quote)" : "On the reference token's real tax"}</Pin>
       {!kernel || count === 0 ? (
         <p class="plate idle">
@@ -324,7 +348,7 @@ function ShadowTable({ d, capBps, unit }: { d: { local: ShadowRow[]; chain: Shad
       {d.chain === null && <p class="muted small">On chain: no Glutton is taped out on Covenant's processor, so this is the local computation only.</p>}
       {d.chain instanceof Error && <p class="warn small">Lens.shadowChip could not be asked: {d.chain.message}</p>}
       {chainOk !== null && (
-        <div class={`plate ${chainOk ? 'ok' : 'bad'}`}>
+        <div class={`plate silicon ${chainOk ? 'ok' : 'bad'}`}>
           <div class="verdict">
             <strong>{chainOk ? 'MATCH' : 'MISMATCH'}</strong>
             <span>Lens{unit.symbol === 'OKB' ? '' : 'V2'}.shadowChip on chain {chainOk ? 'returned the same input words, outputs, clamps and amounts' : 'disagrees with the local computation'} for all {d.local.length} settles.</span>

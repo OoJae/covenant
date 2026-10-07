@@ -3,18 +3,20 @@
 // question, so nothing here has to be taken on trust from this site. The eighth is kernel v2 (USD₮0 quote): it says
 // so plainly until deployments/xlayer.json records a v2 deployment.
 
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { processor, read, readAll } from '@covenant/chain';
 import { keccak256Hex } from '@covenant/chain/keccak';
 import { erc20, kernel, kernelFactoryV2, lens, ownerOf, teamRegistry } from '@covenant/chain/kernel';
 import { Command } from '../components/common.tsx';
+import { Icon } from '../components/Icon.tsx';
 import { Mark, SimBanner } from '../components/kit.tsx';
 import { ADDR, CAST_RPC, CHAIN_LABEL, COVENANT, REPO, rpc } from '../config.ts';
 import { amount, FG_KECCAK, REF_ENVELOPE, routeDiff, witness } from '../kernel/chip.ts';
 import { bitsOf, CLAMPS, exp8s, inputFields, lg8, lg8s, route, wordOf } from '../kernel/model.ts';
 import { loadProcessor } from '../data/processor.ts';
 import { fmtInt, fmtUnits } from '../format.ts';
+import { PageHead } from './shared.tsx';
 
 interface Result {
   ok: boolean | null;
@@ -325,28 +327,44 @@ const CHECKS: Check[] = [
   },
 ];
 
-function CheckCard({ c, i }: { c: Check; i: number }) {
+type Outcome = 'pass' | 'fail' | 'none' | 'error';
+const outcomeOf = (r: Result | Error): Outcome => (r instanceof Error ? 'error' : r.ok === true ? 'pass' : r.ok === false ? 'fail' : 'none');
+
+/**
+ * One check as a clause: its number hangs in the gutter, the claim reads as a term of the deed, and it resolves
+ * (its mark stamps in) when its reads come back. `go` is set while a run of all eight is at this check.
+ */
+function CheckCard({ c, i, go, onSettled }: { c: Check; i: number; go: boolean; onSettled: (i: number, o: Outcome) => void }) {
   const [state, setState] = useState<'idle' | 'running' | Result | Error>('idle');
+  const [runs, setRuns] = useState(0);
   const run = (): void => {
     setState('running');
-    c.run().then(setState, (e: unknown) => setState(e instanceof Error ? e : new Error(String(e))));
+    const done = (r: Result | Error): void => {
+      setState(r);
+      setRuns((k) => k + 1);
+      onSettled(i, outcomeOf(r));
+    };
+    c.run().then(done, (e: unknown) => done(e instanceof Error ? e : new Error(String(e))));
   };
+  useEffect(() => {
+    if (go) run();
+  }, [go]);
   const res = typeof state === 'object' && !(state instanceof Error) ? state : null;
+  const data = state === 'idle' || state === 'running' ? state : outcomeOf(state);
   return (
-    <li class="judgecheck">
-      <div class="jhead">
-        <span class="jnum">{i + 1}</span>
-        <div>
-          <h3>{c.title}</h3>
-          <p>{c.claim}</p>
-        </div>
-      </div>
-      <div class="row">
-        <button type="button" class="primary small" onClick={run} disabled={state === 'running'}>
+    <li class="clause judgecheck" data-state={data}>
+      <span class="clause__no" aria-hidden="true">
+        §{String(i + 1).padStart(2, '0')}
+      </span>
+      <h2 class="clause__title">{c.title}</h2>
+      <p>{c.claim}</p>
+      <div class="row judgecheck__run">
+        <button type="button" class="small press" onClick={run} disabled={state === 'running'}>
           {state === 'running' ? 'running…' : res || state instanceof Error ? 'run again' : 'run in this page'}
         </button>
         {res && (
-          <span>
+          // a new element per run, so the mark stamps in each time the check resolves
+          <span key={runs} class="judgecheck__result" role="status">
             <Mark ok={res.ok} /> {res.ok === true ? 'passed' : res.ok === false ? 'FAILED' : 'nothing to check yet'}
           </span>
         )}
@@ -371,24 +389,69 @@ function CheckCard({ c, i }: { c: Check; i: number }) {
 }
 
 export function Judge() {
+  // A run of all eight goes in order, one check after the other, so the clauses resolve top to bottom.
+  const [turn, setTurn] = useState<number | null>(null);
+  const [outcomes, setOutcomes] = useState<(Outcome | undefined)[]>([]);
+  const settled = (i: number, o: Outcome): void => {
+    setOutcomes((list) => {
+      const next = list.slice();
+      next[i] = o;
+      return next;
+    });
+    setTurn((t) => (t === i ? (i + 1 < CHECKS.length ? i + 1 : null) : t));
+  };
+  const count = (o: Outcome): number => outcomes.filter((x) => x === o).length;
+  const ran = outcomes.filter(Boolean).length;
   return (
-    <article>
+    <article class="page page--judge">
       <SimBanner />
-      <p class="crumbs">
-        <a href="#/">Covenant</a> / judge guide
-      </p>
-      <h1>Eight checks, five minutes, no wallet</h1>
-      <p class="lede">
-        Each check asks {CHAIN_LABEL} with free read calls from this page and shows the same question as a{' '}
-        <span class="mono">cast</span> command for a node of your choice. A check whose contract is not deployed yet says so instead of
-        passing.
-      </p>
+      <PageHead
+        crumbs={
+          <>
+            <a href="#/">Covenant</a> / judge guide
+          </>
+        }
+        title={
+          <>
+            Eight checks, <em>five minutes</em>, no wallet
+          </>
+        }
+        lede={
+          <>
+            Each check asks {CHAIN_LABEL} with free read calls from this page and shows the same question as a <span class="mono">cast</span> command for
+            a node of your choice. A check whose contract is not deployed yet says so instead of passing.
+          </>
+        }
+      >
+        <div class="judge-run">
+          <button
+            type="button"
+            class="btn btn--primary press"
+            disabled={turn !== null}
+            onClick={() => {
+              setOutcomes([]);
+              setTurn(0);
+            }}
+          >
+            {turn !== null ? `Running check ${turn + 1} of ${CHECKS.length}…` : ran > 0 ? 'Run the eight checks again' : 'Run the eight checks'}
+            <span class="btn__icon">
+              <Icon name="arrow-down" />
+            </span>
+          </button>
+          {ran > 0 && (
+            <p class="micro" role="status">
+              {ran} of {CHECKS.length} run · {count('pass')} passed · {count('fail')} failed · {count('none')} with nothing to check yet
+              {count('error') > 0 ? ` · ${count('error')} could not read the chain` : ''}
+            </p>
+          )}
+        </div>
+      </PageHead>
       <ol class="judge">
         {CHECKS.map((c, i) => (
-          <CheckCard key={c.title} c={c} i={i} />
+          <CheckCard key={c.title} c={c} i={i} go={turn === i} onSettled={settled} />
         ))}
       </ol>
-      <p class="muted">
+      <p class="muted judge-foot">
         What these checks rest on, and what they cannot show, is on the <a href="#/trust">trust page</a>. Unaudited.
       </p>
     </article>

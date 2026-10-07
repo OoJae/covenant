@@ -1,13 +1,60 @@
-// The die shot: a canvas that fits its container, follows the colour scheme, and reports the
-// cell under the pointer.
+// The die shot: a canvas that fits its container and reports the cell under the pointer. The die is always drawn
+// on silicon (brand system: silicon is everything the chip computes), with a theme built here from the brand
+// tokens, so @covenant/dieshot keeps its own two themes untouched.
 
 import { useEffect, useRef } from 'preact/hooks';
-import { createDieShot, THEME_DARK, THEME_LIGHT, type DieShot, type Picked } from '@covenant/dieshot';
+import { createDieShot, type DieShot, type Picked, type Theme } from '@covenant/dieshot';
 import type { Netlist } from '@covenant/tap20';
-import { isDark, onThemeChange } from '../theme.tsx';
 
 /** Tallest the canvas may get, in CSS pixels. */
 const MAX_HEIGHT = 700;
+
+// The raw palette of src/styles/tokens.css, read from the page when it is there (one source of truth), with the
+// same values as fallbacks for a page without the stylesheet.
+const FALLBACK: Record<string, string> = {
+  '--wafer': '#0b0d10',
+  '--wafer-2': '#12161b',
+  '--quartz': '#e8e4da',
+  '--quartz-2': '#8e949c',
+  '--bond': '#e6b450',
+  '--route-res-si': '#3fd3c0',
+  '--route-allow-si': '#7aa7ff',
+};
+
+function token(name: string): string {
+  const v = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : '';
+  return /^#[0-9a-f]{6}$/i.test(v) ? v : FALLBACK[name];
+}
+
+const alpha = (hex: string, a: number): string =>
+  `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
+
+/**
+ * The die on silicon: logic that holds 1 in Bond gold, latches that hold 1 in quartz (the Seal's colour: memory),
+ * cells that hold 0 at quartz 8% (as the Seal's off cells), wires in quartz and the state loop in gold (both at the
+ * renderer's 8% alpha), lit pads in the reserve route's hue. The renderer draws every lit pad in one colour, so
+ * output pads cannot take one route hue each without a change to the package.
+ */
+export function siliconDieTheme(): Theme {
+  const quartz = token('--quartz');
+  return {
+    bg: token('--wafer'),
+    core: token('--wafer-2'),
+    strip: token('--wafer-2'),
+    wire: quartz,
+    feedback: token('--bond'),
+    off: alpha(quartz, 0.08),
+    on: token('--bond'),
+    latchOff: alpha(quartz, 0.12),
+    latchOn: quartz,
+    padOff: alpha(quartz, 0.1),
+    padOn: token('--route-res-si'),
+    pulse: quartz,
+    outline: alpha(quartz, 0.16),
+    label: token('--quartz-2'),
+    select: token('--route-allow-si'),
+  };
+}
 
 interface DieProps {
   netlist: Netlist;
@@ -29,18 +76,16 @@ export function Die({ netlist, onReady, onHover, onPick, label, maxHeight = MAX_
   useEffect(() => {
     const el = canvas.current!;
     const box = wrap.current!;
-    const d = createDieShot(el, netlist, { theme: isDark() ? THEME_DARK : THEME_LIGHT, maxScale: 8 });
+    const d = createDieShot(el, netlist, { theme: siliconDieTheme(), maxScale: 8 });
     die.current = d;
-    // As wide as the container allows, but never taller than MAX_HEIGHT.
+    // As wide as the container allows, but never taller than maxHeight.
     const fit = (): void => d.resize(Math.min(box.clientWidth, (d.width * maxHeight) / d.height));
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(box);
-    const off = onThemeChange(() => d.setTheme(isDark() ? THEME_DARK : THEME_LIGHT));
     onReady(d);
     return () => {
       observer.disconnect();
-      off();
       onReady(null);
       d.destroy();
       die.current = null;
@@ -55,7 +100,7 @@ export function Die({ netlist, onReady, onHover, onPick, label, maxHeight = MAX_
   };
 
   return (
-    <div class="die" ref={wrap}>
+    <div class="die silicon" ref={wrap}>
       <canvas
         ref={canvas}
         role="img"

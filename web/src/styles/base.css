@@ -1,0 +1,343 @@
+/* Base: the page is paper (tokens.css :root); a surface turns to silicon with class="silicon". Type, links,
+   tables, form controls, focus and the page frame. Every colour is a semantic token, so each rule reads right on
+   either material. Radius 0, no shadows. */
+
+:root {
+  --header-h: 3.5rem;
+  /* Inline padding that keeps content on the 90rem grid while a surface's background runs to the edges. */
+  --gutter: max(var(--grid-margin), calc((100% - var(--grid-max)) / 2));
+}
+@media (min-width: 768px) {
+  :root {
+    --header-h: 4rem;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + var(--sp-4));
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-image: var(--grain);
+  font: var(--wght-body) var(--step-body) / var(--lh-body) var(--font-sans);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: anywhere;
+}
+
+.paper,
+.silicon {
+  background-image: var(--grain);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------------------------------------------------------------------------------------------------- type */
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote,
+pre {
+  margin: 0;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: var(--wght-display);
+  letter-spacing: var(--track-display);
+  text-wrap: balance;
+}
+h1 {
+  font-size: var(--step-display);
+  line-height: var(--lh-display);
+}
+h2 {
+  font-size: var(--step-h2);
+  line-height: var(--lh-heading);
+}
+h1 em,
+h2 em {
+  font-weight: var(--wght-display-strong);
+}
+h3 {
+  font: var(--wght-body-strong) var(--step-h3) / 1.3 var(--font-sans);
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+b,
+strong {
+  font-weight: var(--wght-body-strong);
+}
+
+ul,
+ol {
+  padding-left: 1.15em;
+}
+li + li {
+  margin-top: var(--sp-2);
+}
+li::marker {
+  color: var(--fg-2);
+}
+
+/* Links are the text colour with a gold wire underneath (the active-link wire at text size). */
+a {
+  color: var(--link);
+  text-decoration-line: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: var(--wire);
+  text-underline-offset: 0.24em;
+}
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+.mono,
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-variant-ligatures: none;
+}
+
+.lede {
+  font-size: var(--step-lede);
+  line-height: var(--lh-lede);
+  color: var(--fg-2);
+  max-width: 46ch;
+}
+.muted {
+  color: var(--fg-2);
+}
+.small {
+  font-size: var(--step-small);
+}
+.warn {
+  color: var(--warn);
+}
+.micro {
+  font: var(--step-micro) / 1.5 var(--font-mono);
+  letter-spacing: var(--track-micro);
+  color: var(--fg-2);
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+blockquote {
+  padding: var(--sp-4) var(--sp-5);
+  border-left: var(--wire) solid var(--rule-strong);
+  background: var(--bg-2);
+  white-space: pre-wrap;
+}
+
+sup {
+  line-height: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------------- focus */
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 2px;
+}
+main:focus {
+  outline: none;
+}
+
+.skip {
+  position: fixed;
+  z-index: 100;
+  top: var(--sp-2);
+  left: var(--grid-margin);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  transform: translateY(-200%);
+}
+.skip:focus,
+.skip:focus-visible {
+  transform: none;
+}
+
+/* ---------------------------------------------------------------------------------------------------- tables */
+
+.scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--step-small);
+  font-variant-numeric: tabular-nums;
+}
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) 0;
+  border-bottom: var(--hairline) solid var(--rule);
+  white-space: nowrap;
+}
+thead th {
+  border-bottom-color: var(--rule-strong);
+  vertical-align: bottom;
+}
+tbody th {
+  font-weight: var(--wght-body-strong);
+}
+th.num,
+td.num {
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------------------------------------- controls */
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  border-radius: var(--radius);
+}
+
+/* A plain button is a utility control: square, hairline edge, the UI cut of the sans. Calls to action use .btn. */
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 2.5rem;
+  padding: 0 var(--sp-4);
+  border: var(--hairline) solid var(--rule-strong);
+  background: transparent;
+  font-size: var(--step-small);
+  font-weight: 500;
+  font-stretch: var(--stretch-ui);
+  line-height: 1.1;
+  cursor: pointer;
+}
+button.small {
+  min-height: 2rem;
+  padding: 0 var(--sp-3);
+  font-size: 0.8125rem;
+}
+button:hover:not(:disabled) {
+  border-color: var(--fg);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+input {
+  min-width: 0;
+  flex: 1 1 12rem;
+  min-height: 2.5rem;
+  padding: 0 var(--sp-3);
+  border: var(--hairline) solid var(--rule-strong);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: var(--step-small);
+}
+input::placeholder {
+  color: var(--fg-2);
+}
+input.bad {
+  border-color: var(--bad);
+}
+
+details {
+  margin-top: var(--sp-2);
+}
+summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 2rem;
+  cursor: pointer;
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+/* A square pad that fills when the details are open. */
+summary::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border: var(--hairline) solid currentColor;
+  transition: background-color var(--dur-micro) var(--ease-toggle);
+}
+details[open] > summary::before {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+summary:hover {
+  color: var(--fg);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+}
+
+/* ---------------------------------------------------------------------------------------------------- page frame */
+
+/* The routed page sits under the fixed header. The landing starts at the very top: its die runs under the header. */
+main.route {
+  display: block;
+  min-height: 70vh;
+  padding-top: var(--header-h);
+}
+main.route[data-page='landing'] {
+  padding-top: 0;
+}
+/* A loading or failure state shown in place of a page. */
+main.route > .loading,
+main.route > .plate {
+  margin: var(--sp-7) max(var(--grid-margin), calc((100% - var(--grid-max)) / 2)) var(--sp-section);
+}
+
+.page {
+  padding-bottom: var(--sp-section);
+}
+/* Every block of a page keeps to the grid; its background (a silicon band) runs to the edges. */
+.page > * {
+  padding-inline: var(--gutter);
+}
+.page > .plate {
+  margin-inline: var(--gutter);
+  padding-inline: var(--sp-5);
+}

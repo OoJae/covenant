@@ -1,0 +1,962 @@
+/* Shared components (docs/brand/README.md, plan section D). They read only semantic tokens, so each works on
+   paper and on silicon; the instrument pieces (plates, terminals, the die) carry class="silicon" in the markup.
+   Motion here is micro: transform and opacity, the toggle ease for state changes, the reveal ease for arrivals.
+   The CTA press itself is src/motion/press.ts with src/styles/motion.css. */
+
+/* ------------------------------------------------------------------------------------------------ labels */
+
+/* Mono caps: labels at .75rem, micro caps at .6875rem (table heads, keys, legends, tags). */
+.label,
+.crumbs,
+.clause__no,
+.pinid,
+.stat .label,
+.menu-btn,
+summary,
+.facts > dt,
+fieldset.bits legend,
+.deed h3 {
+  font: 400 var(--step-label) / 1.5 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+thead th,
+.keys,
+.legend,
+.tag,
+.beat-plate .hexes dt {
+  font: 400 var(--step-micro) / 1.6 var(--font-mono);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+/* ------------------------------------------------------------------------------------------------ buttons */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  min-height: 3.25rem;
+  padding: 0 var(--sp-3) 0 var(--sp-5);
+  border: var(--hairline) solid var(--rule-strong);
+  background: transparent;
+  color: var(--fg);
+  font: 500 1rem / 1.1 var(--font-sans);
+  font-stretch: var(--stretch-ui);
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--dur-release) var(--ease-reveal);
+}
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  --impression: var(--bond-ink);
+}
+.btn--secondary:hover:not(:disabled) {
+  border-color: var(--fg);
+}
+.btn__icon {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.btn .wire-arrow {
+  transition: transform var(--dur-micro) var(--ease-reveal);
+}
+@media (hover: hover) {
+  .btn:hover .wire-arrow {
+    transform: translateX(3px);
+  }
+}
+.btn:active:not(:disabled) {
+  transform: translateY(var(--press-y)) scale(var(--press-scale));
+  transition-duration: var(--dur-press);
+}
+@media (max-width: 639px) {
+  .btn {
+    width: 100%;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ site chrome */
+
+/* The header: fixed, transparent over silicon (the landing's die, a silicon band, the footer) and solid deed with
+   a hairline over paper. The deed layer crossfades by opacity alone; the tokens switch with the material class. */
+header.top {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  height: var(--header-h);
+  background: none;
+  view-transition-name: header; /* holds still while the page changes (src/styles/motion.css) */
+}
+header.top::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--deed) var(--grain-pa);
+  border-bottom: var(--hairline) solid var(--rule);
+  transition: opacity var(--dur-micro) var(--ease-toggle);
+}
+header.top.is-over::before {
+  opacity: 0;
+}
+.top__in,
+.sheet__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-5);
+  height: var(--header-h);
+}
+.top__in {
+  padding-inline: var(--gutter);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--fg);
+  text-decoration: none;
+}
+.bond,
+.wordmark,
+.icon {
+  display: block;
+  flex: none;
+}
+.nav {
+  display: none;
+}
+.menu-btn {
+  min-height: 2.75rem;
+  padding: 0 0 0 var(--sp-3);
+  border: 0;
+  color: var(--fg);
+  gap: var(--sp-3);
+}
+@media (min-width: 768px) {
+  .nav {
+    display: flex;
+    gap: var(--sp-6);
+  }
+  .top__in .menu-btn {
+    display: none;
+  }
+}
+.nav a {
+  position: relative;
+  padding: var(--sp-2) 0;
+  color: var(--fg);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-stretch: var(--stretch-ui);
+  text-decoration: none;
+}
+/* The wire: draws from the left on hover (in the rule colour) and stays drawn in gold on the current page. */
+.nav a::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--wire);
+  background: var(--rule-strong);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-toggle) var(--ease-toggle);
+}
+.nav a:hover::after,
+.nav a[aria-current='page']::after {
+  transform: scaleX(1);
+}
+.nav a[aria-current='page']::after {
+  background: var(--accent);
+}
+
+/* The menu sheet below 768 px: a modal dialog on silicon that slides down. */
+dialog.sheet {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0 var(--grid-margin) var(--sp-6);
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(-1.5rem);
+  transition:
+    opacity var(--dur-micro) var(--ease-reveal),
+    transform var(--dur-reveal) var(--ease-reveal);
+}
+dialog.sheet:not([open]) {
+  display: none;
+}
+dialog.sheet.is-open {
+  opacity: 1;
+  transform: none;
+}
+dialog.sheet::backdrop {
+  background: transparent;
+}
+.sheet__nav {
+  margin-top: var(--sp-7);
+  border-top: var(--hairline) solid var(--rule);
+}
+.sheet__nav a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+  padding: var(--sp-4) 0;
+  border-bottom: var(--hairline) solid var(--rule);
+  color: var(--fg);
+  font: var(--wght-display) var(--step-chapter) / 1.15 var(--font-display);
+  letter-spacing: var(--track-display);
+  text-decoration: none;
+}
+.sheet__nav a span {
+  display: block;
+}
+.sheet__nav a[aria-current='page']::after {
+  content: '';
+  width: 0.75rem;
+  height: 0.75rem;
+  background: var(--accent);
+}
+.sheet.is-first.is-open .sheet__nav a span {
+  animation: rise-in var(--dur-reveal) var(--ease-reveal) both;
+  animation-delay: calc(120ms + var(--i, 0) * var(--stagger));
+}
+.sheet__foot {
+  margin-top: auto;
+  padding-top: var(--sp-6);
+}
+html.sheet-open {
+  overflow: hidden;
+}
+@keyframes rise-in {
+  from {
+    transform: translateY(105%);
+  }
+}
+
+/* The colophon: silicon, the lockup, the honesty line, the live Seal. */
+.colophon {
+  padding: var(--sp-9) var(--gutter) var(--sp-6);
+}
+.colophon__in {
+  display: grid;
+  gap: var(--sp-7);
+}
+.colophon__lock {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: var(--sp-4);
+  color: var(--fg);
+  text-decoration: none;
+}
+.colophon__text {
+  display: grid;
+  gap: var(--sp-3);
+  max-width: 54ch;
+  font-size: var(--step-small);
+}
+.colophon__seal {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-4);
+}
+.colophon__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-6);
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-4);
+  border-top: var(--hairline) solid var(--rule);
+}
+.colophon__nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-weight: 500;
+  font-stretch: var(--stretch-ui);
+}
+.colophon__base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-5);
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-4);
+  border-top: var(--hairline) solid var(--rule);
+}
+@media (min-width: 1024px) {
+  .colophon__in {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    align-items: end;
+  }
+  .colophon__lock {
+    grid-column: 1 / 5;
+  }
+  .colophon__text {
+    grid-column: 5 / 10;
+  }
+  .colophon__seal {
+    grid-column: 10 / -1;
+    justify-content: flex-end;
+    text-align: right;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ page head and clauses */
+
+/* The deed's grid: 4, 8 or 12 columns; from 1024 px the crumbs and the clause numbers hang in the first two. */
+.page-head,
+.clause {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  align-content: start;
+}
+.page-head > *,
+.clause > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.page-head {
+  row-gap: var(--sp-5);
+  padding-block: var(--sp-8);
+}
+.crumbs a {
+  color: inherit;
+}
+.page-head > .lede + * {
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+.clause {
+  row-gap: var(--sp-4);
+  padding-block: var(--sp-8);
+  border-top: var(--hairline) solid var(--rule);
+}
+.clause > p,
+.clause > ul,
+.clause > ol {
+  max-width: var(--measure);
+}
+.clause__no {
+  color: var(--accent-ink);
+}
+.clause__title {
+  margin-bottom: var(--sp-2);
+}
+@media (min-width: 1024px) {
+  .page-head > *,
+  .clause > * {
+    grid-column: 3 / -1;
+  }
+  .page-head > .crumbs,
+  .clause > .clause__no {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    padding-top: 0.9em;
+  }
+  .page-head > .page-title,
+  .clause > .clause__title {
+    grid-row: 1;
+    grid-column: 3 / 12;
+  }
+  .page-head > .lede {
+    grid-column: 3 / 10;
+  }
+  /* Deliberate break: an instrument spans the gutter too. */
+  .clause > .bleed {
+    grid-column: 1 / -1;
+  }
+}
+
+/* A full-bleed silicon band inside a paper page. */
+.band {
+  border-top: 0;
+}
+.band + .clause {
+  border-top: 0;
+}
+/* A page that ends on silicon runs straight into the silicon footer. */
+.page > .band:last-child {
+  margin-bottom: calc(-1 * var(--sp-section));
+}
+
+/* ------------------------------------------------------------------------------------------------ plates */
+
+/* A plate: a silicon instrument panel. With a verdict class it carries a lamp and the word: MATCH, MISMATCH... */
+.plate {
+  padding: var(--sp-5);
+  background-color: var(--bg-2);
+  border: var(--hairline) solid var(--rule);
+}
+.plate > * + * {
+  margin-top: var(--sp-3);
+}
+.plate p {
+  max-width: var(--measure);
+}
+.plate.ok {
+  background-color: var(--ok-bg);
+}
+.plate.bad {
+  background-color: var(--bad-bg);
+}
+.plate.warn {
+  background-color: var(--warn-bg);
+}
+.plate.idle {
+  color: var(--fg-2);
+}
+.verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-4);
+}
+.verdict strong,
+.simbanner > strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font: 400 1.375rem / 1.1 var(--font-mono);
+  letter-spacing: 0.1em;
+}
+.verdict strong::before {
+  content: '';
+  width: 0.55em;
+  height: 0.55em;
+  background: currentColor;
+}
+.ok .verdict strong {
+  color: var(--ok);
+}
+.bad .verdict strong {
+  color: var(--bad);
+}
+.warn .verdict strong,
+.simbanner > strong {
+  color: var(--warn);
+}
+.wait .verdict strong {
+  color: var(--wait);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .plate.wait .verdict strong::before {
+    animation: lamp 1s steps(2, jump-none) infinite;
+  }
+}
+@keyframes lamp {
+  to {
+    opacity: 0.2;
+  }
+}
+.simbanner {
+  margin-top: var(--sp-5);
+  font-size: var(--step-small);
+}
+.simbanner > strong {
+  font-size: var(--step-small);
+  margin-right: var(--sp-2);
+}
+
+/* ------------------------------------------------------------------------------------------------ ledgers and facts */
+
+/* A checklist: one ledger row per claim, a square mark, the claim, the evidence under it. */
+ul.checks {
+  list-style: none;
+  padding: 0;
+  border-top: var(--hairline) solid var(--rule-strong);
+}
+.checkrow {
+  display: grid;
+  grid-template-columns: 1.375rem minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+  padding: var(--sp-4) 0;
+  border-bottom: var(--hairline) solid var(--rule);
+}
+li.checkrow {
+  margin: 0;
+}
+.checkrow__note {
+  margin-top: var(--sp-1);
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+
+/* Key and value: hairline rows; the key is a mono label. `.ledger` joins key and value with a dotted leader. */
+.facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border-top: var(--hairline) solid var(--rule);
+}
+.facts > dt {
+  padding-top: var(--sp-3);
+}
+.facts > dd {
+  padding: var(--sp-1) 0 var(--sp-3);
+  border-bottom: var(--hairline) solid var(--rule);
+}
+@media (min-width: 640px) {
+  .facts {
+    grid-template-columns: minmax(8rem, 13rem) minmax(0, 1fr);
+    column-gap: var(--grid-gap);
+  }
+  .facts > dt {
+    padding-bottom: var(--sp-3);
+    border-bottom: var(--hairline) solid var(--rule);
+  }
+  .facts > dd {
+    padding-top: var(--sp-3);
+  }
+  .ledger {
+    grid-template-columns: minmax(10rem, 1fr) minmax(0, 1.6fr);
+    border-top: 0;
+  }
+  .ledger > dt {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+  }
+  .ledger > dt::after {
+    content: '';
+    flex: 1;
+    min-width: var(--sp-5);
+    border-bottom: var(--hairline) dotted var(--rule-strong);
+  }
+  .ledger > dt,
+  .ledger > dd {
+    border: 0;
+    padding-block: var(--sp-2);
+  }
+}
+
+/* The envelope: its terms numbered as clauses. */
+.envelope {
+  counter-reset: term;
+}
+.envelope > dt::before {
+  counter-increment: term;
+  content: counter(term, decimal-leading-zero) '\2002';
+  color: var(--accent-ink);
+}
+
+/* A register: entries of a deed, one row each (mark, name, address, note). */
+.register {
+  list-style: none;
+  padding: 0;
+  border-top: var(--hairline) solid var(--rule-strong);
+}
+.register > li {
+  display: grid;
+  grid-template-columns: 1.375rem minmax(0, 1fr);
+  gap: var(--sp-1) var(--sp-4);
+  margin: 0;
+  padding: var(--sp-3) 0;
+  border-bottom: var(--hairline) solid var(--rule);
+}
+.register > li > :nth-child(n + 3) {
+  grid-column: 2;
+}
+.register .addr,
+.register__addr {
+  font-size: var(--step-small);
+}
+.register__note {
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+@media (min-width: 768px) {
+  .register > li {
+    grid-template-columns: 1.375rem minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr);
+    align-items: baseline;
+  }
+  .register > li > :nth-child(n + 3) {
+    grid-column: auto;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ terminal */
+
+.terminal {
+  position: relative;
+  padding: var(--sp-4);
+  border: var(--hairline) solid var(--rule);
+}
+.terminal + .terminal {
+  margin-top: var(--sp-3);
+}
+.terminal > :first-child {
+  padding-right: 6rem;
+}
+.terminal__label {
+  margin-bottom: var(--sp-2);
+  font-size: 0.8125rem;
+  color: var(--fg-2);
+}
+.terminal pre {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--fg);
+}
+.terminal pre::before {
+  content: '$ ';
+  color: var(--accent);
+}
+.terminal .copy {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+}
+.copy {
+  overflow: hidden;
+}
+.copy__label {
+  display: block;
+}
+.copy[data-state='ok'] {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.copy[data-state='ok'] .copy__label,
+.copy[data-state='fail'] .copy__label {
+  animation: rise-in var(--dur-micro) var(--ease-reveal);
+}
+
+/* ------------------------------------------------------------------------------------------------ marks and tags */
+
+.mark {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  font: 400 0.8125rem / 1 var(--font-mono);
+  color: var(--wait);
+  background: var(--wait-bg);
+  vertical-align: -0.3em;
+}
+.mark.ok,
+.tag.ok {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+.mark.bad,
+.tag.bad {
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+.tag {
+  display: inline;
+  margin: 0 0.25em;
+  padding: 0.1em 0.45em;
+  line-height: 1.7;
+  color: var(--wait);
+  background: var(--wait-bg);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.tag.warn {
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+
+/* ------------------------------------------------------------------------------------------------ instruments */
+
+/* A stat band: instruments in a ruled grid, each a label, a reading and a line of context. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  border-top: var(--hairline) solid var(--rule);
+  border-left: var(--hairline) solid var(--rule);
+}
+.stat {
+  min-width: 0;
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+  border-right: var(--hairline) solid var(--rule);
+  border-bottom: var(--hairline) solid var(--rule);
+}
+.stat .value {
+  margin-top: var(--sp-4);
+  font: 400 1.5rem / 1.15 var(--font-mono);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.stat .sub {
+  margin-top: var(--sp-2);
+  font-size: 0.8125rem;
+  color: var(--fg-2);
+}
+
+/* Route bars: data, so the route hues of the material they sit on. */
+.bar,
+.minibar {
+  display: flex;
+  gap: 2px;
+  height: 0.875rem;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+.routebar .bar {
+  height: 1.75rem;
+  margin: var(--sp-2) 0 var(--sp-3);
+}
+.minibar {
+  width: 7rem;
+  height: 0.625rem;
+  margin-top: 0.4rem;
+}
+.seg {
+  display: block;
+  min-width: 2px;
+}
+.seg.buy,
+.dot.buy {
+  background: var(--c-buy);
+}
+.seg.allow,
+.dot.allow {
+  background: var(--c-allow);
+}
+.seg.res,
+.dot.res {
+  background: var(--c-res);
+}
+.keys,
+.legend {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-5);
+}
+.keys li {
+  margin: 0;
+}
+.keys li.zero {
+  opacity: 0.55;
+}
+.keys b {
+  font-weight: 400;
+  color: var(--fg);
+}
+.dot,
+.k {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.45rem;
+  vertical-align: -0.05em;
+}
+.dot.rel {
+  background: repeating-linear-gradient(135deg, var(--c-rel) 0 2px, transparent 2px 4px);
+  outline: var(--hairline) solid var(--c-rel);
+  outline-offset: -1px;
+}
+
+/* Two cards side by side: what a chip asked and what the kernel let through. */
+.pair {
+  display: grid;
+  gap: var(--grid-gap);
+}
+@media (min-width: 768px) {
+  .pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.chipcard {
+  min-width: 0;
+  padding: var(--sp-5);
+  border: var(--hairline) solid var(--rule-strong);
+}
+.cardhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-4);
+  margin-bottom: var(--sp-2);
+}
+.pinid {
+  color: var(--fg);
+}
+.flag {
+  display: inline-block;
+  margin-left: 0.35em;
+  padding: 0 0.4em;
+  font: var(--step-micro) / 1.6 var(--font-mono);
+  border: var(--hairline) solid var(--rule-strong);
+  color: var(--fg-2);
+}
+
+/* ------------------------------------------------------------------------------------------------ switches */
+
+/* One choice of a few: the chosen option sits under a thumb that slides with the toggle ease. The label colour
+   changes half-way, when the thumb passes. */
+.segmented {
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: var(--hairline) solid var(--rule-strong);
+}
+.segmented button {
+  min-height: 2.75rem;
+  padding: 0 var(--sp-5);
+  border: 0;
+  transition: color 0s linear calc(var(--dur-toggle) / 2);
+}
+.segmented button[aria-pressed='true'] {
+  color: var(--bg);
+}
+.segmented__thumb {
+  position: absolute;
+  z-index: -1;
+  inset: 0 auto 0 0;
+  width: calc(100% / var(--n));
+  background: var(--fg);
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform var(--dur-toggle) var(--ease-toggle);
+}
+/* Many choices: a wrapping row of option cells, the chosen one filled. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.chips button[aria-pressed='true'] {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
+
+/* ------------------------------------------------------------------------------------------------ the die and the bench */
+
+.die {
+  line-height: 0;
+  text-align: center;
+  padding: var(--sp-4);
+  border: var(--hairline) solid var(--rule);
+  overflow: hidden;
+}
+.die canvas {
+  max-width: 100%;
+  touch-action: manipulation;
+}
+.hover {
+  min-height: 3.2em;
+  font: var(--step-micro) / 1.6 var(--font-mono);
+  color: var(--fg-2);
+}
+.legend li {
+  margin: 0;
+}
+.k.pad {
+  background: var(--c-res);
+}
+.k.logic {
+  background: var(--accent);
+}
+.k.latch {
+  background: var(--fg);
+}
+.k.wire {
+  height: 2px;
+  vertical-align: 0.25em;
+  background: linear-gradient(90deg, var(--fg) 50%, var(--accent) 50%);
+}
+
+/* Bit editors: the Seal's cells. A 1 in the text colour, a 0 at 8% of it, pin 1 marked in gold. */
+fieldset.bits {
+  min-width: 0;
+  margin: 0;
+  padding: var(--sp-4);
+  border: var(--hairline) solid var(--rule);
+}
+fieldset.bits + fieldset.bits {
+  margin-top: var(--sp-3);
+}
+fieldset.bits legend {
+  padding: 0 var(--sp-2);
+}
+.bitgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: var(--sp-4);
+  padding: 6px 0 0 6px;
+}
+.byte {
+  display: inline-flex;
+  gap: 2px;
+}
+.bit {
+  position: relative;
+  width: 1.125rem;
+  height: 1.125rem;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+.bit.on {
+  background: var(--fg);
+}
+.bit:hover:not(:disabled) {
+  outline: var(--hairline) solid var(--rule-strong);
+}
+.byte:first-child > .bit:first-child::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 4px;
+  height: 4px;
+  background: var(--accent);
+}
+.bit.flip {
+  animation: bit-flip 200ms var(--ease-toggle) both;
+}
+@keyframes bit-flip {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ waiting */
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  color: var(--fg-2);
+  font-size: var(--step-small);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bit.flip,
+  .copy__label,
+  .sheet.is-first.is-open .sheet__nav a span {
+    animation: none !important;
+  }
+}

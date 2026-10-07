@@ -10,6 +10,7 @@ import { Address } from '../components/common.tsx';
 import { SimBanner } from '../components/kit.tsx';
 import { ADDR, COVENANT, REPO, rpc } from '../config.ts';
 import { useAsync } from '../router.ts';
+import { PageHead } from './shared.tsx';
 
 const MANAGER = '0x96B51c57e5346D0C0198899243cf851D1E23C309';
 
@@ -76,17 +77,21 @@ function Safe({ w, what }: { w: Who | undefined; what: string }) {
   );
 }
 
+/** One party as a deed: what it can do, and what it cannot (under a gold rule: the part the code guarantees). */
 function Party({ name, can, cannot, children }: { name: string; can: ComponentChildren[]; cannot: ComponentChildren[]; children?: ComponentChildren }) {
   return (
-    <section class="party">
-      <h2>{name}</h2>
+    <section class="clause party">
+      <span class="clause__no" aria-hidden="true">
+        Party
+      </span>
+      <h2 class="clause__title">{name}</h2>
       {children && <p>{children}</p>}
       <div class="cancannot">
-        <div>
+        <div class="deed deed--can">
           <h3>Can</h3>
           <ul>{can.map((c, i) => <li key={i}>{c}</li>)}</ul>
         </div>
-        <div>
+        <div class="deed deed--cannot">
           <h3>Cannot</h3>
           <ul>{cannot.map((c, i) => <li key={i}>{c}</li>)}</ul>
         </div>
@@ -100,16 +105,21 @@ export function Trust() {
   const d = q.data;
   const hosts = ADDR.rpc.map((u) => new URL(u).host);
   return (
-    <article>
+    <article class="page page--trust">
       <SimBanner />
-      <p class="crumbs">
-        <a href="#/">Covenant</a> / trust model
-      </p>
-      <h1>Who can change what</h1>
-      <p class="lede">
-        Covenant's own contracts have no owner, no upgrade path and no pause. The two platforms it runs on do have owners, and this page
-        says exactly what that lets them do. Unaudited.
-      </p>
+      <PageHead
+        crumbs={
+          <>
+            <a href="#/">Covenant</a> / trust model
+          </>
+        }
+        title={
+          <>
+            Who can change <em>what</em>
+          </>
+        }
+        lede="Covenant's own contracts have no owner, no upgrade path and no pause. The two platforms it runs on do have owners, and this page says exactly what that lets them do. Unaudited."
+      />
 
       <Party
         name="The Covenant team"
@@ -200,8 +210,11 @@ export function Trust() {
         The hostile chip page shows a chip that asks for everything. The Flow Governor’s published proofs show it never needs clipping.
       </Party>
 
-      <section class="party">
-        <h2>This site</h2>
+      <section class="clause party">
+        <span class="clause__no" aria-hidden="true">
+          Reading
+        </span>
+        <h2 class="clause__title">This site</h2>
         <ul>
           <li>Static files: no wallet, no cookies, no analytics. It sends read calls to {hosts.join(' and ')} and nothing else.</li>
           <li>
@@ -215,11 +228,17 @@ export function Trust() {
         </ul>
       </section>
 
-      <section class="party">
-        <h2>Not done</h2>
+      <section class="clause party">
+        <span class="clause__no" aria-hidden="true">
+          Limits
+        </span>
+        <h2 class="clause__title">Not done</h2>
         <ul>
           <li>No audit. The contracts have unit, fuzz, invariant and fork tests (contracts/core/NOTES.md); that is not an audit.</li>
-          <li>Adoption is zero: the only tokens planned for a Covenant kernel are the two the team launches itself (first buy 0, never traded by a team wallet); none is bound yet.</li>
+          <li>
+            Adoption is zero: the only tokens bound to Covenant's kernels are the two the team launched itself, one per kernel (first buy 0, never
+            traded by a team wallet).
+          </li>
         </ul>
       </section>
       {q.error && <p class="warn">Could not read the owners: {q.error.message}</p>}
