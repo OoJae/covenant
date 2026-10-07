@@ -501,9 +501,20 @@
 .landing:has(.die-stage[data-motion='on']) > .landing__pa {
   position: relative;
   z-index: 2;
-  background-color: var(--bg);
   margin-top: -20vh;
   margin-top: -20lvh;
+  background: none;
+}
+/* The overlapping strip itself is clear (the stage under it is paper by then), so it never hides the Seal's
+   caption; the page's own paper starts below it. */
+.landing:has(.die-stage[data-motion='on']) > .landing__pa::before {
+  content: '';
+  position: absolute;
+  inset: 20vh 0 0;
+  inset: 20lvh 0 0;
+  z-index: -1;
+  background-color: var(--bg);
+  background-image: var(--grain);
 }
 
 /* §01 and §02 to §05 hold their place until their chunks arrive (Landing.tsx), so the scroll length does not jump. */
