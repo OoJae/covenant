@@ -219,7 +219,9 @@ The brand system of `docs/brand/README.md` ("Sealed by a die") now runs the whol
   honesty line ("Unaudited. Adoption is zero."), where the copy on X Layer lives, the font credits, the source, the
   page links, and the flagship kernel's live Seal, read with one `eth_call` of `state()` when the footer comes near the
   screen (`components/flagshipState.ts`, on demand), the cold seal until then or if the read fails. `<main>` is keyed by
-  the route and takes `motion/transitions.ts`'s `pageEnter` class; nothing else in the frame animates the route change.
+  the route; without view transitions it rises on mount once `motion/transitions.ts`'s `routeEnter` has put
+  `route-enter` on `<html>` (from the first route change, so the first page keeps its own entrance; filled backwards,
+  so no transform is left on `<main>`); nothing else in the frame animates the route change.
 - **Pages.** Every page opens with `PageHead` (`routes/shared.tsx`): crumbs in the clause gutter, the title in Bodoni
   with one clause in italic, rising by line once (`RevealLines`), the lede. `Pin` is now a clause head: the § number
   hangs in the gutter. Per page: vault (ledger of checks; the silicon "Clock and money" band; the envelope's terms

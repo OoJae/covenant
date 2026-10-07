@@ -4,7 +4,6 @@ import { Bond, Icon, Wordmark } from './components/Icon.tsx';
 import type { MenuSheet, NavLink } from './components/MenuSheet.tsx';
 import { Seal } from './components/Seal.tsx';
 import { ADDR, CHAIN, COVENANT, REPO, SIMULATION } from './config.ts';
-import { pageEnter } from './motion/transitions.ts';
 import { useAsync, useRoute, type Route } from './router.ts';
 import { Landing } from './routes/Landing.tsx';
 import { Failure, Loading } from './routes/shared.tsx';
@@ -371,13 +370,14 @@ export function App() {
     }, 1200);
     return () => clearTimeout(t);
   }, []);
-  // Without view transitions the keyed <main> rises on mount (src/motion/transitions.ts decides; nothing else here).
-  const enter = pageEnter(routeKey).class;
+  // Without view transitions the keyed <main> rises on mount from the first route change on: router.ts sets the
+  // class on <html> that motion.css keys the rise to (src/motion/transitions.ts routeEnter), so the first page keeps
+  // its own entrance.
   const links = navLinks(route);
   return (
     <>
       <Header route={route} routeKey={routeKey} />
-      <main id="main" tabIndex={-1} class={enter ? `route ${enter}` : 'route'} key={routeKey} data-page={route.page}>
+      <main id="main" tabIndex={-1} class="route" key={routeKey} data-page={route.page}>
         {route.page === 'landing' && <Landing />}
         {route.page === 'processor' && <ProcessorPage address={route.processor} />}
         {route.page === 'circuit' && <CircuitPage processor={route.processor} id={route.id} />}

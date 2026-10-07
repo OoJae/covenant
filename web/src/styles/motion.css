@@ -49,10 +49,11 @@ header.top,
 }
 
 /* Without view transitions: the keyed <main class="route"> that app.tsx renders rises on mount, from the first
-   route change on (src/motion/transitions.ts routeEnter sets the class), so the first page keeps its own entrance. */
-.route-enter main.route,
-.page-enter {
-  animation: vt-rise var(--dur-reveal) var(--ease-reveal) both;
+   route change on (src/motion/transitions.ts routeEnter sets the class), so the first page keeps its own entrance.
+   Filled backwards only: once risen, <main> keeps no transform (a transform would make it the containing block of
+   every position: fixed element inside it). */
+.route-enter main.route {
+  animation: vt-rise var(--dur-reveal) var(--ease-reveal) backwards;
 }
 
 /* The first page view: the header settles in over 400 ms while the page plays its own entrance (src/main.tsx). */
@@ -278,7 +279,6 @@ html.lenis body {
   ::view-transition-image-pair(*) {
     animation: none !important;
   }
-  .page-enter,
   .route-enter main.route,
   .is-booting header.top,
   .is-booting .vt-header,

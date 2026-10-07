@@ -48,12 +48,3 @@ export function routeEnter(): void {
   if (typeof document === 'undefined') return;
   document.documentElement.classList.toggle(ROUTE_ENTER, !viewTransitions() && motionAllowed());
 }
-
-/**
- * The fallback as props, for a <main> that is not keyed by app.tsx: without view transitions (and with motion
- * allowed) <main> is keyed by the route, so each route mounts a fresh element and its `page-enter` animation plays;
- * otherwise the key never changes and there is no class.
- */
-export function pageEnter(routeKey: string): { key: string; class: string | undefined } {
-  return !viewTransitions() && motionAllowed() ? { key: routeKey, class: 'page-enter' } : { key: 'page', class: undefined };
-}
