@@ -356,11 +356,12 @@ The three phase-1 tracks are merged on `main`. How the landing (`routes/Landing.
   sleeps between smooth scrolls.
 - **Words beside the held Seal** (polish pass). The held frame left the screen's left half empty. Two lines now say
   what the reader is looking at, on paper: "Nobody writes this *but the chip.*" (Bodoni, `--step-chapter`) and "The
-  kernel stores this memory after every settle and feeds it back to the chip at the next one. That is why the same word
-  got a different answer." Both are true of the code: `Kernel.sol` and `KernelV2.sol` write `state` only from the
-  chip's own step (TapeOut's `Circuits.step`, or the sealed evaluator running the same netlist), have no owner, setter
-  or upgrade path, and pass `state` back into the next `settle()`'s step; chapter IV shows the same word answered
-  CRUISE from state A and DEFEND from state B. The caption's latch count now comes from the netlist (`nState`), not
+  kernel keeps this memory between settles and feeds it back to the chip at the next one. That is why the same word
+  got a different answer." (It said "stores this memory after every settle" until the release review: a fallback
+  settle leaves the state as it was, 3.11.) Both are true of the code: `Kernel.sol` and `KernelV2.sol` write `state`
+  only when the chip's own step succeeds (TapeOut's `Circuits.step`, or the sealed evaluator running the same netlist),
+  have no owner, setter or upgrade path, and pass `state` back into the next `settle()`'s step; chapter IV shows the
+  same word answered CRUISE from state A and DEFEND from state B. The caption's latch count now comes from the netlist (`nState`), not
   typed in (`test/scene.test.ts`). Placement (`DieStage.tsx` `measureWords`/`placeSeal`, `scene.css`): on the page's
   grid, in the first 5, 4 or 3 columns beside the Seal where those end 32 px short of it, the last line level with the
   Seal's bottom edge and never under the header; else under the Seal's caption; with only the first line where the
@@ -370,8 +371,8 @@ The three phase-1 tracks are merged on `main`. How the landing (`routes/Landing.
   844x390 in 4 (146, 98); 360x640, 375x667, 375x812, 390x844, 768x1024, 1024x1366 under the caption (35 to 183);
   320x568 the first line only (95). The words never touch the Seal, its caption or §01's heading as it rises. They rise (opacity and 16 px, `--ease-reveal`, 900 ms, from 240 and 360 ms) with the
   caption once the paper is under the whole screen (`data-said`), go at once if the paper recedes, and are moved only
-  by transform. Under reduced motion there is no press, so there are no words: the chapters are stacked and §01, whose
-  second card is state B, follows chapter IV. The layer is in the pin, which is `aria-hidden` like the caption.
+  by transform. The layer is in the pin, which is `aria-hidden` like the caption; the same words and caption also
+  come in the reading order, and under reduced motion on the paper before §01 (3.11).
 - **Press fixes** found while measuring it: the caption is placed by transform from the Seal's corner instead of hanging
   from the Seal's resized box (the box is resized while the camera settles, which counted as layout shift: about 0.001
   CLS per press, now 0), and like the words it goes at once when the paper recedes; the Seal is resized when it is half a pixel off the size it was last given, not the last
@@ -386,6 +387,7 @@ has no Layout Instability API, by tracking element offsets every 100 ms.
 
 - **Pages are a screen tall** (`base.css` `main.route`, `min-height: 100svh`, was 70vh): the footer no longer fills the
   bottom of the screen while a page shows its Loading line and then jumps away (CLS 0.27 to 0.31 on every inner page).
+  A scroll could still reach it; see 3.11.
 - **§01 terminal** (`landing-paper.css`): each copy button sits on its own line's label row, with the command under it
   at the terminal's full width (a phone had about 200 px for it beside the button); both buttons used to be
   absolutely placed in the terminal's corner, so State B's covered State A's.
@@ -408,15 +410,68 @@ has no Layout Instability API, by tracking element offsets every 100 ms.
   are 48 px on a coarse pointer, the bit editor's cells 24 px; the old rule lost to the later `summary` rule.
 - **WebGL renderer name** (`scene/index.ts`): `RENDERER` first; the debug extension only where it is masked ("WebKit
   WebGL"), so Firefox no longer warns on every load.
-- **Late text, found while re-testing**: the trust page waits for its owner reads (they are written into its sentences,
-  which grew under a reader who had scrolled to them: CLS 0.018, 0.19 with a slow node); the circuit page's three die
+- **Late text, found while re-testing**: the trust page waited for its owner reads (they are written into its
+  sentences, which grew under a reader who had scrolled to them: CLS 0.018, 0.19 with a slow node; it now shows at once
+  with stand-ins, 3.11); the circuit page's three die
   facts hold their rows from the first frame with unseen placeholders (CLS 0.005 at 768 px); the hero ledger's rows show
   once the chain has answered (their leaders and values moved, under reduced motion); the footer Seal's caption is one
   box as tall as the Seal, its lines replaced rather than rewritten (CLS 0.00016 on every page); the Loading line grows
   downwards when its slow-node sentence joins it.
-- **Left as is**: the hostile page's two shadow tables still push what follows them down when they arrive while that
-  part of the page is on screen, which takes a slow node and a fast scroll (none at normal speed in any engine).
-  Firefox's "scroll-linked positioning effect" notice is informational: the stage follows the scroll on purpose.
+- **Left as is**: the hostile page's two shadow tables still pushed what follows them down when they arrived while that
+  part of the page was on screen (held since, 3.11). Firefox's "scroll-linked positioning effect" notice is
+  informational: the stage follows the scroll on purpose.
+
+### 3.11 Release fixes (2026-10-07)
+
+The release review of ce24045 left four shoulds and four coulds; each is fixed in its own commit, measured on a
+production build in private Chromium, WebKit (iPhone 13 and 1440) and Firefox, with motion and reduced.
+
+- **Trust shows at once** (`Trust.tsx`, `pages.css` `.unseen`): it had waited for three rounds of owner reads behind its
+  Loading line (3.1 s, 8.6 s on a slow node). The text now shows as soon as the guides' script is in (30 to 180 ms
+  after the route opens in all three engines); each value still being read holds its place with a hidden stand-in of
+  its size (an address is always 0x + 4 … 4 in the mono face; "0 of 0" for a threshold) with "reading…" over its
+  start, which is also what a screen reader hears. CLS 0 and no layout move with the node answering at once, after
+  1.5 s per call, or never, scrolling through the page while it reads.
+- **Hostile holds its shadow runs** (`Hostile.tsx`, `pages.css` `.shadow-run`): §03 and §04 grew from a Loading line to
+  table, sums, MATCH plate and command (CLS 0.31 to 0.64 at 768x1024 scrolling in the first 1.5 s). Each run is laid
+  out from the first render with stand-in values, hidden (`aria-busy`), the Loading line over it: the sections are
+  their final height from the start at 375, 768 and 1440 (nothing changes after the first render), and CLS while
+  scrolling during the load is under 0.002 (what is left: 2 px of font settling in the route bar's legend, and the
+  Loading line's own sentence shortening inside the held space).
+- **No footer under a page-level Loading line** (`base.css`): while `main.route` holds its Loading line, the footer
+  is fixed just below the screen and hidden, so there is nothing to scroll to (document height equal to the screen's
+  in all three engines) and nothing for the page to push away; when the page arrives it is back under it, below the
+  fold. Fixed and hidden rather than not displayed: undisplayed, it stopped asking for the mono face (not preloaded),
+  which then came in after the page and reflowed the circuit page's processor row (CLS 0.011 at 768). The root keeps
+  its scrollbar gutter (`scrollbar-gutter: stable`), so the moment without a scrollbar moves nothing sideways.
+- **The held Seal's words for everyone** (`Landing.tsx` `Say` and `Coda`, `landing.css` `.say__*` and `.l-coda`): they
+  lived only in the stage's `aria-hidden` layer, which runs only with motion allowed. The words are now the landing's,
+  passed to the stage (`say`), and come once more in the reading order between chapter IV and §01: the Seal of state B
+  (from the witness), its caption and the two lines. With motion the coda is for screen readers only; under reduced
+  motion it stands on the paper before §01, its words aligned with §01's text and, from 768 px, beside the Seal (a
+  hairline frame at any size, as on the held Seal). In the accessibility tree in all three engines, motion and
+  reduced. The words' type moved from `scene.css` to `landing.css`; the DieStage chunk lost their text.
+- **Honest copy** (C1): "stores this memory after every settle" became "keeps this memory between settles" (3.9).
+- **Under the Seal, from its left edge** (`DieStage.tsx` `placeSeal`, `scene.css`): placed under the Seal, the words
+  start at its left edge, as the caption does, and end at the grid's: they give up that room at the right (`--sx`,
+  set and measured again only while they are not shown, so they never reflow under the reader) and are moved right by
+  transform. Narrower, they are taller; where that no longer fits above §01 they go across the grid as before
+  ("wide"), before the first line only. Held frame: 375x812, 390x844, 768x1024 and 1024x1366 aligned to the pixel in
+  Chromium, 375x812 and 768x1024 also in Firefox; 375x667 and 360x640 wide; 320x568 the first line only, aligned;
+  landscape sizes beside the Seal as before. Headless WebKit went to the still frame about 4.5 s after load in this
+  run (the reviewed build too, so not these changes); there the Seal sits in the stage's middle and the words get
+  their first line only, now from the Seal's left edge, as before at the grid's. A margin moved them in the layout
+  while the camera settled after they had risen (CLS 0.015 on a phone's fast scroll); by transform, the landing is
+  back to CLS 0.
+- **Comments** (C2): `pages.css`, `pages.ts` and 3.7 now say the sheet also arrives with the background fetch of the
+  page scripts 1.2 s after the first page, on the landing and the processor page too, where it matches nothing.
+- **Sweep** after all of it (every route, motion and reduced; Chromium 390, 768, 1440, WebKit iPhone 13 and 1440,
+  Firefox 375 and 1440): no console errors (Firefox shows only the probe's own layout-shift notice and the scroll-linked
+  notice), no failed request, no horizontal scroll at any scroll step, one `h1` and one `main` each; Chromium CLS at
+  most 0.00015 (the hero label as its face settles). Landing on Slow 4G with 4x CPU: CLS 0 with motion, 0.0002 reduced.
+- **Not done** (C4): on Slow 4G the chapters re-lay out (about 55 px, CLS 0.064) when the stage chunk arrives after
+  the reader has scrolled into chapters II to IV. Matching the stacked chapters to the stage's block geometry would
+  put the track's rules into the entry stylesheet; not cheap, not done.
 
 ## 4. Verified
 
@@ -468,6 +523,12 @@ Chromium driven through Playwright, production build served as static files by `
 - With `processor` set in `addresses.json` (tried with a stand-in address, then reverted) the landing page shows the processor and probe links and hides the examples.
 
 ### 4.5 Sizes
+
+After the release fixes (3.11), `node scripts/check-budget.mjs`: **total 517,740 of 520,000 (99.6%)**, **entry 103,244
+of 112,000 (92.2%)**, **first paint 184,192 of 196,000 (94.0%)**, fonts 89,676 of 100,000; 2,260 bytes left in all.
+Entry: stylesheet 40,957 (+1,095: the coda and the words' type, which left `scene.css`), `index-*.js` 37,568 (+681:
+`Say`, `Coda`), `index.html` 2,826; 8,756 bytes of entry left. On demand: DieStage 23,742 (limit 24,000: 258 left),
+`scene-*.js` 6,308, `pages-*.js` 5,983, `guidePages` 29,266, `kernelPages` 53,542.
 
 After the link card and the cross-browser pass (3.10), `node scripts/check-budget.mjs`: **total 515,471 of 520,000
 (99.1%)**, **entry 101,468 of 112,000 (90.6%)**, **first paint 182,416 of 196,000 (93.1%)**, fonts 89,676 of 100,000.
