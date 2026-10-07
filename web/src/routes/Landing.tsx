@@ -1,7 +1,8 @@
 // #/
 // A deed with a window. On silicon: the thesis (the real chip, its tagline, what it does, the two live kernels),
-// then one settle told in four chapters over the 3D die. On paper: §01 the demonstration that the chip decides,
-// §02 what no chip can do, §03 what is live on X Layer, §04 where to check it, §05 the circuit reader.
+// then one settle told in four chapters over the 3D die, which ends by pressing the Seal of the chip's memory into
+// paper (its words are Say below, also in the reading order: Coda). On paper: §01 the demonstration that the chip
+// decides, §02 what no chip can do, §03 what is live on X Layer, §04 where to check it, §05 the circuit reader.
 //
 // The entry script carries the hero and the chapters' text (LandingChapters.tsx) and nothing else. When the page
 // mounts, four things load in parallel: the die stage (src/scene/DieStage.tsx), the demonstration (kernel/demo.ts:
@@ -13,6 +14,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { RevealLines } from '../components/RevealLines.tsx';
+import { Seal } from '../components/Seal.tsx';
 import { SimBanner } from '../components/SimBanner.tsx';
 import { CHAIN, COVENANT } from '../config.ts';
 import { fmtInt } from '../format.ts';
@@ -35,6 +37,8 @@ const loadS01 = (): Promise<S01> => import('../components/TwoStates.tsx').then((
 const loadRest = (): Promise<Rest> => import('./LandingClauses.tsx').then((m) => m.Clauses);
 
 export type { Bound };
+
+const COLD = '0x0000000000000000';
 
 /** The flagship kernels deployments/xlayer.json names, v1 first. */
 export function flagships(): { version: 1 | 2; kernel: string }[] {
@@ -145,7 +149,9 @@ export function Landing() {
 
         <div class="landing__stage">
           {Stage ? (
-            <Stage demo={demo}>{chapters}</Stage>
+            <Stage demo={demo} say={<Say />}>
+              {chapters}
+            </Stage>
           ) : (
             <section class="silicon stage-stacked" aria-label="How one settle runs through the chip">
               {chapters}
@@ -155,10 +161,51 @@ export function Landing() {
       </div>
 
       <div class="landing__pa paper">
+        <Coda hex={facts?.stateB ?? null} />
         {S01 ? <S01 n="01" /> : <div id="s01" class="l-ph l-ph--s01" tabIndex={-1} aria-busy="true" />}
         {Rest ? <Rest bound={bound} /> : <div class="l-ph l-ph--rest" aria-busy="true" />}
       </div>
     </article>
+  );
+}
+
+/**
+ * What the held Seal says. The stage shows it beside the Seal after the press, in its aria-hidden layer (DieStage
+ * `say`); the same words come once in the reading order after chapter IV (Coda). True of the code: only the chip's own
+ * step writes the kernel's state (a fallback settle leaves it as it was), and the next settle steps the chip from it.
+ */
+function Say() {
+  return (
+    <>
+      <p class="say__line">
+        <span>Nobody writes this</span> <em>but the chip.</em>
+      </p>
+      <p class="say__body">
+        The kernel keeps this memory between settles and feeds it back to the chip at the next one. That is why the same word got a different answer.
+      </p>
+    </>
+  );
+}
+
+/**
+ * The held Seal (state B, from the witness) and its words, between chapter IV and §01: read by screen readers, and
+ * shown under reduced motion, where there is no press (landing.css .l-coda).
+ */
+function Coda({ hex }: { hex: string | null }) {
+  return (
+    <div class="l-wrap l-coda">
+      <figure>
+        <Seal hex={hex ?? COLD} label="State B" loading={hex === null} />
+        <figcaption>
+          State B · {hex ?? '…'}
+          <br />
+          {FG_SIZE.latch} latches, one square each
+        </figcaption>
+      </figure>
+      <div>
+        <Say />
+      </div>
+    </div>
   );
 }
 

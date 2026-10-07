@@ -368,13 +368,15 @@
   gap: var(--sp-4) var(--sp-5);
   margin: var(--sp-2) 0 0;
 }
-.chapter__seals figure {
+.chapter__seals figure,
+.l-coda figure {
   display: grid;
   gap: var(--sp-2);
   margin: 0;
 }
 /* Two lines (the state, its hex), so the two Seals sit side by side even on a phone. */
-.chapter__seals figcaption {
+.chapter__seals figcaption,
+.l-coda figcaption {
   font: var(--step-micro) / 1.5 var(--font-mono);
   letter-spacing: var(--track-micro);
   color: var(--fg-2);
@@ -498,6 +500,75 @@
   .chapter__mem th,
   .chapter__mem td {
     padding-block: var(--sp-1);
+  }
+}
+
+/* What the held Seal says (Landing.tsx Say): set beside the Seal by the stage after the press (scene.css), and in the
+   reading order between chapter IV and §01 (.l-coda). */
+.say__line {
+  font: var(--wght-display) var(--step-chapter) / var(--lh-heading) var(--font-display);
+  letter-spacing: var(--track-display);
+  text-wrap: balance;
+  color: var(--fg);
+}
+/* Each clause breaks as one piece ("Nobody writes this / but the chip.", never "Nobody writes / this but the chip."),
+   and a clause too long for its line is balanced inside itself. */
+.say__line > * {
+  display: inline-block;
+}
+.say__line em {
+  font-weight: var(--wght-display-strong);
+}
+.say__body {
+  margin-top: var(--sp-4);
+  color: var(--fg-2);
+}
+@media (max-width: 639px) {
+  .say__body {
+    font-size: var(--step-small);
+  }
+}
+/* With motion the press shows the Seal and its words, so the coda is for screen readers only; under reduced motion
+   there is no press, and it stands on the paper before §01, the words aligned with §01's text and, from 768 px,
+   beside the Seal. */
+.l-coda {
+  display: grid;
+  gap: var(--sp-6) var(--sp-8);
+  justify-items: start;
+  align-items: end;
+  padding-top: var(--sp-section);
+}
+.l-coda .seal {
+  width: clamp(10rem, 16vw, 15rem);
+  height: auto;
+}
+/* The frame stays a hairline at this size, as on the held Seal. */
+.l-coda .seal path {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1px;
+}
+@media (min-width: 768px) {
+  .l-coda {
+    grid-template-columns: minmax(0, 34rem) auto;
+  }
+  .l-coda > div {
+    order: -1;
+  }
+}
+@media (min-width: 1024px) {
+  .l-coda {
+    padding-left: calc(var(--grid-margin) + var(--clause-gutter));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .l-coda {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 

@@ -9,8 +9,9 @@
 //     the 3D seal lies, and that square spreads from the impression until it covers the screen (transform only;
 //     the paper's grain comes in by opacity at the very end). Once the paper is under them, two lines rise beside the
 //     Seal (or under it, where there is no room beside it) and say what the reader is looking at: the chip's memory,
-//     which only the chip writes and the kernel feeds back in at the next settle. The next section of the page
-//     continues on paper.
+//     which only the chip writes and the kernel feeds back in at the next settle. The words are the landing's (prop
+//     `say`), which also puts them in its reading order after chapter IV. The next section of the page continues on
+//     paper.
 //   - Reduced motion: one composed still frame behind the hero, the chapters stacked below, nothing pinned.
 //   - No WebGL2, a failed start or a lost context: the Canvas 2D die shot in a CSS perspective container
 //     (fallback.ts, loaded only then).
@@ -50,6 +51,9 @@ export interface DieStageProps {
   fallback?: boolean;
   /** Extra scene options (the dev harness reads frame times through onFrame). */
   sceneOptions?: SceneOptions;
+  /** What the held Seal says: two paragraphs, p.say__line and p.say__body (Landing.tsx), shown beside it after the
+   * press in this aria-hidden layer. */
+  say?: ComponentChildren;
   children?: ComponentChildren;
 }
 
@@ -117,7 +121,7 @@ function fitHolds(box: HTMLElement, vh: number): void {
   }
 }
 
-export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOptions, children }: DieStageProps) {
+export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOptions, say: lines, children }: DieStageProps) {
   const [motion, setMotion] = useState(motionAllowed);
   const [mode, setMode] = useState<StageMode>('wait');
   // Counts the stamps: the Seal is pressed again (a new element, so the press plays) each time the scroll crosses
@@ -472,17 +476,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
                 )}
               </div>
               <div ref={words} class="paper die-stage__words">
-                {demo && (
-                  <div class="die-stage__say">
-                    <p class="die-stage__say-line">
-                      <span>Nobody writes this</span> <em>but the chip.</em>
-                    </p>
-                    <p class="die-stage__say-body">
-                      The kernel keeps this memory between settles and feeds it back to the chip at the next one. That is why the same word got a
-                      different answer.
-                    </p>
-                  </div>
-                )}
+                {demo && lines && <div class="die-stage__say">{lines}</div>}
               </div>
             </>
           )}

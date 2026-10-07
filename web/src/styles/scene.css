@@ -175,12 +175,13 @@
     transform var(--dur-reveal, 900ms) var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-/* The words: what the reader is looking at, and why it matters. On paper and on the page's grid. DieStage picks the
-   place (data-place) from the Seal's rectangle: in the grid's first 5, 4 or 3 columns beside the Seal where those end
-   short of it ("side-n", lifted so their last line is level with the Seal's bottom edge), else under the Seal's
-   caption ("below"), with the first line only where the second would reach §01 ("line"), or not at all ("none").
-   DieStage moves the whole layer to the Seal's height (transform only). They rise with the caption once the paper is
-   under them (data-said), after the stamp has landed, and go at once if the paper recedes. */
+/* The words: what the reader is looking at, and why it matters (the landing's, set by landing.css .say__line and
+   .say__body). On paper and on the page's grid. DieStage picks the place (data-place) from the Seal's rectangle: in
+   the grid's first 5, 4 or 3 columns beside the Seal where those end short of it ("side-n", lifted so their last line
+   is level with the Seal's bottom edge), else under the Seal's caption ("below"), with the first line only where the
+   second would reach §01 ("line"), or not at all ("none"). DieStage moves the whole layer to the Seal's height
+   (transform only). They rise with the caption once the paper is under them (data-said), after the stamp has landed,
+   and go at once if the paper recedes. */
 .die-stage__words {
   position: absolute;
   top: 0;
@@ -210,34 +211,11 @@
 .die-stage__words[data-place='side-3'] .die-stage__say {
   grid-column: 1 / span 3;
 }
-.die-stage__words[data-place='line'] .die-stage__say-body {
+.die-stage__words[data-place='line'] .say__body {
   display: none;
 }
 .die-stage__words[data-place='none'] {
   visibility: hidden;
-}
-.die-stage__say-line {
-  font: var(--wght-display) var(--step-chapter) / var(--lh-heading) var(--font-display);
-  letter-spacing: var(--track-display);
-  text-wrap: balance;
-  color: var(--fg);
-}
-/* Each clause breaks as one piece ("Nobody writes this / but the chip.", never "Nobody writes / this but the chip."),
-   and a clause too long for its line is balanced inside itself. */
-.die-stage__say-line > * {
-  display: inline-block;
-}
-.die-stage__say-line em {
-  font-weight: var(--wght-display-strong);
-}
-.die-stage__say-body {
-  margin-top: var(--sp-4, 1rem);
-  color: var(--fg-2);
-}
-@media (max-width: 639px) {
-  .die-stage__say-body {
-    font-size: var(--step-small, 0.875rem);
-  }
 }
 .die-stage__say > * {
   opacity: 0;
@@ -250,7 +228,7 @@
     opacity var(--dur-reveal, 900ms) var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1)) 240ms,
     transform var(--dur-reveal, 900ms) var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1)) 240ms;
 }
-.die-stage__words[data-said] .die-stage__say-body {
+.die-stage__words[data-said] .say__body {
   transition-delay: 360ms;
 }
 
@@ -371,8 +349,8 @@
 }
 
 /* ---- reduced motion: one still frame behind the hero, the chapters stacked, nothing pinned ---- */
-/* No press either: DieStage renders the sheet, the Seal, its caption and the words only with motion allowed, so
-   after chapter IV the page goes straight to §01, whose second card shows state B. */
+/* No press either: DieStage renders the sheet, the Seal, its caption and the words only with motion allowed; the
+   landing shows the Seal of state B and the same words on the paper before §01 instead (landing.css .l-coda). */
 
 .die-stage[data-motion='off'] .die-stage__track {
   min-height: 0;
