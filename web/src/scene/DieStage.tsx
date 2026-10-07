@@ -7,7 +7,10 @@
 //   - After the last chapter the seal is pressed into the die. In the track's tail the press makes the crossing
 //     from silicon to paper: the Seal (components/Seal.tsx) is stamped in ink on a square of paper exactly where
 //     the 3D seal lies, and that square spreads from the impression until it covers the screen (transform only;
-//     the paper's grain comes in by opacity at the very end). The next section of the page continues on paper.
+//     the paper's grain comes in by opacity at the very end). Once the paper is under them, two lines rise beside the
+//     Seal (or under it, where there is no room beside it) and say what the reader is looking at: the chip's memory,
+//     which only the chip writes and the kernel feeds back in at the next settle. The next section of the page
+//     continues on paper.
 //   - Reduced motion: one composed still frame behind the hero, the chapters stacked below, nothing pinned.
 //   - No WebGL2, a failed start or a lost context: the Canvas 2D die shot in a CSS perspective container
 //     (fallback.ts, loaded only then).
@@ -17,7 +20,7 @@
 // under its 24 KB limit): whoever loads DieStage calls sceneStyles() before it first renders, as Landing.tsx does.
 // Data: a LandingDemo (kernel/demo.ts); this chunk never bundles the netlist.
 
-import { Fragment, toChildArray, type ComponentChildren } from 'preact';
+import { toChildArray, type ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Seal } from '../components/Seal.tsx';
 import type { LandingDemo } from '../kernel/demo.ts';
@@ -67,6 +70,14 @@ const PAPER_TO = 0.45;
 const GRAIN_FROM = PAPER_TO - 0.1 * (PAPER_TO - SPREAD_FROM);
 /** The paper square's last scale, as a share of the size that just covers the screen. */
 const SPREAD_END = 1.2;
+/** The words beside the Seal keep this far (CSS px) from it, from the header's strip and from §01. */
+const WORDS_GAP = 32;
+/** The share of the stage's height at its bottom that §01 comes up into at the end of the track (landing.css: the
+ * page's paper overlaps the track's last 20lvh, and the pin is 100lvh tall). */
+const PAPER_OVERLAP = 0.2;
+/** Where the words can go, best first: beside the Seal in the grid's first 5, 4 or 3 columns (at most half the grid),
+ * under its caption, or under it with their first line only (scene.css). */
+const PLACES = ['side-5', 'side-4', 'side-3', 'below', 'line'];
 
 const smooth = (x: number): number => x * x * (3 - 2 * x);
 
@@ -122,6 +133,8 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
   const sheet = useRef<HTMLDivElement>(null);
   const paper = useRef<HTMLDivElement>(null);
   const seal = useRef<HTMLDivElement>(null);
+  const cap = useRef<HTMLDivElement>(null);
+  const words = useRef<HTMLDivElement>(null);
 
   // What the scroll handler talks to; refs, so a scroll never re-renders.
   const scene = useRef<Scene | null>(null);
@@ -238,6 +251,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
         vh = innerHeight;
       }
       press.big = 0;
+      measureWords();
       fitHolds(box, vh);
       const top = tr.getBoundingClientRect().top;
       const blocks: StageBlock[] = [];
@@ -250,8 +264,28 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
 
     // Where the press happens: the 3D seal's place in the die's last frame; over the 2D die, its middle; over a
     // still frame, the middle of the stage. `side` is the DOM Seal's size, whose cells line up with the 3D seal's.
-    const press = { cx: 0, cy: 0, side: 0, w: 0, h: 0, big: 0 };
+    const press = { cx: 0, cy: 0, side: 0, w: 0, h: 0, big: 0, sized: 0 };
     let stamped = false;
+
+    // The words beside the Seal. Where they can go is measured with the layout (on resize, not each frame): for each
+    // place, how tall they are there and where their grid columns end; and how deep the Seal's caption hangs under it
+    // (1rem, then two lines of the micro step: scene.css). placeSeal takes the first place that fits.
+    const say = { places: [] as { place: string; right: number; h: number }[], cap: 0, place: '' };
+    const measureWords = (): void => {
+      const wd = words.current;
+      const s = wd?.firstElementChild as HTMLElement | null | undefined;
+      const box = pin.current;
+      say.places = [];
+      if (!wd || !s || !box) return;
+      const cols = getComputedStyle(wd).gridTemplateColumns.split(' ').length;
+      const left = box.getBoundingClientRect().left;
+      for (const place of PLACES.filter((p) => !p.startsWith('side') || 2 * Number(p.slice(-1)) <= cols)) {
+        wd.dataset.place = place;
+        say.places.push({ place, right: s.getBoundingClientRect().right - left, h: s.offsetHeight });
+      }
+      wd.dataset.place = say.place || 'none';
+      say.cap = (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) * (1 + 2 * 0.6875 * 1.6);
+    };
     const placeSeal = (): void => {
       const box = pin.current;
       if (!box) return;
@@ -266,18 +300,42 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
         cy = r.y + r.height / 2;
         side = r.width * SEAL_FIT;
       } else if (modeRef.current === '2d' && flatBox.current) {
+        // The middle of the part of the 2D die on screen: on a phone the die is wider than the screen.
         const f = flatBox.current.getBoundingClientRect();
         const b = box.getBoundingClientRect();
-        cx = f.left + f.width / 2 - b.left;
-        cy = f.top + f.height / 2 - b.top;
+        cx = (Math.max(f.left, b.left) + Math.min(f.right, b.right)) / 2 - b.left;
+        cy = (Math.max(f.top, b.top) + Math.min(f.bottom, b.bottom)) / 2 - b.top;
       }
       // The paper is one square, as big as the screen needs from this centre, drawn at full size and scaled down to
       // the Seal: scaling down keeps its edge sharp.
       const big = Math.ceil(2 * Math.max(cx, w - cx, cy, hh - cy)) + 4;
       if (big !== press.big && sheet.current) sheet.current.style.width = sheet.current.style.height = `${big}px`;
       const el = seal.current;
-      if (el && Math.abs(side - press.side) > 0.5) el.style.width = el.style.height = `${side.toFixed(1)}px`;
+      // Resized when it is half a pixel off the size it was last given (not the last frame's: small steps add up).
+      if (el && Math.abs(side - press.sized) > 0.5) el.style.width = el.style.height = `${(press.sized = side).toFixed(1)}px`;
       if (el) el.style.transform = `translate3d(${(cx - side / 2).toFixed(1)}px, ${(cy - side / 2).toFixed(1)}px, 0)`;
+      // The caption hangs from the Seal's bottom-left corner, placed by transform too: as the Seal is resized while the
+      // camera settles, nothing moves in the layout.
+      if (cap.current) cap.current.style.transform = `translate3d(${(cx - side / 2).toFixed(1)}px, ${(cy + side / 2).toFixed(1)}px, 0)`;
+      // The words: beside the Seal in the widest columns that end short of it, their last line level with its bottom
+      // edge (never under the header); else under its caption; never down where §01 comes up at the track's end.
+      const wd = words.current;
+      if (wd && say.places.length > 0) {
+        const limit = hh * (1 - PAPER_OVERLAP) + WORDS_GAP;
+        let place = 'none';
+        let y = 0;
+        for (const p of say.places) {
+          const beside = p.place.startsWith('side');
+          if (beside && p.right + WORDS_GAP > cx - side / 2) continue;
+          const top = beside ? Math.max(cy + side / 2, HEADER_STRIP + WORDS_GAP + p.h) : cy + side / 2 + say.cap + WORDS_GAP;
+          if ((beside ? top : top + p.h) > limit) continue;
+          place = p.place;
+          y = top;
+          break;
+        }
+        if (place !== say.place) wd.dataset.place = say.place = place;
+        wd.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
+      }
       Object.assign(press, { cx, cy, side, w, h: hh, big });
     };
 
@@ -286,16 +344,21 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       const sh = sheet.current;
       const pa = paper.current;
       const el = seal.current;
-      if (!sh || !pa || !el) return;
+      const cp = cap.current;
+      if (!sh || !pa || !el || !cp) return;
       const on = h >= STAMP;
       if (on !== stamped) {
         stamped = on;
-        el.style.opacity = on ? '1' : '';
+        el.style.opacity = cp.style.opacity = on ? '1' : '';
         sh.style.opacity = on ? '1' : '';
         if (on) setStamps((n) => n + 1);
       }
       let covers = false;
-      el.toggleAttribute('data-spread', on && h >= SPREAD_FROM + 0.5 * (PAPER_TO - SPREAD_FROM));
+      // Halfway through the spread the paper is under the whole screen: the caption and the words come in (once
+      // per press: they go at once if the paper recedes, and rise again when it comes back).
+      const spread = on && h >= SPREAD_FROM + 0.5 * (PAPER_TO - SPREAD_FROM);
+      cp.toggleAttribute('data-spread', spread);
+      words.current?.toggleAttribute('data-said', spread);
       if (on) {
         // It grows a fifth past the size that covers the screen, so the ease's long tail happens off screen and the
         // paper is whole (and the header turns) well before PAPER_TO.
@@ -358,6 +421,8 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
     const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(refresh) : null;
     ro?.observe(tr);
     for (const el of chapters.current!.children) ro?.observe(el);
+    // The words get their text with the demonstration; measure them again then (and when fonts reflow them).
+    if (words.current) ro?.observe(words.current);
     addEventListener('scroll', onScroll, { passive: true });
     addEventListener('resize', refresh);
     refresh();
@@ -369,7 +434,9 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       afterFrame.current = () => {};
       root.current?.removeAttribute('data-chapter');
       root.current?.removeAttribute('data-cover');
-      for (const el of [seal.current, sheet.current, paper.current]) el?.removeAttribute('style');
+      for (const el of [seal.current, cap.current, sheet.current, paper.current, words.current]) el?.removeAttribute('style');
+      cap.current?.removeAttribute('data-spread');
+      words.current?.removeAttribute('data-said');
       for (const el of chapters.current?.children ?? []) {
         el.removeAttribute('data-on');
         (el.firstElementChild as HTMLElement | null)?.style.removeProperty('top');
@@ -393,15 +460,28 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
               <div ref={sheet} class="die-stage__sheet" />
               <div ref={paper} class="paper die-stage__paper" />
               <div ref={seal} class="paper die-stage__seal">
-                {stamps > 0 && demo && (
-                  <Fragment key={stamps}>
-                    <Seal hex={demo.stateB} size={SEAL_PX} material="paper" press label="State B" />
-                    <p class="die-stage__caption">
-                      State B · {demo.stateB}
-                      <br />
-                      64 latches, one square each
+                {stamps > 0 && demo && <Seal key={stamps} hex={demo.stateB} size={SEAL_PX} material="paper" press label="State B" />}
+              </div>
+              <div ref={cap} class="paper die-stage__cap">
+                {demo && (
+                  <p class="die-stage__caption">
+                    State B · {demo.stateB}
+                    <br />
+                    {demo.netlist.nState} latches, one square each
+                  </p>
+                )}
+              </div>
+              <div ref={words} class="paper die-stage__words">
+                {demo && (
+                  <div class="die-stage__say">
+                    <p class="die-stage__say-line">
+                      <span>Nobody writes this</span> <em>but the chip.</em>
                     </p>
-                  </Fragment>
+                    <p class="die-stage__say-body">
+                      The kernel stores this memory after every settle and feeds it back to the chip at the next one. That is why the same word got a
+                      different answer.
+                    </p>
+                  </div>
                 )}
               </div>
             </>

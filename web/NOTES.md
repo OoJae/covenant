@@ -349,6 +349,29 @@ The three phase-1 tracks are merged on `main`. How the landing (`routes/Landing.
   Canvas 2D die (it was blocking the main thread for about 6 s); ten frames in a row over 50 ms go straight to the
   still frame. The hero's sway settles after 8 s without a scroll and the scene stops drawing; Lenis's frame loop
   sleeps between smooth scrolls.
+- **Words beside the held Seal** (polish pass). The held frame left the screen's left half empty. Two lines now say
+  what the reader is looking at, on paper: "Nobody writes this *but the chip.*" (Bodoni, `--step-chapter`) and "The
+  kernel stores this memory after every settle and feeds it back to the chip at the next one. That is why the same word
+  got a different answer." Both are true of the code: `Kernel.sol` and `KernelV2.sol` write `state` only from the
+  chip's own step (TapeOut's `Circuits.step`, or the sealed evaluator running the same netlist), have no owner, setter
+  or upgrade path, and pass `state` back into the next `settle()`'s step; chapter IV shows the same word answered
+  CRUISE from state A and DEFEND from state B. The caption's latch count now comes from the netlist (`nState`), not
+  typed in (`test/scene.test.ts`). Placement (`DieStage.tsx` `measureWords`/`placeSeal`, `scene.css`): on the page's
+  grid, in the first 5, 4 or 3 columns beside the Seal where those end 32 px short of it, the last line level with the
+  Seal's bottom edge and never under the header; else under the Seal's caption; with only the first line where the
+  second would come within 32 px of the top of §01's paper (it overlaps the track's last 20lvh); else not at all.
+  Below 640 px the sentence is set at `--step-small`. Measured (place; clearance above §01's head when the pin lets
+  go): 1280x720, 1366x768, 1440x900, 1920x1080, 2560x1440 beside the Seal in 5 columns (161 to 224 px); 1024x768 and
+  844x390 in 4 (146, 98); 360x640, 375x667, 375x812, 390x844, 768x1024, 1024x1366 under the caption (35 to 183);
+  320x568 the first line only (95). The words never touch the Seal, its caption or §01's heading as it rises. They rise (opacity and 16 px, `--ease-reveal`, 900 ms, from 240 and 360 ms) with the
+  caption once the paper is under the whole screen (`data-said`), go at once if the paper recedes, and are moved only
+  by transform. Under reduced motion there is no press, so there are no words: the chapters are stacked and §01, whose
+  second card is state B, follows chapter IV. The layer is in the pin, which is `aria-hidden` like the caption.
+- **Press fixes** found while measuring it: the caption is placed by transform from the Seal's corner instead of hanging
+  from the Seal's resized box (the box is resized while the camera settles, which counted as layout shift: about 0.001
+  CLS per press, now 0), and like the words it goes at once when the paper recedes; the Seal is resized when it is half a pixel off the size it was last given, not the last
+  frame's (small steps added up to 4 px too big at 1440); and over the Canvas 2D die the press is centred on the part
+  of the die that is on screen (on a phone the die is wider than the screen, and the Seal was cut off at the right).
 
 ## 4. Verified
 
@@ -401,11 +424,12 @@ Chromium driven through Playwright, production build served as static files by `
 
 ### 4.5 Sizes
 
-After the entry-headroom change (2026-10-07, 3.7 "Entry headroom"), `node scripts/check-budget.mjs`: **total 457,748 of
-520,000 (88.0%)**, **entry 100,624 of 112,000 (89.8%)**, **first paint 181,572 of 196,000 (92.6%)**, fonts 89,676 of
-100,000. Entry: stylesheet 39,548, `index-*.js` 36,770, `prefs-*.js` 13,934, `config-*.js` 3,608, `index.html` 2,413,
-`rpc-*.js` 1,705, `preload-helper-*.js` 1,544, `bits-*.js` 1,102. On demand: DieStage 21,890 (limit 24,000), `scene-*.js`
-4,893 (same limit), `pages-*.js` 5,592, Lenis 14,181 (limit 20,000). 11,376 bytes of entry left.
+After the polish pass (2026-10-07: 3.7 "Entry headroom", then 3.9 "Words beside the held Seal"),
+`node scripts/check-budget.mjs`: **total 461,269 of 520,000 (88.7%)**, **entry 100,624 of 112,000 (89.8%)**, **first
+paint 181,572 of 196,000 (92.6%)**, fonts 89,676 of 100,000. Entry: stylesheet 39,548, `index-*.js` 36,770, `prefs-*.js`
+13,934, `config-*.js` 3,608, `index.html` 2,413, `rpc-*.js` 1,705, `preload-helper-*.js` 1,544, `bits-*.js` 1,102.
+11,376 bytes of entry left. On demand: DieStage 23,715 (limit 24,000: 285 left), `scene-*.js` 6,589 (same limit),
+`pages-*.js` 5,592, Lenis 14,181 (limit 20,000). The total leaves 58,731 bytes for `og.jpg` (its own limit is 110,000).
 
 After the redesign's phase 1 (2026-10-07, before the new landing), `node scripts/check-budget.mjs`: **total 367,618 of
 520,000 (70.7%)**, **entry 111,510 of 112,000 (99.6%)**, **first paint 192,458 of 196,000 (98.2%)**, fonts 89,676 of

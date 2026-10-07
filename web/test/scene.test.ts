@@ -447,6 +447,13 @@ describe('the lazy stage chunk', () => {
     expect(read('DieStage.tsx')).toMatch(/import\('\.\/fallback\.ts'\)/);
   });
 
+  test('the press prints the state and its size from the data, never typed in', () => {
+    const text = read('DieStage.tsx');
+    expect(text).toMatch(/State B · \{demo\.stateB\}/);
+    expect(text).toMatch(/\{demo\.netlist\.nState\} latches, one square each/);
+    expect(text).not.toMatch(/0x[0-9a-f]{16}|\b64 latches/);
+  });
+
   test('its styles travel beside it, in neither the entry stylesheet nor the chunk', () => {
     // scene.css is added as a <style> element by styles/scene.ts, which the landing loads in parallel with the stage
     // and runs before the stage first renders (web/NOTES.md 3.7).
