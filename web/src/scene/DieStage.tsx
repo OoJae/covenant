@@ -8,10 +8,10 @@
 //     from silicon to paper: the Seal (components/Seal.tsx) is stamped in ink on a square of paper exactly where
 //     the 3D seal lies, and that square spreads from the impression until it covers the screen (transform only;
 //     the paper's grain comes in by opacity at the very end). Once the paper is under them, two lines rise beside the
-//     Seal (or under it, where there is no room beside it) and say what the reader is looking at: the chip's memory,
-//     which only the chip writes and the kernel feeds back in at the next settle. The words are the landing's (prop
-//     `say`), which also puts them in its reading order after chapter IV. The next section of the page continues on
-//     paper.
+//     Seal (or under it, from its left edge, where there is no room beside it) and say what the reader is looking at:
+//     the chip's memory, which only the chip writes and the kernel feeds back in at the next settle. The words are
+//     the landing's (prop `say`), which also puts them in its reading order after chapter IV. The next section of the
+//     page continues on paper.
 //   - Reduced motion: one composed still frame behind the hero, the chapters stacked below, nothing pinned.
 //   - No WebGL2, a failed start or a lost context: the Canvas 2D die shot in a CSS perspective container
 //     (fallback.ts, loaded only then).
@@ -80,8 +80,9 @@ const WORDS_GAP = 32;
  * page's paper overlaps the track's last 20lvh, and the pin is 100lvh tall). */
 const PAPER_OVERLAP = 0.2;
 /** Where the words can go, best first: beside the Seal in the grid's first 5, 4 or 3 columns (at most half the grid),
- * under its caption, or under it with their first line only (scene.css). */
-const PLACES = ['side-5', 'side-4', 'side-3', 'below', 'line'];
+ * under its caption from its left edge, under it across the grid (wider, so shorter), or under it with their first
+ * line only (scene.css). */
+const PLACES = ['side-5', 'side-4', 'side-3', 'below', 'wide', 'line'];
 
 const smooth = (x: number): number => x * x * (3 - 2 * x);
 
@@ -273,15 +274,18 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
 
     // The words beside the Seal. Where they can go is measured with the layout (on resize, not each frame): for each
     // place, how tall they are there and where their grid columns end; and how deep the Seal's caption hangs under it
-    // (1rem, then two lines of the micro step: scene.css). placeSeal takes the first place that fits.
-    const say = { places: [] as { place: string; right: number; h: number }[], cap: 0, place: '' };
+    // (1rem, then two lines of the micro step: scene.css). placeSeal takes the first place that fits. Under the Seal
+    // they start at its left edge: `left` is where the grid starts, `sx` how far they are moved from there (--sx).
+    const say = { places: [] as { place: string; right: number; h: number }[], cap: 0, place: '', left: 0, sx: 0 };
     const measureWords = (): void => {
       const wd = words.current;
       const s = wd?.firstElementChild as HTMLElement | null | undefined;
       const box = pin.current;
       say.places = [];
       if (!wd || !s || !box) return;
-      const cols = getComputedStyle(wd).gridTemplateColumns.split(' ').length;
+      const cs = getComputedStyle(wd);
+      const cols = cs.gridTemplateColumns.split(' ').length;
+      say.left = wd.offsetLeft + parseFloat(cs.paddingLeft);
       const left = box.getBoundingClientRect().left;
       for (const place of PLACES.filter((p) => !p.startsWith('side') || 2 * Number(p.slice(-1)) <= cols)) {
         wd.dataset.place = place;
@@ -324,6 +328,13 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       // The words: beside the Seal in the widest columns that end short of it, their last line level with its bottom
       // edge (never under the header); else under its caption; never down where §01 comes up at the track's end.
       const wd = words.current;
+      // Under the Seal the words start at its left edge, as the caption does, and end at the grid's: moved, they are
+      // narrower, so they are measured again (when the Seal has moved half a pixel, as for its size).
+      const sx = Math.max(0, cx - side / 2 - say.left);
+      if (wd && Math.abs(sx - say.sx) > 0.5) {
+        wd.style.setProperty('--sx', `${(say.sx = sx).toFixed(1)}px`);
+        measureWords();
+      }
       if (wd && say.places.length > 0) {
         const limit = hh * (1 - PAPER_OVERLAP) + WORDS_GAP;
         let place = 'none';
