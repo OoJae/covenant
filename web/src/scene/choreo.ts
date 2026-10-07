@@ -89,15 +89,15 @@ export function phaseAt(t: number, intro: number, reach: Float32Array, o: Float3
 /** Camera keyframes: progress, target x y (die-local, in cells) and z, span (world units across the shorter screen
  * side), azimuth and elevation (degrees). Seven numbers per key. */
 const KEYS_LANDSCAPE = [
-  0.0, -13, 4, 0, 58, -22, 36,
-  0.14, -23, 0, 0, 30, -48, 36,
-  0.28, -14, 0, 0, 32, -30, 32,
-  0.43, 2, 0, 1, 36, -10, 38,
+  0.0, -2, 4, 0, 58, -22, 36,
+  0.14, -24, 0, 0, 30, -48, 36,
+  0.28, -16, 0, 0, 32, -30, 32,
+  0.43, 4, 0, 1, 36, -10, 38,
   0.58, 8, 0, 2, 44, 8, 46,
   0.69, 0, 0, 7, 34, 0, 60,
   0.8, 0, 0, 8, 26, 4, 68,
-  0.92, 19, 0, 2, 32, 30, 44,
-  1.0, 2, 0, 1, 48, 0, 76,
+  0.92, 12, 0, 2, 32, 30, 44,
+  1.0, 0, 0, 1, 40, 0, 76,
 ];
 const KEYS_PORTRAIT = [
   0.0, -12, 0, 0, 46, -18, 40,
@@ -105,10 +105,10 @@ const KEYS_PORTRAIT = [
   0.28, -12, 0, 0, 36, -24, 36,
   0.43, 2, 0, 1, 40, -8, 40,
   0.58, 8, 0, 2, 46, 6, 48,
-  0.69, 0, 0, 7, 30, 0, 62,
-  0.8, 0, 0, 8, 24, 2, 70,
+  0.69, 0, 0, 7, 32, 0, 62,
+  0.8, 0, 0, 8, 28, 2, 70,
   0.92, 19, 0, 2, 34, 20, 46,
-  1.0, 2, 0, 1, 48, 0, 76,
+  1.0, 0, 0, 1, 40, 0, 76,
 ];
 const KN = 7;
 
@@ -120,8 +120,11 @@ export const CAM_SIZE = 10;
 const cr = (p0: number, p1: number, p2: number, p3: number, u: number): number =>
   0.5 * (2 * p1 + (p2 - p0) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (3 * p1 - p0 - 3 * p2 + p3) * u * u * u);
 
-/** The camera at progress t, through the keyframes by Catmull-Rom. Portrait turns the die 90° (x, y) -> (y, -x). */
-export function cameraAt(t: number, portrait: boolean, aspect: number, o: Float32Array): Float32Array {
+const key = new Float64Array(KN - 1);
+
+/** The camera at progress t, through the keyframes by Catmull-Rom. Portrait turns the die 90° (x, y) -> (y, -x).
+ * `sway` (radians) is added to the azimuth: the idle sway of chapter 0. */
+export function cameraAt(t: number, portrait: boolean, aspect: number, o: Float32Array, sway = 0): Float32Array {
   const K = portrait ? KEYS_PORTRAIT : KEYS_LANDSCAPE;
   const n = K.length / KN;
   let i = 0;
@@ -130,17 +133,24 @@ export function cameraAt(t: number, portrait: boolean, aspect: number, o: Float3
   const d = Math.min(n - 1, i + 2);
   const u = span(t, K[i * KN], K[(i + 1) * KN]);
   const b = (i + 1) * KN;
-  let tx = cr(K[a * KN + 1], K[i * KN + 1], K[b + 1], K[d * KN + 1], u);
-  let ty = cr(K[a * KN + 2], K[i * KN + 2], K[b + 2], K[d * KN + 2], u);
+  for (let k = 1; k < KN; k++) key[k - 1] = cr(K[a * KN + k], K[i * KN + k], K[b + k], K[d * KN + k], u);
+  key[4] += (sway * 180) / Math.PI;
+  return place(key, portrait, aspect, o);
+}
+
+/** Camera slots from one key (target x y z, span, azimuth, elevation; degrees), for the screen's orientation. */
+function place(k: ArrayLike<number>, portrait: boolean, aspect: number, o: Float32Array): Float32Array {
+  let tx = k[0];
+  let ty = k[1];
   if (portrait) {
     const x = tx;
     tx = ty;
     ty = -x;
   }
-  const tz = cr(K[a * KN + 3], K[i * KN + 3], K[b + 3], K[d * KN + 3], u);
-  const dist = cr(K[a * KN + 4], K[i * KN + 4], K[b + 4], K[d * KN + 4], u) / (2 * Math.tan(FOV / 2) * Math.min(aspect, 1));
-  const az = (cr(K[a * KN + 5], K[i * KN + 5], K[b + 5], K[d * KN + 5], u) * Math.PI) / 180;
-  const el = (cr(K[a * KN + 6], K[i * KN + 6], K[b + 6], K[d * KN + 6], u) * Math.PI) / 180;
+  const tz = k[2];
+  const dist = k[3] / (2 * Math.tan(FOV / 2) * Math.min(aspect, 1));
+  const az = (k[4] * Math.PI) / 180;
+  const el = (k[5] * Math.PI) / 180;
   const ce = Math.cos(el);
   const se = Math.sin(el);
   const sa = Math.sin(az);
@@ -156,6 +166,45 @@ export function cameraAt(t: number, portrait: boolean, aspect: number, o: Float3
   o[8] = ce;
   o[9] = dist;
   return o;
+}
+
+/**
+ * The composed still (reduced motion, a frozen scene): the phases of progress STILL_T, where the beat from state A
+ * has lit the die and the 64 latches have formed the seal (state A, not yet flipped), seen from a fixed camera that
+ * keeps the whole die in frame. The same key, six numbers, as the keyframes above.
+ */
+export const STILL_T = 0.69;
+const STILL_LANDSCAPE = [8, 2, 2, 48, -20, 42];
+const STILL_PORTRAIT = [-10, 0, 2, 48, -14, 46];
+
+export function cameraStill(portrait: boolean, aspect: number, o: Float32Array): Float32Array {
+  return place(portrait ? STILL_PORTRAIT : STILL_LANDSCAPE, portrait, aspect, o);
+}
+
+/**
+ * Where the die sits on screen, as a shift of the image in normalised device units (x right, y up), so that it
+ * clears the chapter text: right of the text column on a wide screen (up to 18% of the width), above the text on
+ * a tall one (15% of the height), centred on a squarish one. Applied to the projection, so every keyframe above
+ * stays composed around its own target.
+ */
+export function lensShift(aspect: number, o: Float32Array): Float32Array {
+  o[0] = 0.36 * span(aspect, 1, 1.6);
+  o[1] = aspect < 0.8 ? 0.3 : 0;
+  return o;
+}
+
+/** Seconds of the power-on that plays once when the scene first draws (cells light in level order). */
+export const INTRO_SECONDS = 1.4;
+
+/** The idle sway of chapter 0: amplitude (degrees) and period (seconds); it fades out by the end of the chapter. */
+export const SWAY_DEG = 1.5;
+export const SWAY_PERIOD = 9;
+export const SWAY_UNTIL = CHAPTERS[0].to;
+
+/** The sway's azimuth offset in radians at `seconds`, for progress t; `fade` (0..1) eases it in after the power-on. */
+export function swayAt(seconds: number, t: number, fade: number): number {
+  const w = fade * (1 - span(t, SWAY_UNTIL * 0.6, SWAY_UNTIL));
+  return w <= 0 ? 0 : ((SWAY_DEG * Math.PI) / 180) * w * Math.sin((2 * Math.PI * seconds) / SWAY_PERIOD);
 }
 
 /** The seal hangs above the die's centre; it is pressed down onto the die at the end of chapter IV. */

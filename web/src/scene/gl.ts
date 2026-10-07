@@ -52,15 +52,18 @@ else{P=vec3(c,-.14);Z=vec3(D.w>.5?D.yx+1.:D.xy+1.,.14);C=vec3(.058,.068,.084);G=
 }
 `;
 
-const BOX_VS = `${CELL}layout(location=0) in vec3 p;layout(location=1) in vec3 n;out vec3 vC;
+// vK: for the seal plate, x + 1 - y over the box's unit square (0 at its top-left corner, next to bit 0), so the
+// fragment shader cuts the pin-1 chamfer, 14% of the side as on the brand's Seal; 2 on every other box.
+const BOX_VS = `${CELL}layout(location=0) in vec3 p;layout(location=1) in vec3 n;out vec3 vC;out float vK;
 void main(){cell();
 vec3 w=P+vec3((p.xy-.5)*Z.xy,p.z*Z.z);
 gl_Position=V*vec4(w,1.);
 float d=max(dot(n,normalize(vec3(-.7,.35,.55))),0.),f=clamp(1.2-(distance(w,E.xyz)-E.w*.8)/(E.w*1.2),.45,1.);
+vK=a.w>6.5&&a.w<7.5?p.x+1.-p.y:2.;
 vC=(C*(.36+.8*d)+H*min(G,1.)*.2)*f;}`;
 
 const BOX_FS = `#version 300 es
-precision mediump float;in vec3 vC;out vec4 o;void main(){o=vec4(vC,1.);}`;
+precision mediump float;in vec3 vC;in float vK;out vec4 o;void main(){if(vK<.14)discard;o=vec4(vC,1.);}`;
 
 const GLOW_VS = `${CELL}uniform float K;out vec3 vG;
 void main(){cell();
@@ -94,8 +97,8 @@ const BOX = new Float32Array([
 const BOX_IDX = new Uint8Array(30).map((_, i) => 4 * Math.floor(i / 6) + [0, 1, 2, 0, 2, 3][i % 6]);
 
 export interface Renderer {
-  /** Draws one frame with view-projection `vp` and the uniform pack (PACK floats). */
-  draw(vp: M4, pack: Float32Array): void;
+  /** Draws one frame with view-projection `vp` and the uniform pack (PACK floats); `glow` false skips the glow. */
+  draw(vp: M4, pack: Float32Array, glow: boolean): void;
   destroy(): void;
 }
 
@@ -175,7 +178,7 @@ export function createRenderer(gl: WebGL2RenderingContext, d: SceneData): Render
   };
 
   return {
-    draw(vp, p) {
+    draw(vp, p, glowOn) {
       if (p !== pack) {
         pack = p;
         views.length = 0;
@@ -201,11 +204,13 @@ export function createRenderer(gl: WebGL2RenderingContext, d: SceneData): Render
       gl.drawArrays(gl.LINES, 0, wireVerts);
 
       gl.disable(gl.DEPTH_TEST);
-      gl.useProgram(glow);
-      setUniforms(1, vp);
-      gl.uniform1f(kLoc, p[20]);
-      gl.bindVertexArray(vGlow);
-      gl.drawArrays(gl.POINTS, 0, d.count);
+      if (glowOn) {
+        gl.useProgram(glow);
+        setUniforms(1, vp);
+        gl.uniform1f(kLoc, p[20]);
+        gl.bindVertexArray(vGlow);
+        gl.drawArrays(gl.POINTS, 0, d.count);
+      }
       gl.bindVertexArray(null);
     },
     destroy() {
