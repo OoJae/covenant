@@ -34,17 +34,31 @@ async function start(): Promise<SmoothScroll | null> {
   const { default: LenisClass } = await import('lenis');
   if (!wanted()) return null; // the setting changed while the chunk loaded
   const lenis = new LenisClass({ lerp: 0.1, anchors: false, autoRaf: false });
+  // The frame loop runs only while Lenis has a smooth scroll to play, and sleeps in between (keys, the scrollbar
+  // and touch scroll natively and need no frames): an idle page asks for no frames at all. A wheel or a jump wakes
+  // it; the clock restarts from that frame, so the first step after a sleep is not one long jump.
   let frame = 0;
   const loop = (t: number): void => {
     lenis.raf(t);
-    frame = requestAnimationFrame(loop);
+    if (lenis.isScrolling === 'smooth') frame = requestAnimationFrame(loop);
+    else {
+      frame = 0;
+      lenis.time = 0;
+    }
   };
-  frame = requestAnimationFrame(loop);
+  const wake = (): void => {
+    if (!frame) frame = requestAnimationFrame(loop);
+  };
+  const unwheel = lenis.on('virtual-scroll', wake);
   const s: SmoothScroll = {
     lenis,
-    scrollTo: (top, opts) => lenis.scrollTo(top, { immediate: opts?.immediate ?? false, force: true }),
+    scrollTo: (top, opts) => {
+      lenis.scrollTo(top, { immediate: opts?.immediate ?? false, force: true });
+      wake();
+    },
     destroy: () => {
       cancelAnimationFrame(frame);
+      unwheel();
       off();
       lenis.destroy();
       if (active === s) active = null;

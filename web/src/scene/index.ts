@@ -75,17 +75,35 @@ export interface Scene {
 
 /** Frame interval (ms) above which the 90th percentile makes the scene lower its cost. */
 export const SLOW_FRAME_MS = 28;
+/** Seconds without a scroll after which the hero's sway settles and the scene stops drawing. */
+export const SWAY_IDLE = 8;
+/** Frame interval (ms) of a machine that cannot draw the scene at all: ten in a row and it goes to the still frame. */
+export const HOPELESS_MS = 50;
+
+/** A software rasteriser behind WebGL (SwiftShader, llvmpipe), where the browser says so. */
+function softwareRenderer(gl: WebGL2RenderingContext): boolean {
+  const ext = gl.getExtension('WEBGL_debug_renderer_info');
+  const name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+  return /SwiftShader|llvmpipe|softpipe|Software/i.test(name);
+}
 /** Height-only resizes smaller than this (a mobile browser's address bar) keep the drawing buffer as it is. */
 export const RESIZE_SLACK_PX = 120;
 
 export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: SceneOptions = {}): Scene | null {
   let gl: WebGL2RenderingContext | null = null;
   try {
-    gl = canvas.getContext('webgl2', { alpha: true, antialias: true, premultipliedAlpha: true, depth: true, powerPreference: 'high-performance' });
+    // A software renderer (SwiftShader, llvmpipe: Chrome with the GPU blocklisted, a VM) would block the main
+    // thread for seconds before the auto-degrade could step in: refuse it, and the stage takes the Canvas 2D die.
+    // The default power preference: the die is a background, not a reason to wake a discrete GPU.
+    gl = canvas.getContext('webgl2', { alpha: true, antialias: true, premultipliedAlpha: true, depth: true, powerPreference: 'default', failIfMajorPerformanceCaveat: true });
   } catch {
     gl = null;
   }
   if (!gl) return null;
+  if (softwareRenderer(gl)) {
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return null;
+  }
   const R = createRenderer(gl, data);
   if (!R) return null;
   const g = gl;
@@ -100,6 +118,10 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
   let cur = target;
   let intro = reduced ? 1 : 0;
   let swayClock = 0;
+  // The sway settles after SWAY_IDLE seconds without a scroll and the scene stops drawing; the next scroll brings
+  // it back. An idle page costs no frames.
+  let swayIdle = 0;
+  let swayGain = 1;
   let composed = false;
   let frozen = false;
   let raf = 0;
@@ -123,7 +145,8 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
 
   // Frame intervals while animating, for the auto-degrade check: a window of 45, judged every 15 frames, after
   // 20 frames of grace (the page is busiest while it loads). Gaps over 250 ms are a tab switch or a hitch, not a
-  // frame rate, and are left out.
+  // frame rate, and are left out. A machine that cannot draw at all (the first 10 frames after the grace all over
+  // HOPELESS_MS) goes straight to the still frame instead of waiting for the window.
   const WINDOW = 45;
   const ring = new Float32Array(WINDOW);
   const sorted = new Float32Array(WINDOW);
@@ -142,7 +165,7 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
       cameraStill(portrait, aspect, cam);
     } else {
       phaseAt(cur, intro, data.reach, phase);
-      cameraAt(cur, portrait, aspect, cam, swayOn ? swayAt(swayClock, cur, Math.min(1, swayClock / 2)) : 0);
+      cameraAt(cur, portrait, aspect, cam, swayOn ? swayGain * swayAt(swayClock, cur, Math.min(1, swayClock / 2)) : 0);
     }
     perspective(proj, FOV, aspect, Math.max(0.5, cam[9] * 0.05), cam[9] * 4 + 120);
     // Shift the image off-axis (x_ndc += s.x): proj[8] and proj[9] multiply the view z, and w = -z.
@@ -173,11 +196,15 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
       return;
     }
     ring[ringN++ % WINDOW] = ms;
-    if (ringN < WINDOW || ringN % 15 !== 0) return;
-    sorted.set(ring);
-    sorted.sort();
-    if (sorted[Math.floor(WINDOW * 0.9)] <= SLOW_FRAME_MS) return;
-    level++;
+    let hopeless = level === 0 && ringN === 10;
+    for (let i = 0; hopeless && i < 10; i++) hopeless = ring[i] > HOPELESS_MS;
+    if (!hopeless) {
+      if (ringN < WINDOW || ringN % 15 !== 0) return;
+      sorted.set(ring);
+      sorted.sort();
+      if (sorted[Math.floor(WINDOW * 0.9)] <= SLOW_FRAME_MS) return;
+    }
+    level = hopeless ? 2 : level + 1;
     ringN = 0;
     grace = 10;
     if (level === 1) {
@@ -214,8 +241,13 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
       }
       // The idle sway: only in chapter 0, and only once the die has powered on.
       if (swayOn && intro >= 1 && cur < SWAY_UNTIL) {
-        swayClock += dt;
-        again = true;
+        swayIdle += dt;
+        const want = swayIdle < SWAY_IDLE ? 1 : 0;
+        swayGain += (want - swayGain) * Math.min(1, dt * 1.2);
+        if (want === 1 || swayGain > 0.002) {
+          swayClock += dt;
+          again = true;
+        } else swayGain = 0;
       }
     }
     draw();
@@ -294,6 +326,7 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
       const v = t < 0 ? 0 : t > 1 ? 1 : t;
       if (v === target && !composed) return;
       target = v;
+      swayIdle = 0;
       if (frozen) return;
       composed = false;
       if (tau === 0 && !raf) {

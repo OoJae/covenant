@@ -69,14 +69,19 @@ export function reachTable(levels: ArrayLike<number>, kinds: ArrayLike<number>, 
   return r;
 }
 
+/** How much of the input word the power-on leaves on the pads: the resting hero is a chip already holding the
+ * start of a real question, and chapter I completes it. */
+export const INTRO_INPUT = 0.35;
+
 /**
  * The phase values at progress t: `intro` (0..1) is the time-driven power-on that plays once on load; the scroll
- * position completes it too, so a reader who lands mid-page never sees a dark die.
+ * position completes it too, so a reader who lands mid-page never sees a dark die. The power-on ends with the first
+ * INTRO_INPUT of the input pads lit with the real word.
  */
 export function phaseAt(t: number, intro: number, reach: Float32Array, o: Float32Array): Float32Array {
   const top = reach.length + 7;
   o[P_POWER] = Math.max(intro, span(t, 0, 0.1)) * top - 6;
-  o[P_INPUT] = span(t, 0.15, 0.26);
+  o[P_INPUT] = Math.max(span(t, 0.15, 0.26), span(intro, 0.6, 1) * INTRO_INPUT);
   o[P_WAVE] = levelAt(reach, span(t, 0.29, 0.56));
   o[P_FLY] = ease(span(t, 0.59, 0.69));
   o[P_FLIP] = span(t, 0.695, 0.745);
