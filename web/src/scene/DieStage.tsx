@@ -398,7 +398,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
                     <p class="die-stage__caption">
                       State B · {demo.stateB}
                       <br />
-                      The chip's 64 latches, one square each
+                      64 latches, one square each
                     </p>
                   </Fragment>
                 )}

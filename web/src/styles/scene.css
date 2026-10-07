@@ -144,6 +144,7 @@
   left: 0;
   width: max-content;
   max-width: min(22rem, calc(100vw - 2 * var(--grid-margin, 1rem)));
+  white-space: nowrap;
   margin: 0;
   font: var(--step-micro, 0.6875rem) / 1.6 var(--font-mono);
   letter-spacing: var(--track-micro, 0.04em);
