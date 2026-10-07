@@ -384,7 +384,8 @@ has no Layout Instability API, by tracking element offsets every 100 ms.
 
 - **Pages are a screen tall** (`base.css` `main.route`, `min-height: 100svh`, was 70vh): the footer no longer fills the
   bottom of the screen while a page shows its Loading line and then jumps away (CLS 0.27 to 0.31 on every inner page).
-- **§01 terminal** (`landing-paper.css`): each copy button sits in its own line's grid column; both used to be
+- **§01 terminal** (`landing-paper.css`): each copy button sits on its own line's label row, with the command under it
+  at the terminal's full width (a phone had about 200 px for it beside the button); both buttons used to be
   absolutely placed in the terminal's corner, so State B's covered State A's.
 - **Stage without WebGL** (`scene.css`, `scene/fallback.ts`): the flat layer is one definite grid cell, so the die's box
   no longer grows with the canvas fitted to it (a ResizeObserver loop error, and on a phone a die that grew to 1.4
@@ -466,9 +467,9 @@ Chromium driven through Playwright, production build served as static files by `
 
 ### 4.5 Sizes
 
-After the link card and the cross-browser pass (3.10), `node scripts/check-budget.mjs`: **total 515,405 of 520,000
+After the link card and the cross-browser pass (3.10), `node scripts/check-budget.mjs`: **total 515,471 of 520,000
 (99.1%)**, **entry 101,468 of 112,000 (90.6%)**, **first paint 182,416 of 196,000 (93.1%)**, fonts 89,676 of 100,000.
-`og.jpg` is 52,670 of that total, so 4,595 bytes are left in all. Entry: stylesheet 39,862, `index-*.js` 36,887,
+`og.jpg` is 52,670 of that total, so 4,529 bytes are left in all. Entry: stylesheet 39,862, `index-*.js` 36,887,
 `index.html` 2,826 (the two image alt tags: 413); the fixes took 431 bytes of entry, and 10,532 are left. On demand:
 DieStage 23,779 (limit 24,000), `scene-*.js` 6,631, `fallback-*.js` 1,400, Lenis 14,181 (limit 20,000).
 
