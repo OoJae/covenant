@@ -1,0 +1,485 @@
+/* The landing page's paper clauses, §01 to §05 (src/components/TwoStates.tsx, src/routes/LandingClauses.tsx). Not in
+   the site's stylesheet: styles/landing-paper.ts imports this file as text and adds it once, when the first clause
+   chunk loads, so the entry stylesheet carries only what the first paint needs (landing.css, which also holds the
+   chapters). No url() and no @import. Every animation here sits behind prefers-reduced-motion: no-preference. */
+
+/* -------------------------------------------------------------------------------------------------- paper band */
+
+.landing__pa {
+  position: relative;
+  background-color: var(--bg);
+  background-image: var(--grain);
+  padding-bottom: var(--sp-section);
+}
+.l-sec {
+  padding-top: var(--sp-section);
+}
+/* The clause number hangs in the gutter from 1024 px: the text column starts after it. */
+@media (min-width: 1024px) {
+  .l-sec > .l-wrap {
+    padding-left: calc(var(--grid-margin) + var(--clause-gutter));
+  }
+}
+.l-body {
+  display: grid;
+  gap: var(--sp-5);
+}
+.l-body > p,
+.l-body > ul,
+.l-body > dl {
+  margin: 0;
+}
+.l-lede {
+  max-width: 52ch;
+  font-size: var(--step-lede);
+  line-height: var(--lh-lede);
+  color: var(--fg-2);
+}
+.l-lede b {
+  color: var(--fg);
+  font-weight: var(--wght-body-strong);
+}
+
+/* ----------------------------------------------------------------------------------------------- §01 TwoStates */
+
+.ts-word {
+  max-width: 40rem;
+}
+.ts-word dd {
+  overflow-wrap: anywhere;
+}
+.ts-pair {
+  display: grid;
+  gap: var(--grid-gap);
+  margin-top: var(--sp-7);
+}
+.ts-card {
+  display: grid;
+  gap: var(--sp-4);
+  align-content: start;
+  min-width: 0;
+  padding: var(--sp-5);
+  background-image: var(--grain);
+}
+.ts-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: var(--hairline) solid var(--rule);
+}
+.ts-card__head h3 {
+  margin: 0;
+  color: var(--fg);
+}
+.ts-card__hex {
+  color: var(--fg-2);
+  font-size: var(--step-small);
+}
+.ts-card__mem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+}
+.ts-card__mem .seal {
+  color: var(--bit-on);
+}
+.ts-card__hist {
+  margin: 0;
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+.ts-card__field {
+  margin: var(--sp-2) 0 0;
+  min-height: 2.8em;
+  font-size: var(--step-micro);
+  letter-spacing: var(--track-micro);
+  color: var(--fg-2);
+}
+.ts-card__mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-3);
+  margin: 0;
+}
+.ts-card__mode b {
+  font: 400 var(--step-lede) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  color: var(--accent-ink);
+}
+.ts-card__num {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-3);
+  margin: 0;
+}
+.ts-num {
+  font: var(--wght-display) var(--step-display) / 1 var(--font-display);
+  letter-spacing: var(--track-display);
+  font-variant-numeric: lining-nums;
+  color: var(--fg);
+}
+.ts-card .routebar .bar {
+  height: 2.75rem;
+  margin: 0;
+  border-radius: 0;
+  gap: 2px;
+  background: transparent;
+}
+.ts-card .routebar .seg {
+  transform-origin: 0 50%;
+}
+.ts-card .routebar .keys {
+  margin: var(--sp-3) 0 0;
+  gap: var(--sp-1) var(--sp-4);
+  font: var(--step-micro) / 1.5 var(--font-mono);
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+.ts-card .routebar .keys b {
+  color: var(--fg);
+  font-weight: 400;
+}
+.ts-card .dot {
+  border-radius: 0;
+}
+.ts-card__out {
+  margin: 0;
+  font-size: var(--step-micro);
+  letter-spacing: var(--track-micro);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+
+.ts-verdicts {
+  display: grid;
+  gap: var(--sp-4) var(--grid-gap);
+  margin-top: var(--sp-6);
+}
+.ts-plates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--sp-3);
+}
+.ts-verdicts .plate {
+  margin: 0;
+  transform-origin: 50% 50%;
+}
+.ts-verdicts .plate .verdict {
+  display: grid;
+  gap: var(--sp-1);
+}
+.ts-verdicts .plate .verdict span {
+  font-size: var(--step-small);
+}
+.ts-explain {
+  max-width: 64ch;
+  margin: 0;
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+.ts-explain b {
+  color: var(--fg);
+}
+.ts-keccak {
+  display: block;
+  margin-top: var(--sp-2);
+  overflow-wrap: anywhere;
+}
+
+.ts-term {
+  display: grid;
+  gap: var(--sp-4);
+  margin-top: var(--sp-7);
+}
+.ts-term .terminal {
+  display: grid;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+.terminal__title {
+  margin: 0;
+}
+.terminal__line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2) var(--sp-3);
+  align-items: center;
+}
+.terminal__prompt {
+  grid-column: 1 / -1;
+  color: var(--quartz-2);
+  font: var(--step-micro) / 1.4 var(--font-mono);
+  letter-spacing: var(--track-micro);
+}
+.terminal__line pre {
+  margin: 0;
+  padding: var(--sp-2) 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--step-small);
+  line-height: 1.6;
+  color: var(--fg);
+}
+.terminal .copy {
+  min-height: 2.5rem;
+  padding-inline: var(--sp-3);
+  gap: var(--sp-2);
+  font-size: var(--step-small);
+}
+.ts-note {
+  max-width: 64ch;
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+.ts-reach summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap);
+  cursor: pointer;
+  font-weight: var(--wght-body-strong);
+  list-style: none;
+}
+.ts-reach summary::-webkit-details-marker {
+  display: none;
+}
+.ts-reach summary::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--accent);
+  transition: transform var(--dur-toggle) var(--ease-toggle);
+}
+.ts-reach[open] summary::before {
+  transform: rotate(45deg);
+}
+.ts-reach ol {
+  margin: var(--sp-2) 0 0;
+  padding-left: 2.5rem;
+  font-size: var(--step-small);
+  line-height: 1.7;
+}
+.ts-reach ol b {
+  color: var(--accent-ink);
+  font-weight: 400;
+}
+
+@media (min-width: 1024px) {
+  .ts-verdicts {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+@media (min-width: 900px) {
+  .ts-pair {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ts-card {
+    padding: var(--sp-6);
+  }
+}
+
+/* --------------------------------------------------------------------------------------------- §02 what no chip */
+
+.deeds {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0 var(--grid-gap);
+}
+.deeds li {
+  padding: var(--sp-4) 0 var(--sp-5);
+  border-top: var(--hairline) solid var(--rule-strong);
+}
+.deeds h3 {
+  margin: 0 0 var(--sp-2);
+  font: var(--wght-body-strong) var(--step-h3) / 1.3 var(--font-sans);
+}
+.deeds p {
+  margin: 0;
+  color: var(--fg-2);
+}
+@media (min-width: 1024px) {
+  .deeds {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- §03 the register */
+
+.live-reg > li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: var(--sp-1) var(--sp-3);
+  align-items: baseline;
+  padding: var(--sp-3) 0;
+}
+.live-reg .mark {
+  grid-row: 1 / 4;
+  transform: translateY(0.15rem);
+}
+.live-reg__what a {
+  color: var(--fg);
+}
+.live-reg__addr {
+  font-size: var(--step-small);
+}
+.live-reg__note {
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+.register-sec__note {
+  max-width: 64ch;
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+@media (min-width: 900px) {
+  .live-reg > li {
+    grid-template-columns: 1.5rem minmax(0, 5fr) minmax(0, 3fr) minmax(0, 6fr);
+  }
+  .live-reg .mark {
+    grid-row: auto;
+  }
+}
+
+/* --------------------------------------------------------------------------------------------------- §04 tiles */
+
+.l-tiles {
+  list-style: none;
+  padding: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: var(--grid-gap);
+}
+.l-tile {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: var(--sp-2);
+  height: 100%;
+  min-height: 11rem;
+  padding: var(--sp-4) var(--sp-4) var(--sp-4);
+  border-top: 2px solid var(--fg);
+  background: transparent;
+  color: var(--fg);
+  text-decoration: none;
+  transition: background-color var(--dur-micro) var(--ease-reveal);
+}
+.l-tile .label {
+  color: var(--accent-ink);
+}
+.l-tile__title {
+  font: var(--wght-display) 1.75rem / 1.1 var(--font-display);
+  letter-spacing: var(--track-display);
+}
+.l-tile__text {
+  font-size: var(--step-small);
+  color: var(--fg-2);
+}
+.l-tile .btn__icon {
+  width: 24px;
+  height: 24px;
+  transition: transform var(--dur-micro) var(--ease-reveal);
+}
+.l-tile .btn__icon .pad {
+  fill: var(--accent);
+}
+@media (hover: hover) {
+  a.l-tile:hover {
+    background-color: var(--bg-2);
+  }
+  a.l-tile:hover .btn__icon {
+    transform: translateX(4px);
+  }
+}
+a.l-tile:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 2px;
+}
+.l-tile.is-off {
+  color: var(--fg-2);
+  border-top-color: var(--rule-strong);
+}
+
+/* ------------------------------------------------------------------------------------------- §05 circuit reader */
+
+.l-open {
+  display: grid;
+  gap: var(--sp-2);
+  max-width: 44rem;
+  margin: 0;
+}
+.l-open__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+.l-open input {
+  flex: 1 1 18rem;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 var(--sp-4);
+  border: var(--hairline) solid var(--rule-strong);
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: var(--step-body) / 1 var(--font-mono);
+}
+.l-open input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 2px;
+}
+.l-open input.bad {
+  border-color: var(--bad);
+}
+.l-open__err {
+  margin: 0;
+  color: var(--bad);
+  font-size: var(--step-small);
+}
+.l-open__examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-5);
+}
+.l-open__examples .label {
+  flex: 1 1 100%;
+}
+.l-open__examples a {
+  color: var(--fg);
+}
+
+@media (max-width: 639px) {
+  .l-open__row .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* --------------------------------------------------------------------------------------------- motion */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Route bars fill from the left, in level order, when the cards arrive. */
+  .ts-pair .routebar .seg {
+    transition: transform var(--dur-reveal) var(--ease-reveal);
+  }
+  .ts-pair:not(.is-revealed) .routebar .seg {
+    transform: scaleX(0);
+  }
+  .ts-pair .routebar .seg:nth-child(2) {
+    transition-delay: calc(1 * var(--stagger));
+  }
+  .ts-pair .routebar .seg:nth-child(3) {
+    transition-delay: calc(2 * var(--stagger));
+  }
+  /* The verdict plates wait out of sight and are stamped on when they come into view. */
+  .ts-verdicts:not(.is-revealed) .plate {
+    opacity: 0;
+  }
+}

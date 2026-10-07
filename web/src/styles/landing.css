@@ -1,0 +1,525 @@
+/* The landing page, first paint (src/routes/Landing.tsx): the silicon band, the hero, the stage's place behind it.
+   A deed with a window: silicon for the chip and what it computes, paper for what people wrote. The rest of the
+   page (§01 to §05) is styled by landing-paper.css, which travels with the clause chunks. Shared
+   classes (.btn, .label, .ledger, .register, .plate, .terminal, .tag, .mark, the clause heading) come from
+   components.css; these files only place them and add what is landing-only. Every animation here sits behind
+   prefers-reduced-motion: no-preference. */
+
+.landing {
+  position: relative;
+}
+
+.l-wrap {
+  width: 100%;
+  max-width: calc(var(--grid-max) + 2 * var(--grid-margin));
+  margin-inline: auto;
+  padding-inline: var(--grid-margin);
+}
+
+/* --------------------------------------------------------------------------------------------- skip the animation */
+
+.skip-anim {
+  position: absolute;
+  z-index: 20;
+  top: var(--sp-3);
+  left: var(--grid-margin);
+  min-height: var(--tap);
+  padding: 0 var(--sp-5);
+  border: var(--hairline) solid var(--bond);
+  border-radius: 0;
+  background: var(--wafer);
+  color: var(--quartz);
+  font: 500 var(--step-small) / 1 var(--font-sans);
+  font-stretch: var(--stretch-ui);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+}
+.skip-anim:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  outline: var(--focus-width) solid var(--bond);
+  outline-offset: 2px;
+}
+
+/* Jump targets (chapters, §01) take the focus without a ring unless the keyboard brought it. */
+.landing [tabindex='-1']:focus {
+  outline: none;
+}
+.landing [tabindex='-1']:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--sp-2));
+}
+
+/* ------------------------------------------------------------------------------------------------- silicon band */
+
+.landing__si {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  background-color: var(--bg);
+  background-image: var(--grain);
+}
+/* The hero and the stage share one cell: the stage starts behind the headline, from the first paint. */
+.landing__si > .hero,
+.landing__si > .landing__stage {
+  grid-area: 1 / 1;
+}
+
+.hero {
+  position: relative;
+  z-index: 2;
+  align-self: start;
+  display: flex;
+  min-height: calc(100svh - var(--header-h, 4rem));
+}
+/* Keeps the text readable over the die without hiding it: a wash from the text side only. On a phone the text
+   covers most of the die, so the wash is stronger under the lede. */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(0deg, var(--bg) 0%, var(--bg) 30%, color-mix(in srgb, var(--bg) 82%, transparent) 55%, transparent 80%);
+}
+@media (min-width: 1024px) {
+  .hero::before {
+    background:
+      linear-gradient(0deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 78%, transparent) 38%, transparent 72%),
+      linear-gradient(90deg, color-mix(in srgb, var(--bg) 70%, transparent) 0%, transparent 55%);
+  }
+}
+/* Under reduced motion the die behind the hero is one still frame of the lit die, which is brighter than the
+   power-on: the wash is heavier there. */
+@media (prefers-reduced-motion: reduce) {
+  .hero::before {
+    background:
+      linear-gradient(0deg, var(--bg) 0%, var(--bg) 25%, color-mix(in srgb, var(--bg) 80%, transparent) 60%, color-mix(in srgb, var(--bg) 55%, transparent) 100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) and (min-width: 1024px) {
+  .hero::before {
+    background:
+      linear-gradient(0deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 80%, transparent) 40%, transparent 75%),
+      linear-gradient(90deg, color-mix(in srgb, var(--bg) 88%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 50%, transparent 72%);
+  }
+}
+.hero__inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--sp-7);
+  padding-block: var(--sp-6) var(--sp-7);
+}
+.hero__label {
+  margin: 0;
+  max-width: 44ch;
+}
+@media (min-width: 640px) {
+  .hero__label {
+    max-width: none;
+  }
+}
+.hero__title {
+  margin: 0;
+  max-width: 15ch;
+  font: var(--wght-display) var(--step-hero) / var(--lh-hero) var(--font-display);
+  letter-spacing: var(--track-hero);
+  font-optical-sizing: auto;
+  text-wrap: balance;
+}
+.hero__title em {
+  font-weight: var(--wght-display-strong);
+  color: var(--fg);
+}
+.hero__foot {
+  display: grid;
+  gap: var(--sp-6);
+  margin-top: var(--sp-6);
+}
+.hero__lede {
+  margin: 0;
+  max-width: 46ch;
+  font-size: var(--step-lede);
+  line-height: var(--lh-lede);
+  color: var(--fg-2);
+}
+.hero__lede b {
+  color: var(--fg);
+  font-weight: var(--wght-body-strong);
+}
+.hero__lede .mono,
+.landing .mono {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.hero__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+.hero__ledger {
+  display: grid;
+  gap: var(--sp-3);
+  align-content: start;
+  max-width: 26rem;
+}
+.hero__ledger .label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+}
+.hero__ledger .ledger a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.hero__ledger .ledger a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+.hero__ledger-k {
+  color: var(--fg-2);
+  margin-left: var(--sp-2);
+}
+.hero__retry {
+  margin-left: var(--sp-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  cursor: pointer;
+}
+/* A pad that lights when the chain has answered: the activity colour, once, not a loop. */
+.live-pad {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--rule-strong);
+}
+.is-live .live-pad {
+  background: var(--accent);
+}
+
+@media (max-width: 639px) {
+  .hero__ctas .btn {
+    flex: 1 1 100%;
+  }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .hero__title {
+    font-size: clamp(2.75rem, 8.5vw, 6rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero__inner {
+    padding-block: var(--sp-6) var(--sp-7);
+  }
+  .hero__title {
+    max-width: 13.5ch;
+    font-size: clamp(4rem, 6.3vw, 8rem);
+  }
+  .hero__foot {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    align-items: end;
+  }
+  .hero__lede {
+    grid-column: 1 / 8;
+    max-width: 52ch;
+  }
+  .hero__ctas {
+    grid-column: 1 / 8;
+    grid-row: 2;
+  }
+  .hero__ledger {
+    grid-column: 9 / 13;
+    grid-row: 1 / 3;
+    justify-self: end;
+    width: 100%;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------- the stage, chapters */
+
+.landing__stage {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+/* Chapter 0 is the room the hero takes: a spacer of its measured height (Landing.tsx writes --hero-h). */
+.chapter.chapter--power {
+  height: var(--hero-h, calc(100svh - var(--header-h, 4rem)));
+  min-height: 0;
+  padding: 0;
+}
+
+.chapter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 100lvh;
+  padding-block: var(--sp-8);
+}
+.chapter[data-chapter='2'] {
+  min-height: 150lvh; /* the beat: the longest chapter of the scroll */
+}
+.stage-stacked .chapter,
+.die-stage.is-still .chapter {
+  min-height: 0;
+  padding-block: var(--sp-7);
+}
+.chapter__wrap {
+  display: flex;
+}
+.chapter__card {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  padding: var(--sp-6) var(--sp-5);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  border: var(--hairline) solid var(--rule);
+}
+.chapter__no {
+  float: right;
+  margin: calc(-1 * var(--sp-2)) 0 0 var(--sp-4);
+  font: var(--wght-display) clamp(2.75rem, 2rem + 3vw, 4.5rem) / 1 var(--font-display);
+  letter-spacing: var(--track-display);
+  color: var(--accent-ink);
+}
+.chapter__card .label {
+  margin: 0 0 var(--sp-4);
+}
+.chapter__title {
+  clear: both;
+  margin: 0 0 var(--sp-5);
+  padding: 0;
+  border: 0;
+  max-width: 16ch;
+  font: var(--wght-display) var(--step-chapter) / var(--lh-heading) var(--font-display);
+  letter-spacing: var(--track-display);
+  text-wrap: balance;
+}
+.chapter__title em {
+  font-weight: var(--wght-display-strong);
+}
+.chapter__body {
+  display: grid;
+  gap: var(--sp-4);
+  color: var(--fg-2);
+}
+.chapter__body p {
+  margin: 0;
+}
+.chapter__data {
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+/* A number the chip or the chain gave: data face, full contrast. Modes in the accent. */
+.d {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  font-weight: 400;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.d--mode {
+  color: var(--accent-ink);
+  letter-spacing: 0.06em;
+}
+.d--wait {
+  color: var(--fg-2);
+}
+.chapter__seals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+  margin: var(--sp-2) 0 0;
+}
+.chapter__seals figure {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+}
+.chapter__seals figcaption {
+  font-size: var(--step-micro);
+  letter-spacing: var(--track-micro);
+  color: var(--fg-2);
+}
+.chapter__mem {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--step-small) / 1.4 var(--font-sans);
+}
+.chapter__mem th,
+.chapter__mem td {
+  padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
+  border-bottom: var(--hairline) solid var(--rule);
+  text-align: left;
+  white-space: nowrap;
+}
+.chapter__mem thead th {
+  font: var(--step-micro) / 1.4 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  font-weight: 400;
+}
+.chapter__mem tbody th {
+  font-weight: 400;
+  color: var(--fg-2);
+}
+.chapter__mem td {
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+.chapter__mem .num {
+  text-align: right;
+}
+
+/* Where the tax goes: nodes joined by wires that end in pads (the icon system's arrow). */
+.l-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  font: var(--step-micro) / 1.4 var(--font-mono);
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+}
+.l-flow__node {
+  display: inline-block;
+  padding: var(--sp-1) var(--sp-2);
+  border: var(--hairline) solid var(--rule-strong);
+  color: var(--fg);
+  white-space: nowrap;
+}
+.l-flow__node--strong {
+  border-color: var(--fg);
+}
+.l-flow__node--chip {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.l-flow__node--buy {
+  border-left: 4px solid var(--c-buy);
+}
+.l-flow__node--allow {
+  border-left: 4px solid var(--c-allow);
+}
+.l-flow__node--res {
+  border-left: 4px solid var(--c-res);
+}
+.l-flow__dests {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.l-flow__wire {
+  position: relative;
+  width: 1.25rem;
+  height: 1px;
+  background: var(--fg-2);
+}
+.l-flow__wire::after,
+.l-flow__wire--both::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -1px;
+  width: 5px;
+  height: 5px;
+  background: var(--fg-2);
+}
+.l-flow__wire--both::before {
+  right: auto;
+  left: -1px;
+}
+
+/* Under reduced motion the chapters are stacked and nothing sits beside them, so on a wide screen each card spans
+   the width: heading on the left, text on the right. */
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .chapter__card {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    column-gap: calc(2 * var(--grid-gap));
+    align-items: start;
+  }
+  .chapter__no {
+    float: none;
+    grid-column: 1;
+    margin: 0 0 var(--sp-3);
+  }
+  .chapter__card .label,
+  .chapter__title {
+    grid-column: 1;
+  }
+  .chapter__body {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapter {
+    min-height: 0;
+    padding-block: var(--sp-7);
+  }
+}
+
+@media (max-width: 767px) {
+  .die-stage .chapter {
+    align-items: flex-end;
+    min-height: 85lvh;
+  }
+  .die-stage .chapter[data-chapter='2'] {
+    min-height: 120lvh;
+  }
+  .chapter__card {
+    padding: var(--sp-5) var(--sp-4);
+  }
+}
+
+/* §01 and §02 to §05 hold their place until their chunks arrive (Landing.tsx), so the scroll length does not jump. */
+.l-ph--s01 {
+  min-height: 100lvh;
+}
+.l-ph--rest {
+  min-height: 200lvh;
+}
+
+/* --------------------------------------------------------------------------------------------- motion (landing) */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The load sequence: label at 100 ms, the h1's lines from 150 ms (RevealLines), lede and CTAs at 600 ms. */
+  .hero__label {
+    animation: l-rise var(--dur-reveal) var(--ease-reveal) 100ms both;
+  }
+  .hero__lede,
+  .hero__ctas {
+    animation: l-rise var(--dur-reveal) var(--ease-reveal) 600ms both;
+  }
+  .hero__ledger {
+    animation: l-rise var(--dur-reveal) var(--ease-reveal) 720ms both;
+  }
+  .live-pad {
+    transition: background-color var(--dur-toggle) var(--ease-toggle);
+  }
+}
+
+@keyframes l-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}

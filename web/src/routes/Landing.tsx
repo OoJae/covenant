@@ -1,206 +1,224 @@
 // #/
-// The one sentence, the demonstration that the chip decides, what is live today, and where to check it.
+// A deed with a window. On silicon: the thesis (the real chip, its tagline, what it does, the two live kernels),
+// then one settle told in four chapters over the 3D die. On paper: §01 the demonstration that the chip decides,
+// §02 what no chip can do, §03 what is live on X Layer, §04 where to check it, §05 the circuit reader.
+//
+// The entry script carries the hero and the chapters' text (LandingChapters.tsx) and nothing else. When the page
+// mounts, four things load in parallel: the die stage (src/scene/DieStage.tsx), the demonstration (kernel/demo.ts:
+// the simulator and the netlist), §01 (components/TwoStates.tsx) and §02 to §05 (LandingClauses.tsx), the last two
+// with their own styles. Each clause holds a placeholder of about its own height until it arrives, so nothing on
+// screen moves. Until the stage arrives, or if it cannot load, the chapters are stacked on plain silicon. The hero
+// and the stage share one grid cell, so the die starts behind the headline; chapter 0 is a spacer of the hero's
+// height, measured before the first paint.
 
-import { useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { readAll } from '@covenant/chain';
 import { erc20, kernel } from '@covenant/chain/kernel';
-import { Address } from '../components/common.tsx';
-import { Mark, SimBanner } from '../components/kit.tsx';
-import { TwoStates } from '../components/TwoStates.tsx';
-import { CHAIN, COVENANT, EXAMPLES, rpc, SIMULATION } from '../config.ts';
-import { parseTarget, targetHash } from '../format.ts';
-import { useAsync } from '../router.ts';
+import { SimBanner } from '../components/kit.tsx';
+import { RevealLines } from '../components/RevealLines.tsx';
+import { CHAIN, COVENANT, rpc } from '../config.ts';
+import { fmtInt } from '../format.ts';
+import { FG_SIZE, landingDemo, type LandingDemo } from '../kernel/demo.ts';
+import { jumpTo } from '../motion/lenis.ts';
+import { useAsync, type Async } from '../router.ts';
+import { Chapters } from './LandingChapters.tsx';
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
-/** Bound token and settle count of the flagship kernel, if there is one. */
-async function kernelStatus(): Promise<{ token: string | null; symbol: string | null; count: number | null } | null> {
-  if (!COVENANT.kernel) return null;
-  const k = kernel(COVENANT.kernel);
-  const [token, count] = await readAll(rpc, [k.token(), k.count()] as const);
-  const t = token instanceof Error || token.toLowerCase() === ZERO ? null : token;
-  let symbol: string | null = null;
-  if (t) {
-    const [s] = await readAll(rpc, [erc20(t).symbol()] as const);
-    symbol = s instanceof Error ? null : s;
+type Stage = typeof import('../scene/DieStage.tsx').DieStage;
+type S01 = typeof import('../components/TwoStates.tsx').TwoStates;
+type Rest = typeof import('./LandingClauses.tsx').Clauses;
+const loadStage = (): Promise<Stage> => import('../scene/DieStage.tsx').then((m) => m.DieStage);
+const loadS01 = (): Promise<S01> => import('../components/TwoStates.tsx').then((m) => m.TwoStates);
+const loadRest = (): Promise<Rest> => import('./LandingClauses.tsx').then((m) => m.Clauses);
+
+/** A kernel and the token bound to it, read from the chain. */
+export interface Bound {
+  version: 1 | 2;
+  kernel: string;
+  token: string | null;
+  symbol: string | null;
+  count: number | null;
+}
+
+/** The flagship kernels deployments/xlayer.json names, v1 first. */
+export function flagships(): { version: 1 | 2; kernel: string }[] {
+  const ks: { version: 1 | 2; kernel: string }[] = [];
+  if (COVENANT.kernel) ks.push({ version: 1, kernel: COVENANT.kernel });
+  if (COVENANT.kernelV2) ks.push({ version: 2, kernel: COVENANT.kernelV2 });
+  return ks;
+}
+
+/** Bound token, its symbol and the settle count of each flagship kernel. */
+async function boundTokens(): Promise<Bound[]> {
+  const ks: Bound[] = flagships().map((k) => ({ ...k, token: null, symbol: null, count: null }));
+  if (ks.length === 0) return ks;
+  const r = await readAll(rpc, ks.flatMap((k) => [kernel(k.kernel).token(), kernel(k.kernel).count()]));
+  ks.forEach((k, i) => {
+    const t = r[2 * i];
+    const c = r[2 * i + 1];
+    k.token = typeof t === 'string' && t.toLowerCase() !== ZERO ? t : null;
+    k.count = typeof c === 'number' ? c : null;
+  });
+  const withToken = ks.filter((k) => k.token !== null);
+  if (withToken.length > 0) {
+    const s = await readAll(rpc, withToken.map((k) => erc20(k.token!).symbol()));
+    withToken.forEach((k, i) => {
+      const v = s[i];
+      k.symbol = typeof v === 'string' ? v : null;
+    });
   }
-  return { token: t, symbol, count: count instanceof Error ? null : count };
+  return ks;
+}
+
+export const settles = (n: number | null): string => (n === null ? '? settles' : `${fmtInt(n)} settle${n === 1 ? '' : 's'}`);
+
+/** Scroll to an element (a chapter, a clause) and give it the focus, so the keyboard continues from there. */
+export function goTo(el: HTMLElement | null, immediate = false): void {
+  if (!el) return;
+  jumpTo(el.getBoundingClientRect().top + scrollY, { immediate });
+  el.focus({ preventScroll: true });
 }
 
 export function Landing() {
-  const status = useAsync(kernelStatus, []);
-  const ks = status.data;
-  const P = COVENANT.processor;
-  const rows: { label: string; addr: string | null; href?: string; note?: string }[] = [
-    { label: 'Processor Covenant (CVNT)', addr: P, href: P ? `#/p/${P}` : undefined, note: 'TapeOut processor: transistors and circuits' },
-    { label: `Probe circuit #${COVENANT.probeCircuitId ?? '?'}`, addr: COVENANT.probeCircuitId !== null ? P : null, href: P && COVENANT.probeCircuitId !== null ? `#/c/${P}/${COVENANT.probeCircuitId}` : undefined, note: 'a 118-gate test chip' },
-    { label: 'SealedVM and Fab', addr: COVENANT.fab, note: 'fallback evaluator; chip tape-out and netlist snapshots' },
-    { label: 'KernelFactory and Lens', addr: COVENANT.kernelFactory, note: 'creates kernels; free audit views' },
-    {
-      label: `Flow Governor chip${COVENANT.chipId !== null ? ` #${COVENANT.chipId}` : ''}`,
-      addr: COVENANT.chipId !== null ? P : null,
-      href: P && COVENANT.chipId !== null ? `#/c/${P}/${COVENANT.chipId}` : undefined,
-      note: '1,888 NAND + 64 latches',
-    },
-    { label: 'Its kernel', addr: COVENANT.kernel, href: COVENANT.kernel ? `#/k/${COVENANT.kernel}` : undefined, note: 'holds the chip; no owner' },
-  ];
-  // Kernel v2 (USD₮0 quote): listed once deployments/xlayer.json records it, not before.
-  if (COVENANT.kernelFactoryV2) rows.push({ label: 'KernelFactoryV2 and LensV2', addr: COVENANT.kernelFactoryV2, note: 'kernels for tokens quoted in USD₮0; the same chip through a fixed code shift' });
-  if (COVENANT.kernelV2) rows.push({ label: `Kernel v2 (USD₮0 quote)${COVENANT.chipIdV2 !== null ? `, chip #${COVENANT.chipIdV2}` : ''}`, addr: COVENANT.kernelV2, href: `#/k/${COVENANT.kernelV2}`, note: 'routes tax and revenue paid to it, as tax' });
+  const bound = useAsync(boundTokens, []);
+  const [demo, setDemo] = useState<LandingDemo | null>(null);
+  const [Stage, setStage] = useState<Stage | null>(null);
+  const [S01, setS01] = useState<S01 | null>(null);
+  const [Rest, setRest] = useState<Rest | null>(null);
+  const hero = useRef<HTMLElement>(null);
+  const band = useRef<HTMLDivElement>(null);
+  const first = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    let live = true;
+    // A chunk that fails to load leaves its placeholder; the stage's failure leaves the chapters stacked.
+    const take = <T,>(p: Promise<T>, set: (v: () => T) => void): void => {
+      p.then(
+        (v) => live && set(() => v),
+        () => {},
+      );
+    };
+    take(loadStage(), setStage);
+    take(loadS01(), setS01);
+    take(loadRest(), setRest);
+    landingDemo().then(
+      (d) => live && setDemo(d),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // The hero's height sizes chapter 0, the spacer in front of the chapters. Written straight to a CSS variable (no
+  // render), from a ResizeObserver set up before the first paint, whose first answer also comes before it.
+  useLayoutEffect(() => {
+    const el = hero.current;
+    const b = band.current;
+    if (!el || !b || typeof ResizeObserver !== 'function') return;
+    const ro = new ResizeObserver(() => b.style.setProperty('--hero-h', `${Math.ceil(el.getBoundingClientRect().height)}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const chapters = <Chapters demo={demo} first={first} />;
 
   return (
     <article class="landing">
+      <button type="button" class="skip-anim" onClick={() => goTo(document.getElementById('s01'), true)}>
+        Keyboard: skip the animation
+      </button>
       <SimBanner />
-      <header class="hero">
-        <h1 class="pitch">A token's trading tax, routed by a chip anyone can read and nobody can change.</h1>
-        <p class="lede">
-          An IGNIX token's tax goes to a Covenant <b>kernel</b> instead of a wallet. Once per epoch anyone may call{' '}
-          <span class="mono">settle()</span>: the kernel asks one TapeOut circuit, the <b>chip</b>, how to split it, and carries out that
-          split inside an <b>envelope</b> of limits fixed when the kernel was created.
-        </p>
-        <div class="flow" aria-label="tax flows to the kernel, which asks the chip, then routes to buy and lock, allowance or reserve">
-          <span class="node">trading tax</span>
-          <span class="arrow">→</span>
-          <span class="node strong">kernel</span>
-          <span class="arrow">⇄</span>
-          <span class="node chip">chip · 1,952 gates</span>
-          <span class="arrow">→</span>
-          <span class="dests">
-            <span class="node buy">buy &amp; lock</span>
-            <span class="node allow">allowance, capped</span>
-            <span class="node res">reserve, released later</span>
-          </span>
-        </div>
-      </header>
 
-      <TwoStates />
+      <div ref={band} class="landing__si silicon">
+        <header ref={hero} class="hero">
+          <div class="l-wrap hero__inner">
+            <p class="label hero__label">
+              TapeOut circuit · {CHAIN.name} {CHAIN.id} · Flow Governor · {fmtInt(FG_SIZE.nand)} NAND + {FG_SIZE.latch} latch
+            </p>
+            <RevealLines as="h1" class="hero__title" delay={150}>
+              A token’s trading tax, routed by a chip anyone can read <em>and nobody can change.</em>
+            </RevealLines>
+            <div class="hero__foot">
+              <p class="hero__lede">
+                Send an IGNIX token's trading tax to a Covenant <b>kernel</b> instead of a wallet. Once per epoch anyone can call{' '}
+                <span class="mono">settle()</span>: the kernel asks one TapeOut circuit, the <b>chip</b>, how to split the tax, and carries out
+                that split inside an <b>envelope</b> of limits fixed when the kernel was created.
+              </p>
+              <div class="hero__ctas">
+                <button type="button" class="btn btn--primary" onClick={() => goTo(first.current)}>
+                  Watch the chip decide <WireIcon dir="down" />
+                </button>
+                <a class="btn btn--secondary" href="#/judge">
+                  Run the eight checks <WireIcon dir="right" />
+                </a>
+              </div>
+              <LiveLedger q={bound} />
+            </div>
+          </div>
+        </header>
 
-      <section>
-        <h2>{SIMULATION ? 'On the local fork' : `On ${CHAIN.name} today`}</h2>
-        <ul class="live">
-          {rows.map((r) => (
-            <li key={r.label}>
-              <Mark ok={r.addr ? true : null} />
-              <span>
-                {r.href ? <a href={r.href}>{r.label}</a> : r.label}
-                {r.addr ? (
-                  <>
-                    {' '}
-                    <Address value={r.addr} />
-                  </>
-                ) : (
-                  <span class="tag wait">not deployed yet</span>
-                )}
-                <span class="muted"> {r.note}</span>
-              </span>
-            </li>
-          ))}
-          <li>
-            <Mark ok={ks?.token ? true : null} />
-            <span>
-              Reference token bound to the kernel{' '}
-              {ks?.token ? (
-                <>
-                  <Address value={ks.token} /> {ks.symbol && <span class="mono">{ks.symbol}</span>}{' '}
-                  <a href={`#/k/${COVENANT.kernel}`}>
-                    vault page, {ks.count ?? '?'} settle{ks.count === 1 ? '' : 's'}
-                  </a>
-                </>
-              ) : (
-                <span class="tag wait">{status.loading && COVENANT.kernel ? 'reading…' : 'not launched yet'}</span>
-              )}
-            </span>
-          </li>
-        </ul>
-        <p class="muted">
-          Every address comes from <span class="mono">deployments/xlayer.json</span>, which the deploy scripts write only after reading
-          each contract back from the chain. Adoption is zero today: the only tokens planned for a Covenant kernel are the two the team launches itself (first buy 0,
-          never traded by a team wallet); none is bound yet. Unaudited.
-        </p>
-      </section>
-
-      <section>
-        <h2>Check it yourself</h2>
-        <div class="tiles">
-          <a class="tile" href="#/judge">
-            <b>Judge guide</b>
-            <span>Eight checks, each runnable here and from a terminal.</span>
-          </a>
-          {COVENANT.kernel ? (
-            <a class="tile" href={`#/k/${COVENANT.kernel}`}>
-              <b>The vault</b>
-              <span>Envelope, chip state on the die, settle history, chip vs a fixed split.</span>
-            </a>
+        <div class="landing__stage">
+          {Stage ? (
+            <Stage demo={demo}>{chapters}</Stage>
           ) : (
-            <span class="tile off">
-              <b>The vault</b>
-              <span>Opens when the flagship kernel is deployed.</span>
-            </span>
+            <section class="silicon stage-stacked" aria-label="How one settle runs through the chip">
+              {chapters}
+            </section>
           )}
-          <a class="tile" href="#/hostile">
-            <b>A hostile chip</b>
-            <span>A chip that asks for everything, and what the envelope lets through.</span>
-          </a>
-          <a class="tile" href="#/trust">
-            <b>Trust model</b>
-            <span>Who can change what, read from the code.</span>
-          </a>
         </div>
-      </section>
+      </div>
 
-      <OpenBox />
+      <div class="landing__pa paper">
+        {S01 ? <S01 n="01" /> : <div id="s01" class="l-ph l-ph--s01" tabIndex={-1} aria-busy="true" />}
+        {Rest ? <Rest bound={bound} /> : <div class="l-ph l-ph--rest" aria-busy="true" />}
+      </div>
     </article>
   );
 }
 
-function OpenBox() {
-  const [text, setText] = useState('');
-  const [bad, setBad] = useState(false);
-  const open = (e: Event): void => {
-    e.preventDefault();
-    const t = parseTarget(text);
-    if (!t) return setBad(true);
-    location.hash = targetHash(t);
-  };
+/** The two live kernels in one ledger: token symbol and settle count, both read from the chain. The rows are there
+ * from the first paint (the kernels come from deployments/xlayer.json), so the hero does not grow when the chain
+ * answers. */
+function LiveLedger({ q }: { q: Async<Bound[]> }) {
+  const rows = flagships();
+  if (rows.length === 0) return null;
   return (
-    <section>
-      <h2>Read any TapeOut circuit</h2>
-      <p class="muted">
-        The site's circuit reader works on every processor on {CHAIN.name}: it draws the die from the netlist bytes, runs a beat in your
-        browser and compares it with the chain's own evaluator.
-      </p>
-      <form class="open" onSubmit={open}>
-        <label for="target">Processor address, optionally followed by a circuit id</label>
-        <div class="row">
-          <input
-            id="target"
-            class={`mono${bad ? ' bad' : ''}`}
-            placeholder="0x… 1"
-            value={text}
-            spellcheck={false}
-            autocomplete="off"
-            autocapitalize="off"
-            aria-invalid={bad}
-            onInput={(e) => {
-              setText((e.target as HTMLInputElement).value);
-              setBad(false);
-            }}
-          />
-          <button type="submit" class="primary">
-            Open
+    <div class={`hero__ledger${q.data ? ' is-live' : ''}`}>
+      <p class="label">
+        <span class="live-pad" aria-hidden="true" /> {q.loading ? `Reading ${CHAIN.name}…` : q.error ? `Could not read ${CHAIN.name}` : `Live on ${CHAIN.name}`}
+        {q.error && (
+          <button type="button" class="hero__retry" onClick={q.reload}>
+            Try again
           </button>
-        </div>
-        {bad && <div class="warn">That does not contain an address (0x followed by 40 hex digits).</div>}
-      </form>
-      <p class="muted small">
-        Circuits other people taped out:{' '}
-        {EXAMPLES.map((x, i) => (
-          <span key={`${x.processor}/${x.id}`}>
-            {i > 0 && ' · '}
-            <a href={`#/c/${x.processor}/${x.id}`}>{x.label}</a>
-          </span>
-        ))}
+        )}
       </p>
-    </section>
+      <dl class="ledger" aria-busy={q.loading ? 'true' : undefined}>
+        {rows.map((r) => {
+          const b = q.data?.find((x) => x.version === r.version);
+          return (
+            <div key={r.kernel}>
+              <dt>
+                <a href={`#/k/${r.kernel}`}>
+                  {b ? (b.symbol ?? (b.token ? 'Token' : 'No token yet')) : '…'} <span class="hero__ledger-k">kernel v{r.version}</span>
+                </a>
+              </dt>
+              <dd>{b ? settles(b.count) : '…'}</dd>
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+}
+
+/** The icon system's arrow: a wire that ends in a pad. */
+export function WireIcon({ dir }: { dir: 'down' | 'right' }) {
+  return (
+    <svg class="btn__icon" data-dir={dir} viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path d={dir === 'down' ? 'M12 3V16' : 'M3 12H16'} fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" />
+      <rect class="pad" fill="currentColor" x={dir === 'down' ? 9.5 : 16} y={dir === 'down' ? 16 : 9.5} width="5" height="5" />
+    </svg>
   );
 }
