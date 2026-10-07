@@ -128,7 +128,7 @@ Nothing below is claimed until it is marked done. Adoption today is zero.
 |---|---|
 | Chip interface, revision 2 (`chips/INTERFACE.md`), reference model and golden vectors (`chips/golden/`) | Done |
 | IGNIX fork probes (`contracts/probes/`): how the live Directed vault, curve and graduation treat a contract recipient, with native OKB and with a USD₮0 quote | Done; 129 tests in 14 suites; findings in `contracts/probes/FINDINGS.md` |
-| Chip toolchain (`chips/tools/tapc`): Verilog to NAND and LATCH records, TAP-20 packer and simulator, proofs by Yosys SAT and z3 on the netlist bytes | Done |
+| Chip toolchain (`chips/tools/tapc`): Verilog to NAND and LATCH records, TAP-02 (formerly TAP-20) packer and simulator, proofs by Yosys SAT and z3 on the netlist bytes | Done |
 | Flow Governor (`chips/rtl`, `chips/model`, `chips/props`): netlist proven equal to the RTL (two-sided) and to the Python model, 65 properties proven for every state and input (98 results; one lifetime-cap property by argument plus 200,000 random settles, one a reachability witness), ten broken mutants each caught | Live: circuit 2, held by the v1 kernel; circuit 5 (the same bytes), held by the v2 kernel |
 | Issuance contracts (`contracts/issuance`): Splitter, KeeperTank, TeamRegistry | Live; 264 tests (204 offline, 60 on an X Layer fork) |
 | Sealed evaluator and Fab (`contracts/evaluator`) | Live; 157 tests (100 hermetic, 57 on an X Layer fork) |
@@ -138,7 +138,7 @@ Nothing below is claimed until it is marked done. Adoption today is zero.
 | Covenant Architect (`services/architect`): compile endpoint, free route and x402 paid route | Live (Railway, commit `8678740`, live x402 mode, `PAY_TO` the agent wallet); 91 tests (3 of them opt-in against the real toolchain); OKX.AI agent 14683 submitted for review |
 | Launch check and team audit (`tools/`) | Done; the team audit was CLEAN at block 72,550,443, after the kernel v2 deployment |
 | Reference token `CVREF`, the Architect token `ARCH`, and the keeper (`services/keeper`, 109 tests) | Live: both launched and bound on 2026-10-06; the keeper runs on Railway and settles both kernels every 15-minute epoch, its gas refunded by the KeeperTank (0.07225 OKB after `Splitter.pull()`) |
-| Reproducible-build check (`deploy/verify-bytecode.sh`, [docs/VERIFY.md](docs/VERIFY.md)): each Covenant contract rebuilt at its recorded commit and compared with chain 196 | Done; what it covers and the latest result: [docs/VERIFY.md](docs/VERIFY.md). No source published on OKLink yet |
+| Reproducible-build check (`deploy/verify-bytecode.sh`, [docs/VERIFY.md](docs/VERIFY.md)): each Covenant contract rebuilt at its recorded commit and compared with chain 196 | Done; what it covers and the latest result: [docs/VERIFY.md](docs/VERIFY.md). All eleven contracts' sources are verified on OKLink and Sourcify (2026-10-07); OKLink shows both kernel addresses as proxies of the verified Kernel and KernelV2 |
 | Kit for outside chip authors (`chips/kit`, [docs/BUILD_YOUR_CHIP.md](docs/BUILD_YOUR_CHIP.md)): template to proven netlist to the exact tape-out and kernel commands (kernel v1), with a 180-gate Starter chip | Done; tested end to end on a fork |
 
 ## The interface
@@ -165,7 +165,7 @@ chips/        INTERFACE.md, golden/ (reference model and vectors), chip sources,
 contracts/    Solidity (Foundry): issuance, evaluator, core (kernel v1), core-v2 (kernel v2), probes; broadcast/ holds the real deployment records
 deploy/       the signing wrappers (rehearse on a fork, then send step by step) and the rehearsal
 deployments/  xlayer.json: every deployed address and transaction, read back from the chain
-packages/     TypeScript libraries (TAP-20 simulator, chain access, die-shot renderer)
+packages/     TypeScript libraries (TAP-02 simulator, chain access, die-shot renderer)
 web/          the site
 services/     keeper and the Architect compile endpoint
 tools/        launch-check (checks the token launch transaction before it is signed), audit-team

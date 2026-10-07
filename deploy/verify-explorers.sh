@@ -6,7 +6,7 @@
 #   deploy/verify-explorers.sh --status             also read each address's current status (OKLink, Sourcify)
 #   deploy/verify-explorers.sh --out DIR            write the packages into DIR (default: a new directory in $TMPDIR)
 #   deploy/verify-explorers.sh --only Fab,LensV2    restrict to some contracts
-#   OKLINK_API_KEY=... deploy/verify-explorers.sh --submit oklink     SUBMIT to OKLink (asks for confirmation)
+#   deploy/verify-explorers.sh --submit oklink                        SUBMIT to OKLink (asks for confirmation)
 #   deploy/verify-explorers.sh --submit sourcify                      SUBMIT to Sourcify (asks for confirmation)
 #
 # Every run first runs deploy/verify-bytecode.sh into a scratch build and stops unless every Covenant row is MATCH:
@@ -21,7 +21,8 @@
 #
 # Explorers (see docs/VERIFY.md for the evidence):
 #   OKLink    the explorer behind www.oklink.com/x-layer and web3.okx.com/explorer/x-layer; Foundry's
-#             `--verifier oklink` against .../verify-source-code-plugin/XLAYER; needs an OKLink API key.
+#             `--verifier oklink` against .../verify-source-code-plugin/XLAYER. No personal key: on 2026-10-07 it
+#             accepted all eleven submissions with the placeholder key "none" (OKLINK_API_KEY, if set, is sent instead).
 #   Sourcify  supports chain 196; no key. Its result shows on sourcify.dev, not on OKLink.
 # There is no Blockscout instance and no Etherscan support for chain 196.
 #
@@ -57,7 +58,7 @@ while [ $# -gt 0 ]; do
 done
 case "$SUBMIT" in
   ''|sourcify) ;;
-  oklink) [ -n "${OKLINK_API_KEY:-}" ] || { echo "verify-explorers.sh: --submit oklink needs OKLINK_API_KEY" >&2; exit 2; } ;;
+  oklink) OKLINK_API_KEY="${OKLINK_API_KEY:-none}" ;;  # the plugin URL takes a placeholder (docs/VERIFY.md section 2)
   *) echo "verify-explorers.sh: --submit takes oklink or sourcify" >&2; exit 2 ;;
 esac
 for tool in git forge cast python3; do
@@ -175,9 +176,9 @@ PY
     echo "# with the pinned libraries installed (deploy/verify-bytecode.sh --workdir DIR builds exactly that tree)."
     [ "$pkg" != core-v2 ] || echo "# contracts/core-v2 compiles kernel v1's files from ../core/src and takes its libraries from ../core/lib."
     echo
-    echo "# OKLink (shows on www.oklink.com/x-layer and web3.okx.com/explorer/x-layer). Needs OKLINK_API_KEY."
+    echo "# OKLink (shows on www.oklink.com/x-layer and web3.okx.com/explorer/x-layer). No personal key needed."
     echo "forge verify-contract $addr $path --chain 196 \\"
-    echo "  --verifier oklink --verifier-url $OKLINK_URL --verifier-api-key \"\$OKLINK_API_KEY\" \\"
+    echo "  --verifier oklink --verifier-url $OKLINK_URL --verifier-api-key none \\"
     echo "  --compiler-version $SOLC_LONG --num-of-optimizations 200 --evm-version cancun \\"
     [ -z "$args" ] || echo "  --constructor-args $args \\"
     echo "  --watch --retries 10 --delay 15"
@@ -234,7 +235,7 @@ fi
 if [ -z "$SUBMIT" ]; then
   echo
   echo "Dry run: nothing was submitted. Packages are in $OUT."
-  echo "To submit, a person runs: deploy/verify-explorers.sh --submit oklink   (with OKLINK_API_KEY set)"
+  echo "To submit, a person runs: deploy/verify-explorers.sh --submit oklink"
   echo "                      or: deploy/verify-explorers.sh --submit sourcify"
   exit 0
 fi

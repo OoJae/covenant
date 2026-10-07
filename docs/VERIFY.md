@@ -6,7 +6,7 @@ team publish that source on the explorers. Both read the chain only; neither sen
 | Script | What it does | Needs |
 |---|---|---|
 | `deploy/verify-bytecode.sh` | Rebuilds every Covenant contract from the commit `deployments/xlayer.json` records for it and compares it with the chain, byte for byte | git, Foundry 1.8+, python3 3.9+, network access to GitHub and an X Layer RPC |
-| `deploy/verify-explorers.sh` | Runs the check above, then prepares the explorer submissions. Dry run by default; submits only with `--submit` and a typed confirmation | the same; an OKLink API key to submit to OKLink |
+| `deploy/verify-explorers.sh` | Runs the check above, then prepares the explorer submissions. Dry run by default; submits only with `--submit` and a typed confirmation | the same; no key (section 2) |
 
 ## 1. Reproducible build: `deploy/verify-bytecode.sh`
 
@@ -143,26 +143,43 @@ The script exits 0 only when every Covenant row is a MATCH.
   the latest block. The clone's code and arguments cannot change, but binding the kernel to a token later changes
   what `token()` returns.
 
-## 2. Explorers for X Layer (checked 2026-10-06)
+## 2. Explorers for X Layer (checked 2026-10-06; sources published 2026-10-07)
 
 | Explorer | Can verify source | Key | Shows where | Evidence |
 |---|---|---|---|---|
-| **OKLink** (`www.oklink.com/x-layer`) | Yes. Foundry `--verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/XLAYER`; OKX's Hardhat plugin `@okxweb3/hardhat-explorer-verify` posts to the same URL | **Yes**: an OKLink API key, according to OKX's X Layer verification guide, OKLink's API docs ("apply for OKLink API key") and Foundry's OKLink example. Not tried without one, because trying means submitting. A read-only status query (`action=checkverifystatus`) to the plugin URL gets the same answer with no key and with a made-up one, so only a submission would confirm the requirement | OKLink, and the OKX Wallet explorer below | Foundry 1.8.3 lists `oklink` as a verifier. The plugin's `ChainConfig.ts` maps chain 196 to that URL with `browserURL: https://www.oklink.com/xlayer`. chainid.network lists OKLink as the only explorer for chain 196 |
+| **OKLink** (`www.oklink.com/x-layer`) | Yes. Foundry `--verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/XLAYER`; OKX's Hardhat plugin `@okxweb3/hardhat-explorer-verify` posts to the same URL | **No**, in practice. OKX's guide, OKLink's API docs ("apply for OKLink API key") and Foundry's example ask for one, but OKLink's account and API-key pages are gone (`/account/my-api` returns 404, and the site has no sign-in). On 2026-10-07 the plugin URL accepted and verified all eleven submissions sent with the placeholder key `none` | OKLink, and the OKX Wallet explorer below | Foundry 1.8.3 lists `oklink` as a verifier. The plugin's `ChainConfig.ts` maps chain 196 to that URL with `browserURL: https://www.oklink.com/xlayer`. chainid.network lists OKLink as the only explorer for chain 196 |
 | **OKX Wallet explorer** (`web3.okx.com/explorer/x-layer`) | Not on its own: it shows OKLink's records | (OKLink's) | Same as OKLink | The page loads OKLink's front-end bundles (`oklink-nav`, `oklink-data.js`). Its contract endpoint returned the same verified record for the Uniswap V2 router `0x182a…0f59` as OKLink's read API (UniswapV2Router02, v0.6.6, 999,999 runs). For the Splitter it returns `verifyStatus: "unverified"`. `www.okx.com/web3/explorer/xlayer/...` redirects there |
 | **Sourcify** | Yes. Chain 196 is `supported: true` in `https://sourcify.dev/server/chains`; `forge verify-contract --verifier sourcify --chain 196` | No | sourcify.dev and its API only. **Not on OKLink** | 7 of 8 contracts sampled from Sourcify's chain-196 list (verified between 2026-09-22 and 2026-10-06) are unverified on OKLink. The eighth was verified on both |
 | Blockscout | No instance for chain 196 | n/a | n/a | Not in Blockscout's chain registry (`chains.blockscout.com/api/chains`, 646 entries). Not in chainid.network's explorer list for 196 |
 | Etherscan (API v2) | No | n/a | n/a | `api.etherscan.io/v2/chainlist`: 63 chains, chain 196 is not one of them |
 
-**Current status.** No Covenant contract is verified on any explorer yet. OKLink's read API
-(`/api/v5/explorer/contract/verify-contract-info?chainShortName=XLAYER&contractAddress=…`, which answers without a
-key) returns `data: []` for the eleven addresses deployed before kernel v2: the eight contracts, the v1 kernel clone,
-Transistors and Circuits.
-The Uniswap V2 router, used as a control, returns its verified record. Sourcify's lookup returns no match for any
-of the eight. On 2026-10-06, after the kernel v2 deployment, `deploy/verify-explorers.sh --status` reported "not
-verified" on OKLink and on Sourcify for all eleven contract packages (the eight above plus KernelFactoryV2, KernelV2
-and LensV2).
-OKLink returned `data: []` and Sourcify `match: null` for the v2 kernel clone. Judges who follow the site's links
-land on OKLink, so OKLink is the verification that counts there.
+**Current status (2026-10-07).** All eleven Covenant contracts are verified on OKLink and on Sourcify. Before
+the submissions, on 2026-10-06 and again on 2026-10-07, `deploy/verify-explorers.sh --status` reported "not verified"
+on both for all eleven. After them, OKLink's read API (`/api/v5/explorer/contract/verify-contract-info?chainShortName=XLAYER&contractAddress=…`,
+which answers without a key) returned each record with compiler `v0.8.28+commit.7893614a` and 200 optimizer runs.
+It also lists both kernel clones as proxies (`proxy: 1`) whose implementation is the verified Kernel or KernelV2, so a
+reader who opens a kernel's address on OKLink sees that implementation's source.
+
+| Contract | Address | OKLink | Sourcify |
+|---|---|---|---|
+| Splitter | `0xB87101F7426BA9175E0a944d3e763dC69B19867f` | verified | exact_match |
+| TeamRegistry | `0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699` | verified | exact_match |
+| KeeperTank | `0xb89BCe53822a99503A937C22974F1224D9Ab6352` | verified | exact_match |
+| SealedVM | `0x19c248cf463c1e167121e52b77aba7ec68cbe47b` | verified | exact_match |
+| Fab | `0xdcac8c47af534dc0cde30f60056bce7d63a79afe` | verified | exact_match |
+| KernelFactory | `0xaaa75144304cf81cc7cf513f434e00980d1803ad` | verified | match |
+| Kernel (implementation) | `0x72e6EbdB444831c9511c6D1DBF07A7f68993EDF1` | verified | match |
+| Lens | `0xee63eb34f4b7a16a188d3d14075b9bb6a8aa5ea2` | verified | match |
+| KernelFactoryV2 | `0x231c0174ebb69789813f6ecb625b4626e69a82c1` | verified | match |
+| KernelV2 (implementation) | `0x0d75d4c11e4770257b2bbf2d1E0Cb78f5B50CAd5` | verified | match |
+| LensV2 | `0x3ebe9e9cbc67d6a008c55d20294357521d28b049` | verified | match |
+| Kernel clone v1 (CVREF) | `0xB722a4bDE4EfEe08Be938E2103d7a44C498dd356` | proxy of Kernel | not submitted |
+| Kernel clone v2 (ARCH) | `0xd50A7cb21f4ef91f795730Fe8c45EaA5E500dD75` | proxy of KernelV2 | not submitted |
+
+Sourcify's `match` means the executable bytecode is identical and there is no metadata hash to compare: core and
+core-v2 build with `bytecode_hash = "none"`. Resubmitting KernelFactory with its exact standard-JSON package changed
+nothing ("already verified … didn't yield a better match"). Transistors and Circuits are TapeOut's code and were not
+submitted.
 
 ## 3. Submitting: `deploy/verify-explorers.sh`
 
@@ -170,7 +187,7 @@ land on OKLink, so OKLink is the verification that counts there.
 deploy/verify-explorers.sh                    # dry run: build, check, write packages, print the commands
 deploy/verify-explorers.sh --status           # also print each address's OKLink and Sourcify status (read-only)
 deploy/verify-explorers.sh --out DIR          # where the packages go (default: a new directory under $TMPDIR)
-OKLINK_API_KEY=... deploy/verify-explorers.sh --submit oklink    # a person, at a terminal
+deploy/verify-explorers.sh --submit oklink                      # a person, at a terminal
 deploy/verify-explorers.sh --submit sourcify                     # a person, at a terminal
 ```
 
@@ -190,7 +207,10 @@ deploy/verify-explorers.sh --submit sourcify                     # a person, at 
 4. With `--submit oklink|sourcify` it asks on the terminal (`/dev/tty`) for the words `submit <target>`, then
    runs `forge verify-contract … --watch` for each contract. Without a terminal it refuses. The prompt stops
    accidental and non-interactive runs; it cannot tell a person from a program that drives a pseudo-terminal.
-   The script has not been run with `--submit`.
+   The 2026-10-07 submissions, made at the user's request, did not go through this prompt, because the session
+   that sent them had no terminal. They ran the same forge commands as each package's `<Name>.cmd.txt` (OKLink
+   with `--verifier-api-key none`, Sourcify with the creation transaction where the contract has its own), from a
+   `deploy/verify-bytecode.sh --workdir` build in which every row was a MATCH.
 
 Settings each OKLink submission carries: compiler `v0.8.28+commit.7893614a`, optimizer on with 200 runs,
 `evm_version` cancun, no via-IR, the metadata setting of the package's `foundry.toml`, and the constructor
@@ -211,20 +231,16 @@ arguments below.
 Not submitted, by design:
 
 - **The two kernel clones** (v1 `0xB722…d356`, v2 `0xd50A…dD75`). Each is OpenZeppelin's ERC-1167 proxy bytes
-  followed by data, and has no Solidity source of its own. `verify-bytecode.sh` checks them. Whether OKLink
-  labels them as minimal proxies of the verified implementations has not been tested.
+  followed by data, and has no Solidity source of its own. `verify-bytecode.sh` checks them. OKLink lists each
+  as a proxy of the verified implementation (section 2).
 - **Transistors and Circuits.** They are TapeOut's code.
 
-Not yet known, because only a submission shows it:
+What the 2026-10-07 submissions showed:
 
-- Whether OKLink accepts the four contracts created inside a constructor (TeamRegistry, KeeperTank, Kernel,
-  KernelV2). Their creation code appears only inside the parent's creation transaction.
-- Whether OKLink and Sourcify accept core-v2's source paths. Its standard-JSON input names kernel v1's files and
-  the OpenZeppelin files by paths that start with `../core/` (for example `../core/src/KernelMath.sol`), because
-  core-v2 compiles them from there. solc compiles that input to the deployed bytes, but only a submission shows
-  whether a verifier takes such paths.
-- Whether Sourcify rates the core and core-v2 contracts `exact_match` or only `match`. With `bytecode_hash = "none"` there
-  is no metadata hash to tie the sources to the bytecode.
+- OKLink accepted the four contracts created inside a constructor (TeamRegistry, KeeperTank, Kernel, KernelV2)
+  from the bytecode alone; no creation transaction was needed.
+- OKLink and Sourcify both accepted core-v2's `../core/` source paths.
+- Sourcify rates the core and core-v2 contracts `match`, not `exact_match`, as expected with `bytecode_hash = "none"`.
 
 ## Credits
 
