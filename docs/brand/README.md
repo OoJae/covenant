@@ -260,4 +260,4 @@ For each token we asked: *would I produce this for any brief?* Where the answer 
 | `../../web/src/styles/fonts.css` | `@font-face` rules |
 | `../../web/src/fonts/` | The four woff2 subsets and the three `OFL.txt` licences |
 
-Still to come, from the plan: `og-1200x630.jpg`, `x-header-1500x500.jpg` and `x-avatar-400.png`, captured from the finished site.
+Still to come, from the plan: `x-header-1500x500.jpg` and `x-avatar-400.png`, captured from the finished site. Done: `og-1200x630.jpg`, the link card (the same bytes as `web/public/og.jpg`), captured from the landing hero by `tools/og_card.mjs`.
