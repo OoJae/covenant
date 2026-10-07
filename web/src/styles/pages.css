@@ -253,6 +253,24 @@ table.history td:first-child {
     justify-self: start;
   }
 }
+/* A shadow run: spaced as the clause around it. While it is read (aria-busy) its table, sums and command are laid out
+   with stand-in values and hidden, and the Loading line sits over them, so the section does not grow when it arrives. */
+.shadow-run {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--sp-4);
+}
+.shadow-run > p {
+  max-width: var(--measure);
+}
+.shadow-run[aria-busy] {
+  visibility: hidden;
+}
+.shadow-run > .loading {
+  position: absolute;
+  visibility: visible;
+}
 
 /* ------------------------------------------------------------------------------------------------ judge */
 

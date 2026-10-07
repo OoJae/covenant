@@ -281,14 +281,17 @@ function ShadowSection({ read, env, kernel, lensAddr, shift, unit, pin }: { read
     return { rows, local, chain, actual, curveCount: rows.filter(curve).length };
   }, [count, kernel, shift]);
 
+  // While the count or the records are read, the run's table, sums and command are laid out with stand-in values and
+  // not shown, and the Loading line sits over them (pages.css .shadow-run): the section is about its final height from
+  // the start, so nothing under a reader moves when the records arrive. (Not q.loading alone: for one render after the
+  // count arrives, q still holds its answer for no count.)
+  const wait = read.loading || (!q.data && !q.error);
   return (
     <section class="clause">
       <Pin id={pin}>{v2 ? "On the kernel v2 token's real inflow (USD₮0 quote)" : "On the reference token's real tax"}</Pin>
-      {kernel && read.loading ? (
-        <Loading what={`how many settles kernel ${v2 ? 'v2' : 'v1'} has recorded`} />
-      ) : kernel && (read.error || count === null) ? (
+      {kernel && !read.loading && count === null ? (
         <Failure error={read.error} retry={read.reload} />
-      ) : !kernel || !count ? (
+      ) : !kernel || count === 0 ? (
         <p class="plate idle">
           This runs the Glutton over every settle the {v2 ? 'v2 ' : ''}flagship kernel has recorded, once there is one. {kernel ? 'The kernel has no record yet.' : 'The kernel is not deployed yet.'}
         </p>
@@ -298,15 +301,19 @@ function ShadowSection({ read, env, kernel, lensAddr, shift, unit, pin }: { read
             Every settle the {v2 ? 'v2 ' : ''}flagship kernel recorded, routed again as if the Glutton had been its chip: the recorded {v2 ? 'inflow (tax and revenue)' : 'tax'}, the
             Glutton's own reserve, the same envelope{v2 ? `, the same ${shift}-bit code shift` : ''}, exactly as <span class="mono">Lens{v2 ? 'V2' : ''}.shadowChip</span> computes it.
           </p>
-          {q.loading && <p class="loading">Reading {count} records…</p>}
-          {q.error && <p class="warn">{q.error.message}</p>}
-          {q.data && <ShadowTable d={q.data} capBps={env.allowCumBps} unit={unit} />}
-          {COVENANT.gluttonChipId !== null && lensAddr && (
-            <Command
-              label="The same shadow run on chain (the Glutton taped out next to the chip):"
-              line={`cast call ${lensAddr} "shadowChip(address,uint256,uint32,uint32,(bytes32,uint256,uint256,bool))((uint32,bool,bytes12,bytes14,uint16,uint128,uint128,uint128)[],(bytes32,uint256,uint256,bool),uint32)" ${kernel} ${COVENANT.gluttonChipId} 1 ${count} "(0x${'00'.repeat(32)},0,0,false)" --rpc-url ${CAST_RPC}`}
-            />
-          )}
+          <div class="shadow-run" aria-busy={wait ? 'true' : undefined}>
+            {wait && <Loading what={count === null ? `how many settles kernel ${v2 ? 'v2' : 'v1'} has recorded` : `${count} records`} />}
+            {q.error && <p class="warn">{q.error.message}</p>}
+            {(wait || q.data) && (
+              <ShadowTable d={q.data ?? { local: [], chain: COVENANT.gluttonChipId !== null && lensAddr ? [] : null, actual: { inflow: 0n, allow: 0n, buy: 0n }, curveCount: 0 }} capBps={env.allowCumBps} unit={unit} />
+            )}
+            {COVENANT.gluttonChipId !== null && lensAddr && (
+              <Command
+                label="The same shadow run on chain (the Glutton taped out next to the chip):"
+                line={`cast call ${lensAddr} "shadowChip(address,uint256,uint32,uint32,(bytes32,uint256,uint256,bool))((uint32,bool,bytes12,bytes14,uint16,uint128,uint128,uint128)[],(bytes32,uint256,uint256,bool),uint32)" ${kernel} ${COVENANT.gluttonChipId} 1 ${count ?? 0} "(0x${'00'.repeat(32)},0,0,false)" --rpc-url ${CAST_RPC}`}
+              />
+            )}
+          </div>
         </>
       )}
     </section>
