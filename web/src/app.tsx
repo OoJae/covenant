@@ -309,7 +309,7 @@ function Colophon({ links }: { links: NavLink[] }) {
           </p>
           <p>
             A copy of this site is stored on {CHAIN.name} at <a href={MIRROR}>1-2-283.tapekit.org</a>. Circuits run on TapeOut (MIT); netlist semantics per
-            TAP-20. Source: <a href={REPO}>github.com/OoJae/covenant</a>.
+            TAP-02 (formerly TAP-20). Source: <a href={REPO}>github.com/OoJae/covenant</a>.
           </p>
           <p class="muted">
             Set in Bodoni Moda, Instrument Sans and Fragment Mono, by their project authors, under the SIL Open Font License 1.1; self-hosted as subsets.

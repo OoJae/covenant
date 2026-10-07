@@ -222,7 +222,7 @@ export function Trust() {
             could fake a MATCH, which is why every check prints a <span class="mono">cast</span> command for a node you choose.
           </li>
           <li>
-            The local simulations are this site’s own TAP-20 implementation and a port of the kernel’s clip, tested against TAP-20’s vectors and
+            The local simulations are this site’s own TAP-02 implementation and a port of the kernel’s clip, tested against TAP-02’s vectors and
             Covenant’s golden vectors. They are not the code the chain runs, which is the point of comparing.
           </li>
         </ul>

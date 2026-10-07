@@ -164,7 +164,7 @@ export function TwoStates({ n }: { n: string }) {
             )}
             {!live && (
               <>
-                Computed in your browser by a TAP-20 simulator from <span class="mono">chips/out/fg.hex</span>. The on-chain check runs here
+                Computed in your browser by a TAP-02 simulator from <span class="mono">chips/out/fg.hex</span>. The on-chain check runs here
                 automatically once the Flow Governor is taped out on Covenant's processor.{' '}
               </>
             )}

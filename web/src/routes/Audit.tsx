@@ -58,7 +58,7 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
     { name: 'Kernel record', c: { outputs: r.outputs, state: r.stateAfter }, note: `records(${n})` },
     { name: "TapeOut's step", c: lensCell(d.replayTapeout), note: 'Lens.replayOn(…, false)' },
     { name: 'SealedVM', c: lensCell(d.replaySealed), note: 'Lens.replayOn(…, true)' },
-    { name: 'This browser', c: localCell, note: 'TAP-20 simulator' },
+    { name: 'This browser', c: localCell, note: 'TAP-02 simulator' },
   ];
   const eq = (c: Cell, k: 'outputs' | 'state'): boolean | null => (c === null || c instanceof Error ? null : c[k].toLowerCase() === (k === 'outputs' ? r.outputs : r.stateAfter).toLowerCase());
   const allMatch = cells.every((c) => eq(c.c, 'outputs') === true && eq(c.c, 'state') === true);
