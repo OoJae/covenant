@@ -80,10 +80,14 @@ export const SWAY_IDLE = 8;
 /** Frame interval (ms) of a machine that cannot draw the scene at all: ten in a row and it goes to the still frame. */
 export const HOPELESS_MS = 50;
 
-/** A software rasteriser behind WebGL (SwiftShader, llvmpipe), where the browser says so. */
+/** A software rasteriser behind WebGL (SwiftShader, llvmpipe), where the browser says so. RENDERER first: Firefox
+ * names the real renderer there and warns that the debug extension is deprecated; Chrome and Safari mask it. */
 function softwareRenderer(gl: WebGL2RenderingContext): boolean {
-  const ext = gl.getExtension('WEBGL_debug_renderer_info');
-  const name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+  let name = String(gl.getParameter(gl.RENDERER));
+  if (name === 'WebKit WebGL') {
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+  }
   return /SwiftShader|llvmpipe|softpipe|Software/i.test(name);
 }
 /** Height-only resizes smaller than this (a mobile browser's address bar) keep the drawing buffer as it is. */
