@@ -134,6 +134,20 @@ table.history td:first-child {
   gap: var(--grid-gap);
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
+/* On a phone the four answers sit two by two, so the verdict is one screen, not four. */
+@media (max-width: 639px) {
+  .evaluators {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-2);
+  }
+  .evaluator {
+    padding: var(--sp-4) var(--sp-3);
+    gap: var(--sp-3);
+  }
+  .evaluator .verdict strong {
+    font-size: 1rem;
+  }
+}
 .evaluator {
   display: flex;
   flex-direction: column;

@@ -29,6 +29,8 @@ interface Check {
   run: () => Promise<Result>;
   cast: { label?: string; line: string }[];
   more?: ComponentChildren;
+  /** Computed in this browser only, with no chain read: its pass is counted apart from the chain checks. */
+  local?: boolean;
 }
 
 const P = COVENANT.processor;
@@ -150,6 +152,7 @@ const CHECKS: Check[] = [
     more: <>The audit page of each settle adds this browser's own recomputation from the netlist bytes: a three-way MATCH.</>,
   },
   {
+    local: true,
     title: 'A hostile chip is clipped',
     claim: "A chip that asks for 100% of the tax as allowance and the whole reserve every settle gets the envelope's cap and nothing more.",
     run: async () => {
@@ -327,8 +330,9 @@ const CHECKS: Check[] = [
   },
 ];
 
-type Outcome = 'pass' | 'fail' | 'none' | 'error';
-const outcomeOf = (r: Result | Error): Outcome => (r instanceof Error ? 'error' : r.ok === true ? 'pass' : r.ok === false ? 'fail' : 'none');
+type Outcome = 'pass' | 'local' | 'fail' | 'none' | 'error';
+const outcomeOf = (r: Result | Error, local = false): Outcome =>
+  r instanceof Error ? 'error' : r.ok === true ? (local ? 'local' : 'pass') : r.ok === false ? 'fail' : 'none';
 
 /**
  * One check as a clause: its number hangs in the gutter, the claim reads as a term of the deed, and it resolves
@@ -342,7 +346,7 @@ function CheckCard({ c, i, go, onSettled }: { c: Check; i: number; go: boolean; 
     const done = (r: Result | Error): void => {
       setState(r);
       setRuns((k) => k + 1);
-      onSettled(i, outcomeOf(r));
+      onSettled(i, outcomeOf(r, c.local));
     };
     c.run().then(done, (e: unknown) => done(e instanceof Error ? e : new Error(String(e))));
   };
@@ -360,15 +364,15 @@ function CheckCard({ c, i, go, onSettled }: { c: Check; i: number; go: boolean; 
       <p>{c.claim}</p>
       <div class="row judgecheck__run">
         <button type="button" class="small press" onClick={run} disabled={state === 'running'}>
-          {state === 'running' ? 'running…' : res || state instanceof Error ? 'run again' : 'run in this page'}
+          {state === 'running' ? 'Running…' : res || state instanceof Error ? 'Run again' : 'Run this check'}
         </button>
         {res && (
           // a new element per run, so the mark stamps in each time the check resolves
           <span key={runs} class="judgecheck__result" role="status">
-            <Mark ok={res.ok} /> {res.ok === true ? 'passed' : res.ok === false ? 'FAILED' : 'nothing to check yet'}
+            <Mark ok={res.ok} /> {res.ok === true ? (c.local ? 'passed in this browser, no chain read' : 'passed') : res.ok === false ? 'FAILED' : 'nothing to check yet'}
           </span>
         )}
-        {state instanceof Error && <span class="warn">could not read the chain: {state.message}</span>}
+        {state instanceof Error && <span class="warn">Could not read the chain: {state.message}</span>}
       </div>
       {res && (
         <ul class="jlines small">
@@ -440,7 +444,8 @@ export function Judge() {
           </button>
           {ran > 0 && (
             <p class="micro" role="status">
-              {ran} of {CHECKS.length} run · {count('pass')} passed · {count('fail')} failed · {count('none')} with nothing to check yet
+              {ran} of {CHECKS.length} run · {count('pass')} passed on chain
+              {count('local') > 0 ? ` · ${count('local')} passed in this browser` : ''} · {count('fail')} failed · {count('none')} with nothing to check yet
               {count('error') > 0 ? ` · ${count('error')} could not read the chain` : ''}
             </p>
           )}

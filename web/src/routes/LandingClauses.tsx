@@ -251,7 +251,7 @@ function OpenBox() {
             compares it with the chain's own evaluator.
           </p>
           <form class="l-open" onSubmit={open} data-stagger style={{ '--i': 1 }} noValidate>
-            <label for="target" class="label">
+            <label for="target" class="field-label">
               Processor address, optionally followed by a circuit id
             </label>
             <div class="l-open__row">
@@ -259,7 +259,7 @@ function OpenBox() {
                 ref={input}
                 id="target"
                 class={`mono${bad ? ' bad' : ''}`}
-                placeholder="0x… 1"
+                placeholder="0x… processor address, then a circuit id"
                 value={text}
                 spellcheck={false}
                 autocomplete="off"

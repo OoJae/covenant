@@ -27,8 +27,8 @@ const same = (a: string | null | undefined, b: string | null | undefined): boole
 
 export function Vault({ kernel }: { kernel: string }) {
   const q = useAsync(() => loadVault(rpc, kernel, COVENANT), [kernel]);
-  if (q.loading) return <Loading what={`kernel ${kernel.slice(0, 10)}… from ${CHAIN.name}`} />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what={`kernel ${kernel.slice(0, 10)}… from ${CHAIN.name}`} />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   return <View key={q.data.kernel} v={q.data} reload={q.reload} />;
 }
 
@@ -74,12 +74,13 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
         crumbs={
           <>
             <a href="#/">Covenant</a> / vault{v2 ? ' v2' : ''}
+            {bound && sym ? ` · ${sym}` : ''}
           </>
         }
         title={
           bound ? (
             <>
-              {v.token!.name ?? 'Token'} <span class="mono muted">{sym}</span> <em>vault</em>
+              {v.token!.name ?? 'Token'} <em>vault</em>
             </>
           ) : (
             <>
@@ -248,7 +249,7 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
           {v2 ? <a href={`${REPO}/blob/main/contracts/core-v2/src/KernelV2.sol`}>contracts/core-v2/src/KernelV2.sol</a> : <a href={`${REPO}/blob/main/contracts/core/src/Kernel.sol`}>contracts/core/src/Kernel.sol</a>}. Read at block{' '}
           {v.block?.toString() ?? '?'}.{' '}
           <button type="button" class="small press" onClick={reload}>
-            read again
+            Read again
           </button>
         </p>
       </section>
@@ -299,7 +300,7 @@ function ChipSection({ v, chip, chipErr, source, isFG }: { v: VaultData; chip: C
               />
               <div class="row">
                 <button type="button" class="small press" onClick={play}>
-                  replay the last settle on the die
+                  Replay the last settle
                 </button>
                 <span class="hover">
                   {hover || `Laid out from the ${source === 'fab' ? "Fab's snapshot" : "netlist TapeOut stores"}; the register strip on the right is the state the kernel holds now.`}
@@ -438,7 +439,7 @@ function History({ v, isFG, qu }: { v: VaultData; isFG: boolean; qu: Unit }) {
           {q.loading && <p class="loading">Reading records {from}–{to}…</p>}
           {q.error && <p class="warn">{q.error.message}</p>}
           {q.data && (
-            <div class="scroll">
+            <div class="scroll" tabIndex={0} role="region" aria-label="Settle history">
               <table class="history">
                 <thead>
                   <tr>
@@ -491,16 +492,16 @@ function History({ v, isFG, qu }: { v: VaultData; isFG: boolean; qu: Unit }) {
           )}
           <div class="row">
             <button type="button" class="small" disabled={to >= v.count} onClick={() => setPage((p) => p - 1)}>
-              newer
+              Newer
             </button>
             <span class="muted small">
               records {from}–{to} of {v.count}
             </span>
             <button type="button" class="small" disabled={from <= 1} onClick={() => setPage((p) => p + 1)}>
-              older
+              Older
             </button>
             <a class="small" href={`#/k/${v.kernel}/${v.count}`}>
-              audit the latest settle →
+              Audit the latest settle →
             </a>
           </div>
         </>

@@ -29,8 +29,8 @@ export function Audit({ kernel, n }: { kernel: string; n: number }) {
     const nl = await loadNetlist(rpc, a.globals);
     return { a, chip: chipFromBytes(`chip ${a.globals.chipId}`, nl.bytes), keccak: nl.keccak };
   }, [kernel, n]);
-  if (q.loading) return <Loading what={`settle ${n} of ${kernel.slice(0, 10)}… and its replays from ${CHAIN.name}`} />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what={`settle ${n} of ${kernel.slice(0, 10)}… and its replays from ${CHAIN.name}`} />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   return <View key={`${kernel}/${n}`} kernel={kernel} d={q.data.a} chip={q.data.chip} isFG={q.data.keccak === FG_KECCAK} />;
 }
 
@@ -55,10 +55,10 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
   const localCell: Cell = fallback ? { outputs: bytesOf(fallbackWord(e.fbAllow, e.relMax), 14), state: row.stateBefore } : { outputs: local!.outputs, state: local!.stateAfter32 };
   const lensCell = (x: Replay | Error): Cell => (x instanceof Error ? x : x.ran ? { outputs: x.outputs, state: x.stateAfter } : new Error('the evaluator did not answer within the gas a settle gives it'));
   const cells: { name: string; c: Cell; note: string }[] = [
-    { name: 'kernel record', c: { outputs: r.outputs, state: r.stateAfter }, note: `records(${n})` },
+    { name: 'Kernel record', c: { outputs: r.outputs, state: r.stateAfter }, note: `records(${n})` },
     { name: "TapeOut's step", c: lensCell(d.replayTapeout), note: 'Lens.replayOn(…, false)' },
     { name: 'SealedVM', c: lensCell(d.replaySealed), note: 'Lens.replayOn(…, true)' },
-    { name: 'this browser', c: localCell, note: 'TAP-20 simulator' },
+    { name: 'This browser', c: localCell, note: 'TAP-20 simulator' },
   ];
   const eq = (c: Cell, k: 'outputs' | 'state'): boolean | null => (c === null || c instanceof Error ? null : c[k].toLowerCase() === (k === 'outputs' ? r.outputs : r.stateAfter).toLowerCase());
   const allMatch = cells.every((c) => eq(c.c, 'outputs') === true && eq(c.c, 'state') === true);
@@ -227,7 +227,7 @@ function View({ kernel, d, chip, isFG }: { kernel: string; d: AuditData; chip: R
               <figcaption class="micro">after, as recorded</figcaption>
             </figure>
             <button type="button" class="small press" onClick={play} disabled={!local}>
-              play this step again
+              Play this step again
             </button>
           </div>
         </div>

@@ -65,11 +65,12 @@ export function cleanHex(text: string): string | null {
 /** A unix time as "2026-10-06 14:05 UTC". */
 export const fmtTime = (t: number): string => new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
-/** Seconds as "3 d 4 h", "12 min 5 s", "45 s". */
+/** Seconds as "3 d 4 h", "12 min 5 s", "45 s"; a zero remainder is left out ("15 min", "2 h", "1 d"). */
 export function fmtDuration(s: number): string {
   s = Math.max(0, Math.floor(s));
-  if (s >= 86400) return `${Math.floor(s / 86400)} d ${Math.floor((s % 86400) / 3600)} h`;
-  if (s >= 3600) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
-  if (s >= 60) return `${Math.floor(s / 60)} min ${s % 60} s`;
+  const two = (a: number, ua: string, b: number, ub: string): string => (b === 0 ? `${a} ${ua}` : `${a} ${ua} ${b} ${ub}`);
+  if (s >= 86400) return two(Math.floor(s / 86400), 'd', Math.floor((s % 86400) / 3600), 'h');
+  if (s >= 3600) return two(Math.floor(s / 3600), 'h', Math.floor((s % 3600) / 60), 'min');
+  if (s >= 60) return two(Math.floor(s / 60), 'min', s % 60, 's');
   return `${s} s`;
 }

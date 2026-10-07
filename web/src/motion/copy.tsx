@@ -29,7 +29,9 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-export function CopyButton({ text, what = 'command' }: { text: string; what?: string }) {
+/** The site's one copy control. `small`: the utility size (a terminal's corner, next to a hex value) instead of a
+ * full button; the same words, tick and announcement either way. */
+export function CopyButton({ text, what = 'command', small = false }: { text: string; what?: string; small?: boolean }) {
   const [state, setState] = useState<'idle' | 'ok' | 'fail'>('idle');
   useEffect(() => {
     if (state === 'idle') return;
@@ -38,7 +40,7 @@ export function CopyButton({ text, what = 'command' }: { text: string; what?: st
   }, [state]);
   return (
     <>
-      <button type="button" class="btn btn--secondary copy" data-state={state} aria-label={`Copy the ${what}`} onClick={() => void copyText(text).then((ok) => setState(ok ? 'ok' : 'fail'))}>
+      <button type="button" class={small ? 'small press copy' : 'btn btn--secondary copy'} data-state={state} aria-label={`Copy the ${what}`} onClick={() => void copyText(text).then((ok) => setState(ok ? 'ok' : 'fail'))}>
         <svg class="copy__tick" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <path d="M4 6.5V10.5H13.5" transform="rotate(-45 8.5 8.5)" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" />
         </svg>

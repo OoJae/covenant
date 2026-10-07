@@ -32,8 +32,8 @@ interface Beat {
 
 export function Circuit({ processor, id }: { processor: string; id: string }) {
   const q = useAsync(() => loadCircuit(rpc, ADDR.factory, processor, BigInt(id)), [processor, id]);
-  if (q.loading) return <Loading what={`circuit ${id} from ${CHAIN.name}`} />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what={`circuit ${id} from ${CHAIN.name}`} />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   // The key remounts the bench when another circuit is opened, so no state carries over.
   return <Bench key={`${q.data.processor}/${q.data.id}`} c={q.data} />;
 }
@@ -114,7 +114,7 @@ function Bench({ c }: { c: CircuitData }) {
       <PageHead
         crumbs={
           <>
-            <a href="#/">Covenant</a> / <a href={`#/p/${c.processor}`}>{c.processorName || 'processor'}</a> / circuit {c.id.toString()}
+            <a href="#/">Covenant</a> / <a href={`#/p/${c.processor}`}>processor{c.processorName ? ` ${c.processorName}` : ''}</a> / circuit {c.id.toString()}
           </>
         }
         title={
@@ -275,7 +275,7 @@ function Bench({ c }: { c: CircuitData }) {
       {beats.length > 0 && (
         <section class="clause">
           <h2 class="clause__title">Beats on this page</h2>
-          <div class="scroll">
+          <div class="scroll" tabIndex={0} role="region" aria-label="Beats on this page">
             <table>
               <thead>
                 <tr>
@@ -285,7 +285,9 @@ function Bench({ c }: { c: CircuitData }) {
                   <th>outputs</th>
                   {nl.nState > 0 && <th>state out</th>}
                   <th>chain</th>
-                  <th />
+                  <th>
+                    <span class="sr-only">actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -369,13 +371,13 @@ function Plate({ beat, nState, method }: { beat: Beat; nState: number; method: s
         <dl class="hexes">
           <dt>inputs</dt>
           <dd class="mono">
-            {bytesToHex(beat.inputs)} <CopyButton text={bytesToHex(beat.inputs)} />
+            {bytesToHex(beat.inputs)} <CopyButton text={bytesToHex(beat.inputs)} what="input bytes" small />
           </dd>
           {nState > 0 && (
             <>
               <dt>state</dt>
               <dd class="mono">
-                {bytesToHex(beat.state)} <CopyButton text={bytesToHex(beat.state)} />
+                {bytesToHex(beat.state)} <CopyButton text={bytesToHex(beat.state)} what="state bytes" small />
               </dd>
             </>
           )}

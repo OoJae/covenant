@@ -14,8 +14,8 @@ const PAGE = 100;
 
 export function Processor({ address }: { address: string }) {
   const q = useAsync(() => loadProcessor(rpc, ADDR.factory, address), [address]);
-  if (q.loading) return <Loading what={`processor ${address.slice(0, 10)}… from ${CHAIN.name}`} />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what={`processor ${address.slice(0, 10)}… from ${CHAIN.name}`} />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   return <View key={q.data.address} p={q.data} />;
 }
 
@@ -50,12 +50,12 @@ function View({ p }: { p: ProcessorData }) {
       <PageHead
         crumbs={
           <>
-            <a href="#/">Covenant</a> / processor
+            <a href="#/">Covenant</a> / processor{p.symbol ? ` · ${p.symbol}` : ''}
           </>
         }
         title={
           <>
-            {p.name || 'Unnamed processor'} <em>{p.symbol}</em>
+            {p.name || 'Unnamed'} <em>processor</em>
           </>
         }
         lede={`A TapeOut processor on ${CHAIN.name}: an ERC-721 contract that stores circuits, and an ERC-1155 contract whose transistors are burned, one per gate, to tape a circuit out.`}
@@ -103,7 +103,7 @@ function View({ p }: { p: ProcessorData }) {
         <h2 class="clause__title">Circuits</h2>
         {p.circuits === 0 && <p>No circuit has been taped out on this processor.</p>}
         {rows.length > 0 && (
-          <div class="scroll">
+          <div class="scroll" tabIndex={0} role="region" aria-label="Circuits on this processor">
             <table>
               <thead>
                 <tr>

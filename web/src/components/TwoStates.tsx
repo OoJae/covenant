@@ -98,15 +98,12 @@ export function TwoStates({ n }: { n: string }) {
           </RevealLines>
         </Pin>
         <div class="l-body reveal" ref={head}>
-          <p class="label" data-stagger style={{ '--i': 0 }}>
-            The chip is not decorative
-          </p>
-          <p class="l-lede" data-stagger style={{ '--i': 1 }}>
+          <p class="l-lede" data-stagger style={{ '--i': 0 }}>
             <b>Same inputs, two latch states, two different routes.</b> One epoch's input word goes into the flagship chip twice. The only
             difference is the {FG_NSTATE}-bit state the chip carries from earlier epochs. Both states were reached from a cold start by real
             kernel input words, so neither is made up.
           </p>
-          <dl class="ledger ts-word" data-stagger style={{ '--i': 2 }}>
+          <dl class="ledger ts-word" data-stagger style={{ '--i': 1 }}>
             <div>
               <dt>Input word</dt>
               <dd class="mono">{w.x}</dd>
@@ -143,7 +140,7 @@ export function TwoStates({ n }: { n: string }) {
           <div class={`plate ${diff.length > 0 ? 'ok' : 'bad'}${seen ? ' stamp' : ''}`} key={`d${seen}`}>
             <div class="verdict">
               <strong>{diff.length > 0 ? 'DIFFERENT ROUTES' : 'SAME ROUTE'}</strong>
-              <span>{diff.length > 0 ? `the state changed ${diff.join(', ')}` : 'the two states routed alike'}</span>
+              <span>{diff.length > 0 ? `the state changed the ${shareList(diff)}` : 'the two states routed alike'}</span>
             </div>
           </div>
           <div class={`plate ${chainPlate.tone}${seen ? ' stamp' : ''}`} key={`${chainPlate.word}${seen}`} role="status">
@@ -219,6 +216,18 @@ export function TwoStates({ n }: { n: string }) {
   );
 }
 
+/** The chip's route fields (kernel/chip.ts routeDiff) in the reader's words. */
+const SHARE_NAMES: Record<string, string> = { T_BUY: 'buy', T_HOLD: 'hold', T_ALLOW: 'allowance', T_RES: 'reserve', REL: 'release', CEIL: 'ceiling' };
+
+/** "buy, allowance, reserve and release shares" (the ceiling is a cap, not a share). */
+function shareList(fields: string[]): string {
+  const shares = fields.filter((f) => f !== 'CEIL').map((f) => SHARE_NAMES[f] ?? f);
+  const words = shares.length > 1 ? `${shares.slice(0, -1).join(', ')} and ${shares[shares.length - 1]}` : (shares[0] ?? '');
+  const ceil = fields.includes('CEIL');
+  if (!words) return 'allowance ceiling';
+  return `${words} share${shares.length > 1 ? 's' : ''}${ceil ? ' and the allowance ceiling' : ''}`;
+}
+
 /** One state as a silicon window: its Seal, what the chip answers from it, and the route. */
 function StateCard({ id, state, out, steps, i }: { id: string; state: string; out: string; steps: number; i: number }) {
   const [field, setField] = useState<{ name: string; value: number } | null>(null);
@@ -240,7 +249,7 @@ function StateCard({ id, state, out, steps, i }: { id: string; state: string; ou
             After {steps} epochs from a cold start. Average {get('A')}, peak {get('PK')}, patience {get('LIVE')}, clock {get('CLOCK')}.
           </p>
           <p class="ts-card__field mono" aria-live="polite">
-            {field ? `${field.name} = ${field.value}: ${FG_STATE_NOTES[field.name]}` : 'Point at a latch to read its field.'}
+            {field ? `${field.name} = ${field.value}: ${FG_STATE_NOTES[field.name]}` : 'Tap or point at a latch to read its field.'}
           </p>
         </div>
       </div>
