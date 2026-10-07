@@ -203,6 +203,11 @@
   gap: var(--sp-2);
   margin: 0;
 }
+/* The rows show once the chain has answered: a symbol and a count written over their placeholders would move the
+   rows' leaders and values (a layout shift, under reduced motion, where the ledger is on screen from the start). */
+.hero__ledger .ledger[aria-busy] {
+  visibility: hidden;
+}
 .hero__ledger .ledger a {
   color: var(--fg);
   text-decoration: none;
