@@ -4,7 +4,7 @@
 
 Covenant is an entry to the TapeOut Genesis Transistor Hackathon (organiser: IGNIX; chain: X Layer, id 196).
 
-- Site, no wallet needed: https://oojae.github.io/covenant/ (built from `main`). A mirror on TapeOut's DeWEB is served from probe circuit 1's container: https://1-2-283.tapekit.org/. The mirror is a fixed snapshot of commit `a97b90a`, published before kernel v2 was deployed, so it shows kernel v1 only. Its judge guide also still says every team wallet is listed in the on-chain TeamRegistry; the registry lists only the deployer so far (see [Team wallets and trading](#team-wallets-and-trading)).
+- Site, no wallet needed: https://oojae.github.io/covenant/ (built from `main`). A mirror on TapeOut's DeWEB is served from probe circuit 1's container: https://1-2-283.tapekit.org/. The mirror is a fixed snapshot of commit `09b9178`, published on 2026-10-07: the same site as GitHub Pages at that commit, with both kernels. `node tools/deweb/verify.ts --site 1-2-283` checks it against a local build, a second RPC node and the gateway.
 - Judge guide, eight checks you can run in the page or in a terminal: https://oojae.github.io/covenant/#/judge
 - The flagship kernel (v1, OKB quote): https://oojae.github.io/covenant/#/k/0xB722a4bDE4EfEe08Be938E2103d7a44C498dd356
 - The v2 kernel (USD₮0 quote): https://oojae.github.io/covenant/#/k/0xd50A7cb21f4ef91f795730Fe8c45EaA5E500dD75
@@ -56,7 +56,7 @@ TapeOut stores no state for sequential circuits; a consumer contract has to keep
 | Circuit 5: the Flow Governor again, the same netlist bytes as circuit 2 | held by the v2 kernel `0xd50A…dD75` |
 | Circuits 3 and 4: hostile demo chips (Glutton, Glutton512) | held by the deployer, never bound to a kernel |
 | Covenant Architect, paid compile endpoint (x402, 0.50 USD₮0, paid to the agent wallet) | `https://architect-production-ffbe.up.railway.app/v1/architect/chip`; OKX.AI agent #14683, submitted for review on 2026-10-06 |
-| Site mirror on TapeOut's DeWEB (`1.2.283.tape`, snapshot of commit `a97b90a`) | container `0x911350102b2D81a1E8A816638D429a16b80B8Ee2`, https://1-2-283.tapekit.org/ |
+| Site mirror on TapeOut's DeWEB (`1.2.283.tape`, snapshot of commit `09b9178`) | container `0x911350102b2D81a1E8A816638D429a16b80B8Ee2`, https://1-2-283.tapekit.org/ |
 
 Both tokens were launched on 2026-10-06 by the deployer with first buy 0, each checked with `tools/launch-check` and simulated on a fork from the exact transaction before it was signed, and bound to their kernels the same night:
 
@@ -134,7 +134,7 @@ Nothing below is claimed until it is marked done. Adoption today is zero.
 | Sealed evaluator and Fab (`contracts/evaluator`) | Live; 157 tests (100 hermetic, 57 on an X Layer fork) |
 | Kernel v1, KernelFactory, Lens (`contracts/core`) | Live; 309 tests (280 offline, 29 fork tests against the live IGNIX and TapeOut contracts). Unbound: no token launched yet |
 | Kernel v2, USD₮0 quote (`contracts/core-v2`, [chips/INTERFACE-V2.md](chips/INTERFACE-V2.md)): x402 revenue paid to the kernel is routed by the chip as tax on the curve; after graduation the chip does not see it and a fixed rule buys the token with it and sends it to 0xdEaD | Live since 2026-10-06: KernelFactoryV2, LensV2, and the v2 kernel holding chip 5, unbound (no token launched yet). 189 tests (166 offline, 23 fork tests on live IGNIX with a USD₮0-quoted token), 8,808 recorded settles compared bit for bit with the Python model (8,940 more on a second seed), two internal reviews, not an audit, that found no defect in the kernel code; each finding was addressed (`contracts/core-v2/NOTES.md` section 10). The Architect's revenue is not pointed at it: `PAY_TO` stays on the agent wallet until IGNIX confirms in writing that revenue-funded contract buys are allowed and the OKX.AI review is finished |
-| Site (`web/`, `packages/`): chip demo, vault, epoch audit, hostile chip, judge guide, trust model | Live on GitHub Pages, both kernels listed; the kernel pages fill in once a token is bound and settles. The DeWEB mirror is the snapshot of commit `a97b90a` (kernel v1 only) |
+| Site (`web/`, `packages/`): chip demo, vault, epoch audit, hostile chip, judge guide, trust model | Live on GitHub Pages, both kernels listed; the kernel pages fill in once a token is bound and settles. The DeWEB mirror is the snapshot of commit `09b9178` (2026-10-07), checked byte for byte through the gateway |
 | Covenant Architect (`services/architect`): compile endpoint, free route and x402 paid route | Live (Railway, commit `8678740`, live x402 mode, `PAY_TO` the agent wallet); 91 tests (3 of them opt-in against the real toolchain); OKX.AI agent 14683 submitted for review |
 | Launch check and team audit (`tools/`) | Done; the team audit was CLEAN at block 72,550,443, after the kernel v2 deployment |
 | Reference token `CVREF`, the Architect token `ARCH`, and the keeper (`services/keeper`, 109 tests) | Live: both launched and bound on 2026-10-06; the keeper runs on Railway and settles both kernels every 15-minute epoch, its gas refunded by the KeeperTank (0.07225 OKB after `Splitter.pull()`) |
