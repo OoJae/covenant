@@ -376,6 +376,45 @@ The three phase-1 tracks are merged on `main`. How the landing (`routes/Landing.
   frame's (small steps added up to 4 px too big at 1440); and over the Canvas 2D die the press is centred on the part
   of the die that is on screen (on a phone the die is wider than the screen, and the Seal was cut off at the right).
 
+### 3.10 Cross-browser pass, integrated (2026-10-07)
+
+A WebKit and Firefox audit (with Chromium as reference) found ten defects; these are fixed on main, and a few more
+layout shifts found while re-testing. Each was measured before and after in Chromium (CLS) and, where the browser
+has no Layout Instability API, by tracking element offsets every 100 ms.
+
+- **Pages are a screen tall** (`base.css` `main.route`, `min-height: 100svh`, was 70vh): the footer no longer fills the
+  bottom of the screen while a page shows its Loading line and then jumps away (CLS 0.27 to 0.31 on every inner page).
+- **§01 terminal** (`landing-paper.css`): each copy button sits in its own line's grid column; both used to be
+  absolutely placed in the terminal's corner, so State B's covered State A's.
+- **Stage without WebGL** (`scene.css`, `scene/fallback.ts`): the flat layer is one definite grid cell, so the die's box
+  no longer grows with the canvas fitted to it (a ResizeObserver loop error, and on a phone a die that grew to 1.4
+  times the screen's width); `fit()` skips an unlaid box and an unchanged size; the canvas stays hidden until its first fit (it was
+  painted once at the default 300 x 150: CLS 0.13 under reduced motion).
+- **Route changes without view transitions** (`app.tsx`, `motion.css`): only a new page rises (`route-enter`, set by
+  `router.ts` from the first route change), filled backwards, so the first page no longer rises on top of its own
+  entrance and `<main>` keeps no transform (which had made it the containing block of fixed elements).
+- **Fonts** (`main.tsx`): the three preloaded faces are loaded at startup and the first render waits for them, 100 ms at
+  most. Firefox lays text out in the fallback until a face's FontFace has loaded, even when its file is preloaded:
+  the hero's buttons dropped 39 px just after the first paint, and the audit title went from one line to two when the
+  page arrived. In Chromium the first paint and LCP are unchanged, on a fast link and on Slow 4G with 4x CPU.
+- **Vault lede** (`Vault.tsx`): "(the Flow Governor)" shows from the first render on the two flagship kernels instead of
+  after the netlist read (CLS 0.11 on a phone).
+- **Menu** (`MenuSheet.tsx`): the dialog itself takes the focus (tabindex -1, no ring); Safari gave the wordmark link
+  `:focus-visible` after a tap and drew a gold ring round the logo.
+- **Touch targets** (`components.css`, last in the file): disclosures, the menu button, footer links and the hex field
+  are 48 px on a coarse pointer, the bit editor's cells 24 px; the old rule lost to the later `summary` rule.
+- **WebGL renderer name** (`scene/index.ts`): `RENDERER` first; the debug extension only where it is masked ("WebKit
+  WebGL"), so Firefox no longer warns on every load.
+- **Late text, found while re-testing**: the trust page waits for its owner reads (they are written into its sentences,
+  which grew under a reader who had scrolled to them: CLS 0.018, 0.19 with a slow node); the circuit page's three die
+  facts hold their rows from the first frame with unseen placeholders (CLS 0.005 at 768 px); the hero ledger's rows show
+  once the chain has answered (their leaders and values moved, under reduced motion); the footer Seal's caption is one
+  box as tall as the Seal, its lines replaced rather than rewritten (CLS 0.00016 on every page); the Loading line grows
+  downwards when its slow-node sentence joins it.
+- **Left as is**: the hostile page's two shadow tables still push what follows them down when they arrive while that
+  part of the page is on screen, which takes a slow node and a fast scroll (none at normal speed in any engine).
+  Firefox's "scroll-linked positioning effect" notice is informational: the stage follows the scroll on purpose.
+
 ## 4. Verified
 
 All on 2026-10-04 from this machine, read-only.
@@ -426,6 +465,12 @@ Chromium driven through Playwright, production build served as static files by `
 - With `processor` set in `addresses.json` (tried with a stand-in address, then reverted) the landing page shows the processor and probe links and hides the examples.
 
 ### 4.5 Sizes
+
+After the link card and the cross-browser pass (3.10), `node scripts/check-budget.mjs`: **total 515,405 of 520,000
+(99.1%)**, **entry 101,468 of 112,000 (90.6%)**, **first paint 182,416 of 196,000 (93.1%)**, fonts 89,676 of 100,000.
+`og.jpg` is 52,670 of that total, so 4,595 bytes are left in all. Entry: stylesheet 39,862, `index-*.js` 36,887,
+`index.html` 2,826 (the two image alt tags: 413); the fixes took 431 bytes of entry, and 10,532 are left. On demand:
+DieStage 23,779 (limit 24,000), `scene-*.js` 6,631, `fallback-*.js` 1,400, Lenis 14,181 (limit 20,000).
 
 After the polish pass (2026-10-07: 3.7 "Entry headroom", then 3.9 "Words beside the held Seal"),
 `node scripts/check-budget.mjs`: **total 461,269 of 520,000 (88.7%)**, **entry 100,624 of 112,000 (89.8%)**, **first
