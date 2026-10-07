@@ -4,10 +4,14 @@
 // and the value of every signal in two beats computed by @covenant/tap20's step(): states A and B of
 // chips/out/fg.witness.json, both answering the same input word x.
 //
+// buildScene() takes all of that ready-made, in the shape of landingDemo() (kernel/demo.ts), and computes nothing
+// it is given: this module imports neither the netlist bytes, nor the layout code, nor the simulator, so the lazy
+// scene chunk stays small. source.ts builds the same input from the files, for the tests.
+//
 // Everything the renderer needs per frame is in three typed arrays made here, so drawing allocates nothing.
 
-import { layout as dieLayout, type Layout } from '@covenant/dieshot';
-import { hexToBytes, parse, step, type Netlist } from '@covenant/tap20';
+import type { Layout } from '@covenant/dieshot';
+import { hexToBytes, type Netlist } from '@covenant/tap20';
 import { OUTPUT_FIELDS } from '../kernel/model.ts';
 import { reachTable } from './choreo.ts';
 
@@ -49,16 +53,21 @@ const ROUTE_OF: Record<string, number> = { T_BUY: ROUTE_BUY, T_ALLOW: ROUTE_ALLO
 /** The seal is 8 x 8: state bit i sits at row floor(i / 8), column i mod 8. */
 export const SEAL_SIDE = 8;
 
-/** The fields of `landingDemo()` (kernel/demo.ts) the scene reads; layout and signals are computed when absent. */
+/** The fields of `landingDemo()` (kernel/demo.ts) the scene reads. A LandingDemo is a SceneSource. */
 export interface SceneSource {
   netlist: Netlist;
-  layout?: Layout;
+  /** layout(netlist) from @covenant/dieshot. */
+  layout: Layout;
   /** Input word and the two states, as 0x hex. */
   x: string;
   stateA: string;
   stateB: string;
-  signalsA?: Uint8Array;
-  signalsB?: Uint8Array;
+  /** Every signal of the beat from state A and from state B (one byte, 0 or 1, per signal). */
+  signalsA: Uint8Array;
+  signalsB: Uint8Array;
+  /** The two output words, as 0x hex. */
+  outA: string;
+  outB: string;
 }
 
 export interface SceneData {
@@ -97,13 +106,6 @@ export interface SceneData {
   reach: Float32Array;
 }
 
-/** The Flow Governor's netlist (chips/out/fg.hex, as kernel/sim.ts loads it) and the witness word and states. */
-export async function flowGovernorSource(): Promise<SceneSource> {
-  const [hex, w] = await Promise.all([import('../../../chips/out/fg.hex?raw'), import('../../../chips/out/fg.witness.json')]);
-  const wit = w.default;
-  return { netlist: parse(hexToBytes(hex.default.trim()), 96, 112), x: wit.x, stateA: wit.reachA.state, stateB: wit.reachB.state };
-}
-
 /** Route group of every output bit, from the T_BUY, T_ALLOW and T_RES fields of the output word. */
 export function routeGroups(nOut: number): Uint8Array {
   const g = new Uint8Array(nOut);
@@ -116,12 +118,9 @@ export function routeGroups(nOut: number): Uint8Array {
 
 export function buildScene(src: SceneSource): SceneData {
   const nl = src.netlist;
-  const lay = src.layout ?? dieLayout(nl);
-  const x = hexToBytes(src.x);
-  const beatA = step(nl, hexToBytes(src.stateA), x);
-  const beatB = step(nl, hexToBytes(src.stateB), x);
-  const sA = src.signalsA ?? beatA.signals;
-  const sB = src.signalsB ?? beatB.signals;
+  const lay = src.layout;
+  const sA = src.signalsA;
+  const sB = src.signalsB;
   const S = nl.nSignals;
   const nOut = nl.nOut;
   const first = 2 + nl.nIn;
@@ -247,8 +246,8 @@ export function buildScene(src: SceneSource): SceneData {
     padGroup,
     signalsA: sA,
     signalsB: sB,
-    outA: beatA.outputs,
-    outB: beatB.outputs,
+    outA: hexToBytes(src.outA),
+    outB: hexToBytes(src.outB),
     reach: reachTable(lay.level, lay.kind, lay.maxLevel),
   };
 }

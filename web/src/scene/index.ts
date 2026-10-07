@@ -1,32 +1,54 @@
 // The landing page's 3D die. mountScene() draws the Flow Governor's real floorplan, wires and two beats into a
 // transparent WebGL2 canvas and plays the five chapters of choreo.ts as setProgress(t) moves from 0 to 1.
 // Rendering is on demand: a frame is drawn only while something moves (the power-on, the eased catch-up to the
-// scroll position), never offscreen and never in a hidden tab.
+// scroll position, the idle sway of chapter 0), never offscreen and never in a hidden tab.
 //
 // mountScene returns null when WebGL2 or the shaders are unavailable; the caller then shows the Canvas 2D die.
-// A lost context is reported through opts.onFail and the scene stops drawing. The canvas carries no meaning
-// of its own (aria-hidden); the page's text says what each chapter shows.
+// A lost context is reported through opts.onFail and the scene stops drawing. Slow frames lower the cost in two
+// steps (opts.onDegrade): first pixel ratio 1 and no glow, then one still frame. The canvas carries no meaning of
+// its own (aria-hidden); the page's text says what each chapter shows.
 
-import { CAM_SIZE, FOV, P_PRESS, SEAL_HALF, SEAL_PITCH, cameraAt, phaseAt, sealZ } from './choreo.ts';
+import {
+  CAM_SIZE,
+  FOV,
+  INTRO_SECONDS,
+  P_PRESS,
+  SEAL_HALF,
+  SEAL_PITCH,
+  STILL_T,
+  SWAY_UNTIL,
+  cameraAt,
+  cameraStill,
+  lensShift,
+  phaseAt,
+  sealZ,
+  swayAt,
+} from './choreo.ts';
 import { PACK, createRenderer } from './gl.ts';
 import { lookAt, m4, mul, perspective, project } from './math.ts';
 import type { SceneData } from './data.ts';
 
-export { CHAPTERS } from './choreo.ts';
-export { buildScene, flowGovernorSource } from './data.ts';
+export { CHAPTERS, STILL_T } from './choreo.ts';
+export { buildScene } from './data.ts';
 export type { SceneData, SceneSource } from './data.ts';
 
 export interface SceneOptions {
-  /** Draw still frames only: no power-on, no easing. */
+  /** Draw still frames only: no power-on, no easing, no sway. */
   reducedMotion?: boolean;
   /** Time constant of the catch-up to the scroll position, in seconds (0: none). Default 0.09. */
   smooth?: number;
+  /** The idle sway of chapter 0 (±1.5°). Default: on unless reducedMotion. */
+  sway?: boolean;
+  /** Watch frame times and lower the cost when they are slow. Default true. */
+  autoDegrade?: boolean;
+  /** Progress to start at, without easing toward it (default 0). */
+  progress?: number;
   /** Called once when the scene stops for good ('webglcontextlost'). */
   onFail?: (reason: string) => void;
   /** Called after each frame with the time spent drawing it (CPU side), in milliseconds. */
   onFrame?: (ms: number) => void;
-  /** Called when slow frames made the scene lower its pixel ratio. */
-  onDegrade?: () => void;
+  /** Called when slow frames lowered the cost: level 1 is pixel ratio 1 without glow, level 2 one still frame. */
+  onDegrade?: (level: 1 | 2) => void;
 }
 
 /** A rectangle in CSS pixels relative to the canvas's top-left corner. */
@@ -42,7 +64,8 @@ export interface Scene {
   setProgress(t: number): void;
   /** Call when the canvas's CSS size may have changed (a ResizeObserver also calls it). */
   resize(): void;
-  /** Stop all motion and draw one frame at progress t (default: the end of chapter II, the lit die). */
+  /** Stop all motion and draw one frame: at progress t, or without t the composed still (choreo.ts STILL_T: the
+   * beat from state A lit, the seal formed). */
   still(t?: number): void;
   destroy(): void;
   /** Where the seal plate is on screen in the last frame, or null when it is not in front of the camera. The
@@ -50,8 +73,10 @@ export interface Scene {
   sealRect(): SceneRect | null;
 }
 
-/** The frame still() draws by default: the wavefront has crossed every level. */
-export const STILL_T = 0.57;
+/** Frame interval (ms) above which the 90th percentile makes the scene lower its cost. */
+export const SLOW_FRAME_MS = 28;
+/** Height-only resizes smaller than this (a mobile browser's address bar) keep the drawing buffer as it is. */
+export const RESIZE_SLACK_PX = 120;
 
 export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: SceneOptions = {}): Scene | null {
   let gl: WebGL2RenderingContext | null = null;
@@ -66,19 +91,25 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
   const g = gl;
 
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  const reduced = !!opts.reducedMotion;
   let cap = coarse ? 1.5 : 2;
-  const tau = opts.reducedMotion ? 0 : (opts.smooth ?? 0.09);
-  let target = 0;
-  let cur = 0;
-  let intro = opts.reducedMotion ? 1 : 0;
+  let glow = true;
+  const tau = reduced ? 0 : (opts.smooth ?? 0.09);
+  const swayOn = opts.sway ?? !reduced;
+  let target = Math.min(1, Math.max(0, opts.progress ?? 0));
+  let cur = target;
+  let intro = reduced ? 1 : 0;
+  let swayClock = 0;
+  let composed = false;
+  let frozen = false;
   let raf = 0;
   let last = 0;
   let visible = true;
   let dead = false;
   let aspect = 1;
   let portrait = false;
-  let cssW = 1;
-  let cssH = 1;
+  let cssW = 0;
+  let cssH = 0;
 
   const phase = new Float32Array(8);
   const cam = new Float32Array(CAM_SIZE);
@@ -87,12 +118,18 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
   const vp = m4();
   const pack = new Float32Array(PACK);
   const ndc = new Float32Array(2);
+  const shift = new Float32Array(2);
   const rect: SceneRect = { x: 0, y: 0, width: 0, height: 0 };
-  // Frame intervals while animating, for the auto-degrade check.
-  const ring = new Float32Array(30);
-  const sorted = new Float32Array(30);
+
+  // Frame intervals while animating, for the auto-degrade check: a window of 45, judged every 15 frames, after
+  // 20 frames of grace (the page is busiest while it loads). Gaps over 250 ms are a tab switch or a hitch, not a
+  // frame rate, and are left out.
+  const WINDOW = 45;
+  const ring = new Float32Array(WINDOW);
+  const sorted = new Float32Array(WINDOW);
   let ringN = 0;
-  let degraded = false;
+  let grace = 20;
+  let level = 0;
 
   pack[0] = data.cols;
   pack[1] = data.rows;
@@ -100,9 +137,18 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
 
   const draw = (): void => {
     const t0 = performance.now();
-    phaseAt(cur, intro, data.reach, phase);
-    cameraAt(cur, portrait, aspect, cam);
+    if (composed) {
+      phaseAt(STILL_T, 1, data.reach, phase);
+      cameraStill(portrait, aspect, cam);
+    } else {
+      phaseAt(cur, intro, data.reach, phase);
+      cameraAt(cur, portrait, aspect, cam, swayOn ? swayAt(swayClock, cur, Math.min(1, swayClock / 2)) : 0);
+    }
     perspective(proj, FOV, aspect, Math.max(0.5, cam[9] * 0.05), cam[9] * 4 + 120);
+    // Shift the image off-axis (x_ndc += s.x): proj[8] and proj[9] multiply the view z, and w = -z.
+    lensShift(aspect, shift);
+    proj[8] -= shift[0];
+    proj[9] -= shift[1];
     lookAt(view, cam);
     mul(vp, proj, view);
     pack[3] = portrait ? 1 : 0;
@@ -116,14 +162,34 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
     pack[18] = cam[2];
     pack[19] = cam[9];
     pack[20] = g.drawingBufferHeight / (2 * Math.tan(FOV / 2));
-    R.draw(vp, pack);
+    R.draw(vp, pack, glow);
     opts.onFrame?.(performance.now() - t0);
   };
 
-  const p90 = (): number => {
+  const sample = (ms: number): void => {
+    if (opts.autoDegrade === false || frozen || ms > 250) return;
+    if (grace > 0) {
+      grace--;
+      return;
+    }
+    ring[ringN++ % WINDOW] = ms;
+    if (ringN < WINDOW || ringN % 15 !== 0) return;
     sorted.set(ring);
     sorted.sort();
-    return sorted[Math.floor(ring.length * 0.9)];
+    if (sorted[Math.floor(WINDOW * 0.9)] <= SLOW_FRAME_MS) return;
+    level++;
+    ringN = 0;
+    grace = 10;
+    if (level === 1) {
+      cap = 1;
+      glow = false;
+      size(true);
+    } else {
+      frozen = true;
+      composed = true;
+      intro = 1;
+    }
+    opts.onDegrade?.(level as 1 | 2);
   };
 
   const frame = (now: number): void => {
@@ -133,25 +199,24 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
       return;
     }
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
-    if (last && !degraded) {
-      ring[ringN++ % ring.length] = now - last;
-      if (ringN >= ring.length && ringN % 10 === 0 && p90() > 28) {
-        degraded = true;
-        cap = 1;
-        size();
-        opts.onDegrade?.();
-      }
-    }
+    if (last) sample(now - last);
     last = now;
     let again = false;
-    if (intro < 1) {
-      intro = Math.min(1, intro + dt / 1.6);
-      again = true;
-    }
-    if (cur !== target) {
-      cur = tau > 0 ? cur + (target - cur) * (1 - Math.exp(-dt / tau)) : target;
-      if (Math.abs(target - cur) < 2e-4) cur = target;
-      else again = true;
+    if (!frozen) {
+      if (intro < 1) {
+        intro = Math.min(1, intro + dt / INTRO_SECONDS);
+        again = true;
+      }
+      if (cur !== target) {
+        cur = tau > 0 ? cur + (target - cur) * (1 - Math.exp(-dt / tau)) : target;
+        if (Math.abs(target - cur) < 2e-4) cur = target;
+        else again = true;
+      }
+      // The idle sway: only in chapter 0, and only once the die has powered on.
+      if (swayOn && intro >= 1 && cur < SWAY_UNTIL) {
+        swayClock += dt;
+        again = true;
+      }
     }
     draw();
     if (again) raf = requestAnimationFrame(frame);
@@ -159,27 +224,31 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
   };
 
   const kick = (): void => {
-    if (!raf && !dead) raf = requestAnimationFrame(frame);
+    if (!raf && !dead && !frozen) raf = requestAnimationFrame(frame);
   };
 
-  const size = (): void => {
-    cssW = canvas.clientWidth || 1;
-    cssH = canvas.clientHeight || 1;
+  /** Fits the drawing buffer to the canvas's CSS size; false when nothing changed or the change was ignored. */
+  const size = (force = false): boolean => {
+    const w = canvas.clientWidth || 1;
+    const h = canvas.clientHeight || 1;
+    if (!force && w === cssW && (h === cssH || (cssH > 0 && Math.abs(h - cssH) < RESIZE_SLACK_PX))) return false;
+    cssW = w;
+    cssH = h;
     const dpr = Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, cap);
-    const w = Math.max(1, Math.round(cssW * dpr));
-    const h = Math.max(1, Math.round(cssH * dpr));
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
+    const bw = Math.max(1, Math.round(w * dpr));
+    const bh = Math.max(1, Math.round(h * dpr));
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
     }
-    aspect = cssW / cssH;
+    aspect = w / h;
     portrait = aspect < 0.8;
     g.viewport(0, 0, g.drawingBufferWidth, g.drawingBufferHeight);
+    return true;
   };
 
   const resize = (): void => {
-    if (dead) return;
-    size();
+    if (dead || !size()) return;
     if (raf) return;
     if (visible && !document.hidden) draw();
   };
@@ -216,27 +285,30 @@ export function mountScene(canvas: HTMLCanvasElement, data: SceneData, opts: Sce
     document.removeEventListener('visibilitychange', onVisibility);
   };
 
-  size();
-  if (opts.reducedMotion) draw();
+  size(true);
+  if (reduced) draw();
   else kick();
 
   return {
     setProgress(t) {
       const v = t < 0 ? 0 : t > 1 ? 1 : t;
-      if (v === target) return;
+      if (v === target && !composed) return;
       target = v;
+      if (frozen) return;
+      composed = false;
       if (tau === 0 && !raf) {
         cur = v;
         if (visible && !document.hidden && !dead) draw();
       } else kick();
     },
     resize,
-    still(t = STILL_T) {
+    still(t) {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       last = 0;
       intro = 1;
-      target = cur = t < 0 ? 0 : t > 1 ? 1 : t;
+      composed = t === undefined;
+      if (t !== undefined) target = cur = t < 0 ? 0 : t > 1 ? 1 : t;
       if (!dead) draw();
     },
     destroy() {

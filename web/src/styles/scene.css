@@ -1,43 +1,255 @@
-/* The landing's 3D die (src/scene): a sticky full-height canvas over a scroll track of 400vh (300vh on small
-   screens). Native scroll drives the chapters; nothing is scroll-jacked. The canvas is transparent, so the silicon
-   background is the page's own, and it is aria-hidden: the chapter text in the DOM carries the meaning. */
+/* The landing's stage (src/scene/DieStage.tsx): a silicon section whose scroll track, 400vh tall (300vh on small
+   screens), holds a sticky full-height canvas behind the landing's chapter blocks. Native scroll drives the
+   chapters; nothing is scroll-jacked. The canvas is transparent (the silicon ground and its grain show through)
+   and aria-hidden: the chapters' text carries the meaning. Imported by DieStage.tsx itself.
 
-.scene-track {
+   Track geometry. DieStage wraps each chapter (the landing's <section class="chapter">) in a block,
+   .die-stage__block[data-block="0".."4"]. Block 0, the hero, fills the first screen and scrolls away. Blocks I to
+   IV share the rest of the track in proportion to their chapter's length in the scene (choreo.ts CHAPTERS: .14,
+   .30, .22, .20, as flex-grow 14, 30, 22, 20; test/scene.test.ts checks the two agree), and each one's chapter
+   holds still (sticky) while its block passes, so the text stays put while the die plays it. A tail follows, where
+   the paper comes in. scroll.ts maps the blocks' real positions to the scene's progress, so taller text at a
+   narrow width only stretches its own chapter.
+
+   An ancestor with overflow other than visible or clip would stop the sticky pin: clip horizontal overflow on
+   the page with `overflow-x: clip`, not `hidden`. Transform and opacity are the only animated properties. */
+
+.die-stage {
   position: relative;
-  height: 400vh;
+  isolation: isolate;
+  --stage-hold: 24vh; /* where a chapter's text holds while its block passes */
 }
 
-.scene-sticky {
+.die-stage__track {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 400vh;
+}
+
+/* ---- the pin: canvas, 2D fallback, scrim and paper, one viewport tall ---- */
+
+.die-stage__pin {
   position: sticky;
   top: 0;
+  z-index: 0;
   height: 100vh;
   height: 100lvh;
+  margin-bottom: -100vh;
+  margin-bottom: -100lvh;
   overflow: hidden;
+  pointer-events: none;
+  background-image: var(--grain);
+  contain: strict;
 }
 
-.scene-canvas {
+.die-stage__canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 900ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 1200ms var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1));
+}
+.die-stage[data-mode='gl'] .die-stage__canvas,
+.die-stage[data-mode='still'] .die-stage__canvas {
+  opacity: 1;
+}
+.die-stage[data-mode='2d'] .die-stage__canvas {
+  display: none;
 }
 
-.scene-canvas.is-ready {
+/* No WebGL2: the Canvas 2D die, tilted in perspective (rotateX 28°, rotateZ −8°); fallback.ts moves it a little
+   as the page scrolls, with motion allowed. */
+.die-stage__flat {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center end;
+  padding-right: 2vw;
+  perspective: 1600px;
+}
+.die-stage[data-mode='2d'] .die-stage__flat {
+  display: grid;
+  animation: die-stage-in 1200ms var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+.die-stage__flat-die {
+  width: min(70%, 60rem);
+  height: 76%;
+  display: grid;
+  place-items: center;
+  transform: rotateX(28deg) rotateZ(-8deg);
+  transform-origin: 50% 55%;
+}
+.die-stage__flat-die canvas {
+  display: block;
+}
+@keyframes die-stage-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Keeps the chapter text readable over the die: the text column on the left, or the lower part on a phone. */
+.die-stage__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bg) 86%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 58%, transparent) 30%,
+    transparent 54%
+  );
+}
+
+/* The crossing to paper at the end of the track: opacity only, set by DieStage from the scroll position. */
+.die-stage__paper {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-color: var(--bg);
+  background-image: var(--grain);
+}
+.die-stage__seal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+/* ---- the chapters, over the pin ---- */
+
+.die-stage__chapters {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.die-stage__block {
+  flex: 1 0 auto;
+  min-height: 45vh;
+  display: flex;
+  flex-direction: column;
+}
+.die-stage__block > .chapter {
+  position: sticky;
+  top: var(--stage-hold);
+}
+.die-stage__block[data-block='0'] {
+  flex: 0 0 auto;
+  min-height: 100vh;
+  min-height: 100svh;
+  justify-content: flex-end;
+  padding-bottom: clamp(2rem, 9vh, 6rem);
+}
+.die-stage__block[data-block='0'] > .chapter {
+  position: relative;
+  top: auto;
+}
+/* Only the chapter on screen is shown: while DieStage follows the scroll it sets data-chapter on the stage and
+   data-on on that chapter's block (under reduced motion it sets neither, and every chapter shows). A chapter
+   holding keyboard focus always shows. */
+.die-stage[data-chapter] .die-stage__block > .chapter {
+  opacity: 0;
+  transition: opacity 600ms var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1));
+}
+.die-stage[data-chapter] .die-stage__block[data-on] > .chapter,
+.die-stage[data-chapter] .die-stage__block > .chapter:focus-within {
   opacity: 1;
+}
+.die-stage__block[data-block='1'] {
+  flex-grow: 14;
+}
+.die-stage__block[data-block='2'] {
+  flex-grow: 30;
+}
+.die-stage__block[data-block='3'] {
+  flex-grow: 22;
+}
+.die-stage__block[data-block='4'] {
+  flex-grow: 20;
+}
+
+.die-stage__tail {
+  flex: 0 0 auto;
+  height: 120vh;
+  height: 120lvh;
 }
 
 @media (max-width: 767px) {
-  .scene-track {
-    height: 300vh;
+  .die-stage__track {
+    min-height: 300vh;
+  }
+  .die-stage__block {
+    min-height: 40vh;
+  }
+  .die-stage__tail {
+    height: 110vh;
+    height: 110lvh;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .scene-track {
-    height: auto;
+/* A tall screen (narrower than 4:5, where the scene turns the die and lifts it: choreo.ts lensShift): the text
+   holds in the lower half instead of the left column. */
+@media (max-aspect-ratio: 4/5) {
+  .die-stage {
+    --stage-hold: 52svh;
   }
-  .scene-canvas {
+  .die-stage__scrim {
+    background: linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--bg) 92%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 80%, transparent) 44%,
+      color-mix(in srgb, var(--bg) 36%, transparent) 62%,
+      transparent 78%
+    );
+  }
+  .die-stage__flat {
+    place-items: start center;
+    padding: 12vh 0 0;
+  }
+  .die-stage__flat-die {
+    width: 100%;
+    height: 46%;
+  }
+}
+
+/* ---- reduced motion: one still frame behind the hero, the chapters stacked, nothing pinned ---- */
+
+.die-stage[data-motion='off'] .die-stage__track {
+  min-height: 0;
+}
+.die-stage[data-motion='off'] .die-stage__pin {
+  position: absolute;
+  inset: 0 0 auto;
+  margin: 0;
+}
+.die-stage[data-motion='off'] .die-stage__block {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding-block: var(--sp-7, 3rem);
+}
+.die-stage[data-motion='off'] .die-stage__block > .chapter {
+  position: relative;
+  top: auto;
+}
+.die-stage[data-motion='off'] .die-stage__block[data-block='0'] {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+.die-stage[data-motion='off'] .die-stage__canvas,
+.die-stage[data-motion='off'] .die-stage__flat {
+  transition: none;
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .die-stage__canvas,
+  .die-stage__flat {
     transition: none;
+    animation: none;
   }
 }

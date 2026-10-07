@@ -3,62 +3,65 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Scene harness</title>
-    <!-- Dev harness for src/scene, served by the vite dev server at /scene.html. Not part of the production
-         build (vite builds index.html only). Query: ?t=0.4 draws a still frame at that progress; ?reduced draws
-         the reduced-motion still; ?smooth=0 turns off the eased catch-up. -->
+    <title>Stage harness</title>
+    <link rel="icon" href="data:," />
+    <!-- Dev harness for src/scene (DieStage), served by the vite dev server at /scene.html. Not part of the
+         production build (vite builds index.html only). Query: ?flat shows the Canvas 2D fallback; ?t=0.4 draws the
+         bare scene's still frame at that progress, ?t=still the composed still; ?nodegrade turns off the
+         auto-degrade (for frame timing). The chapter styles below stand in for the landing's own. -->
     <style>
-      html,
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        overflow-x: clip;
+      }
       body {
         margin: 0;
-        background: #0b0d10;
-        color: #e8e4da;
-        font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        font: var(--step-body) / var(--lh-body) var(--font-sans);
       }
-      .labels {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
+      .hx {
+        padding-inline: var(--grid-margin);
+        max-width: 44rem;
       }
-      .labels p {
-        position: absolute;
-        left: 16px;
-        bottom: 16px;
-        max-width: 34rem;
-        margin: 0;
-        opacity: 0;
-        transition: opacity 320ms;
-        letter-spacing: 0.02em;
+      .hx p {
+        margin: 0 0 var(--sp-4);
+        max-width: 36rem;
+        overflow-wrap: anywhere;
       }
-      .labels p.on {
-        opacity: 1;
+      .hx-label {
+        font: var(--step-label) / var(--lh-label) var(--font-mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--fg-2);
       }
-      .labels b {
-        color: #e6b450;
-        font-weight: 500;
+      .hx-h1 {
+        font: var(--wght-display) var(--step-hero) / var(--lh-hero) var(--font-display);
+        letter-spacing: var(--track-hero);
+        margin: 0 0 var(--sp-6);
+        max-width: 12ch;
       }
-      .hud {
-        position: absolute;
-        right: 16px;
-        top: 12px;
-        color: #8e949c;
-        font-size: 12px;
+      .hx-h1 em {
+        font-weight: var(--wght-display-strong);
       }
-      .fail {
-        position: absolute;
-        inset: auto 16px 50% 16px;
-        color: #e6b450;
+      .hx-h2 {
+        font: var(--wght-display) var(--step-chapter) / var(--lh-display) var(--font-display);
+        letter-spacing: var(--track-display);
+        margin: 0 0 var(--sp-4);
+      }
+      .hx-lede {
+        font-size: var(--step-lede);
+        line-height: var(--lh-lede);
+        color: var(--fg-2);
+      }
+      .hx-after {
+        min-height: 100vh;
+        padding: var(--sp-section) var(--grid-margin);
       }
     </style>
   </head>
-  <body>
-    <div class="scene-track" id="track">
-      <div class="scene-sticky">
-        <canvas class="scene-canvas" aria-hidden="true"></canvas>
-        <div class="labels" id="labels"></div>
-        <div class="hud" id="hud"></div>
-      </div>
-    </div>
-    <script type="module" src="./src/scene/harness.ts"></script>
+  <body class="silicon">
+    <div id="stage"></div>
+    <script type="module" src="./src/scene/harness.tsx"></script>
   </body>
 </html>

@@ -1,6 +1,8 @@
 // The 3D die scene's data and choreography (src/scene), without a DOM: what it draws is the Flow Governor's real
-// floorplan, wires and two beats, and the chapters run in order.
+// floorplan, wires and two beats, the chapters run in order, the stage maps the scroll onto them, and the lazy
+// stage chunk imports nothing that would carry the netlist or the simulator.
 
+import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { layout } from '@covenant/dieshot';
 import { bytesToHex, hexToBytes, step } from '@covenant/tap20';
@@ -16,9 +18,15 @@ import {
   P_RELIGHT,
   P_ROUTE,
   P_WAVE,
+  STILL_T,
+  SWAY_DEG,
+  SWAY_UNTIL,
   cameraAt,
+  cameraStill,
+  lensShift,
   levelAt,
   phaseAt,
+  swayAt,
 } from '../src/scene/choreo.ts';
 import {
   K_BASE,
@@ -40,9 +48,12 @@ import {
   WIRE_LOOP,
   WSTRIDE,
   buildScene,
-  flowGovernorSource,
 } from '../src/scene/data.ts';
+import { THEME_SILICON } from '../src/scene/fallback.ts';
 import { lookAt, m4, mul, perspective, project } from '../src/scene/math.ts';
+import { LEAD, LEAD_END, chapterAt, stageAnchors, stageProgress, type StageBlock } from '../src/scene/scroll.ts';
+import { flowGovernorSource } from '../src/scene/source.ts';
+import { landingDemo } from '../src/kernel/demo.ts';
 
 const src = await flowGovernorSource();
 const d = buildScene(src);
@@ -241,5 +252,212 @@ describe('choreography', () => {
         expect(Math.abs(ndc[0]) + Math.abs(ndc[1])).toBeLessThan(1e-4);
       }
     }
+  });
+});
+
+describe('the landing demo as the scene source', () => {
+  test('buildScene(landingDemo()) draws exactly what buildScene draws from the files', async () => {
+    const demo = await landingDemo();
+    const fromDemo = buildScene(demo);
+    expect(fromDemo.inst).toEqual(d.inst);
+    expect(fromDemo.wires).toEqual(d.wires);
+    expect(fromDemo.reach).toEqual(d.reach);
+    expect(bytesToHex(fromDemo.outA)).toBe(witness.outA.y);
+    expect(bytesToHex(fromDemo.outB)).toBe(witness.outB.y);
+    expect(demo.layout.layoutHash).toBe(lay.layoutHash);
+  });
+});
+
+describe('composed still, sway and framing', () => {
+  test('the still shows the beat from state A lit and the seal formed, not yet flipped or pressed', () => {
+    const o = new Float32Array(8);
+    phaseAt(STILL_T, 1, d.reach, o);
+    expect(o[P_POWER]).toBeGreaterThan(d.maxLevel + 1);
+    expect(o[P_INPUT]).toBe(1);
+    expect(o[P_WAVE]).toBeGreaterThan(d.maxLevel + 1);
+    expect(o[P_FLY]).toBe(1);
+    expect(o[P_FLIP]).toBe(0);
+    expect(o[P_RELIGHT]).toBeLessThan(0);
+    expect([o[P_ROUTE], o[P_PRESS]]).toEqual([0, 0]);
+    // The still lies in chapter III, after the latches have flown.
+    expect(chapterAt(STILL_T)).toBe(CHAPTERS.findIndex((c) => c.id === 'III'));
+  });
+
+  test('the still camera looks at the die from above, landscape and portrait', () => {
+    const c = new Float32Array(CAM_SIZE);
+    const proj = m4();
+    const view = m4();
+    const vp = m4();
+    const ndc = new Float32Array(2);
+    for (const [portrait, aspect] of [
+      [false, 1.6],
+      [true, 390 / 844],
+    ] as const) {
+      cameraStill(portrait, aspect, c);
+      expect(c[2]).toBeGreaterThan(c[5]);
+      perspective(proj, (28 * Math.PI) / 180, aspect, 1, 1000);
+      lookAt(view, c);
+      mul(vp, proj, view);
+      // The die's centre is on screen.
+      expect(project(vp, 0, 0, 0, ndc)).toBe(true);
+      expect(Math.max(Math.abs(ndc[0]), Math.abs(ndc[1]))).toBeLessThan(0.9);
+    }
+  });
+
+  test('the idle sway stays within ±1.5° and only in chapter 0', () => {
+    const max = (SWAY_DEG * Math.PI) / 180;
+    let peak = 0;
+    for (let s = 0; s < 20; s += 0.05) {
+      const a = swayAt(s, 0, 1);
+      expect(Math.abs(a)).toBeLessThanOrEqual(max + 1e-12);
+      peak = Math.max(peak, Math.abs(a));
+      expect(swayAt(s, SWAY_UNTIL, 1)).toBe(0);
+      expect(swayAt(s, 0.5, 1)).toBe(0);
+      expect(swayAt(s, 0, 0)).toBe(0);
+    }
+    expect(peak).toBeGreaterThan(max * 0.99);
+    expect(SWAY_UNTIL).toBe(CHAPTERS[0].to);
+    // The sway turns the camera about its target and nothing else.
+    const a = cameraAt(0.02, false, 1.6, new Float32Array(CAM_SIZE), 0);
+    const b = cameraAt(0.02, false, 1.6, new Float32Array(CAM_SIZE), max);
+    expect([b[3], b[4], b[5], b[9]]).toEqual([a[3], a[4], a[5], a[9]]);
+    expect(Math.hypot(b[0] - a[0], b[1] - a[1])).toBeGreaterThan(0);
+  });
+
+  test('the die clears the text: right of it on wide screens, above it on tall ones', () => {
+    const o = new Float32Array(2);
+    lensShift(1.6, o);
+    expect([o[0], o[1]]).toEqual([expect.closeTo(0.36, 6), 0]);
+    lensShift(1.3, o);
+    expect([o[0], o[1]]).toEqual([expect.closeTo(0.18, 6), 0]);
+    lensShift(1, o);
+    expect([o[0], o[1]]).toEqual([0, 0]);
+    lensShift(390 / 844, o);
+    expect([o[0], o[1]]).toEqual([0, expect.closeTo(0.3, 6)]);
+    expect(lensShift(3, o)[0]).toBeCloseTo(0.36, 6);
+  });
+});
+
+describe('stage scroll mapping', () => {
+  // A desktop track: viewport 900, hero 900, chapters I..IV, tail 1080 (scene.css proportions).
+  const vh = 900;
+  const heights = [900, 420, 700, 520, 470];
+  const blocks: StageBlock[] = [];
+  let top = 0;
+  for (const h of heights) {
+    blocks.push({ top, height: h });
+    top += h;
+  }
+  const trackHeight = top + 1080;
+  const a = stageAnchors(trackHeight, vh, blocks);
+
+  test('anchors: chapter 0 at the top, later chapters when their block crosses the middle, then the handoff', () => {
+    expect(a.length).toBe(CHAPTERS.length + 2);
+    expect(a[0]).toBe(0);
+    for (let i = 1; i < CHAPTERS.length; i++) expect(a[i]).toBe(blocks[i].top - LEAD * vh);
+    expect(a[CHAPTERS.length]).toBe(blocks[4].top + blocks[4].height - LEAD_END * vh);
+    expect(a[CHAPTERS.length + 1]).toBe(trackHeight - vh);
+    for (let i = 1; i < a.length; i++) expect(a[i]).toBeGreaterThanOrEqual(a[i - 1]);
+  });
+
+  test('progress is continuous and non-decreasing, hits each chapter boundary at its anchor, then hands off', () => {
+    const p = { t: 0, chapter: 0, handoff: 0 };
+    let last = { t: -1, handoff: -1, chapter: 0 };
+    for (let s = -200; s <= trackHeight; s += 3) {
+      stageProgress(s, a, p);
+      expect(p.t).toBeGreaterThanOrEqual(last.t);
+      expect(p.handoff).toBeGreaterThanOrEqual(last.handoff);
+      expect(p.chapter).toBeGreaterThanOrEqual(last.chapter);
+      if (last.t >= 0) expect(p.t - last.t).toBeLessThan(0.02);
+      expect(p.chapter).toBe(chapterAt(Math.min(p.t, 0.999)));
+      if (p.handoff > 0) expect(p.t).toBe(1);
+      last = { ...p };
+    }
+    for (let i = 0; i < CHAPTERS.length; i++) {
+      stageProgress(a[i], a, p);
+      expect(p.t).toBeCloseTo(CHAPTERS[i].from, 9);
+      expect(p.chapter).toBe(i);
+    }
+    expect(stageProgress(a[5], a, p)).toEqual({ t: 1, chapter: 4, handoff: 0 });
+    expect(stageProgress((a[5] + a[6]) / 2, a, p).handoff).toBeCloseTo(0.5, 9);
+    expect(stageProgress(a[6] + 500, a, p)).toEqual({ t: 1, chapter: 4, handoff: 1 });
+    expect(stageProgress(-50, a, p)).toEqual({ t: 0, chapter: 0, handoff: 0 });
+  });
+
+  test('without one block per chapter, the chapters share the track by length and there is no handoff', () => {
+    const b = stageAnchors(4 * vh, vh, []);
+    for (let i = 0; i < CHAPTERS.length; i++) expect(b[i]).toBeCloseTo(CHAPTERS[i].from * 3 * vh, 9);
+    expect([b[5], b[6]]).toEqual([3 * vh, 3 * vh]);
+    expect(stageProgress(1.5 * vh, b).t).toBeCloseTo(0.5, 9);
+    expect(stageProgress(5 * vh, b).handoff).toBe(0);
+  });
+
+  test('a chapter block taller than its share only stretches its own chapter', () => {
+    const tall = blocks.map((x) => ({ ...x }));
+    tall[2].height += 600;
+    for (let i = 3; i < tall.length; i++) tall[i].top += 600;
+    const b = stageAnchors(trackHeight + 600, vh, tall);
+    expect(b[2] - b[1]).toBe(a[2] - a[1]);
+    expect(b[3] - b[2]).toBe(a[3] - a[2] + 600);
+    expect(b[4] - b[3]).toBe(a[4] - a[3]);
+  });
+
+  test('scene.css gives the blocks of chapters I to IV room in proportion to their length in the scene', () => {
+    const css = readFileSync(new URL('../src/styles/scene.css', import.meta.url), 'utf8');
+    for (let i = 1; i < CHAPTERS.length; i++) {
+      const m = css.match(new RegExp(`\\.die-stage__block\\[data-block='${i}'\\] \\{\\s*flex-grow: (\\d+);`));
+      expect(m, `flex-grow of block ${i}`).not.toBeNull();
+      expect(Number(m![1])).toBe(Math.round((CHAPTERS[i].to - CHAPTERS[i].from) * 100));
+    }
+  });
+});
+
+describe('the lazy stage chunk', () => {
+  // DieStage.tsx and everything it imports statically land in one chunk the landing loads with import(). It must
+  // not pull in the netlist bytes, the simulator or the die-shot renderer: kernel/demo.ts and kernel/sim.ts are the
+  // only modules that load the netlist (web/NOTES.md section 9), and the Canvas 2D fallback is a further import().
+  const chunk = ['DieStage.tsx', 'index.ts', 'gl.ts', 'choreo.ts', 'data.ts', 'math.ts', 'scroll.ts'];
+  const allowed = new Set([
+    'preact',
+    'preact/hooks',
+    '../components/Seal.tsx',
+    '../kernel/demo.ts',
+    '../kernel/model.ts',
+    '../motion/prefs.ts',
+    '../styles/scene.css',
+    '@covenant/tap20',
+    '@covenant/dieshot',
+    './fallback.ts',
+    ...chunk.map((f) => `./${f}`),
+  ]);
+  const typeOnly = new Set(['@covenant/dieshot', '../kernel/demo.ts', './fallback.ts']);
+  const read = (f: string): string => readFileSync(new URL(`../src/scene/${f}`, import.meta.url), 'utf8');
+
+  test.each(chunk)('%s imports only what the chunk may carry', (f) => {
+    const text = read(f);
+    for (const m of text.matchAll(/^import\s+(type\s+)?(?:[^'";]*?\s+from\s+)?'([^']+)';/gm)) {
+      const spec = m[2];
+      expect(allowed.has(spec), `${f} imports ${spec}`).toBe(true);
+      if (typeOnly.has(spec)) expect(m[1], `${f} imports ${spec} as a type only`).toBeTruthy();
+      if (spec === '@covenant/tap20') expect(m[0]).toMatch(/\{ hexToBytes, type Netlist \}/);
+    }
+    expect(text).not.toMatch(/\?raw|fg\.hex|kernel\/sim/);
+  });
+
+  test('the fallback is loaded on demand only', () => {
+    expect(read('DieStage.tsx')).toMatch(/import\('\.\/fallback\.ts'\)/);
+  });
+});
+
+describe('the Canvas 2D fallback', () => {
+  test('draws in the brand silicon colours', () => {
+    const tokens = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
+    const token = (name: string): string => tokens.match(new RegExp(`--${name}: (#[0-9a-f]{6});`))![1];
+    expect(THEME_SILICON.bg).toBe(token('wafer'));
+    expect(THEME_SILICON.strip).toBe(token('wafer-2'));
+    expect(THEME_SILICON.on).toBe(token('bond'));
+    expect(THEME_SILICON.padOn).toBe(token('bond'));
+    expect(THEME_SILICON.latchOn).toBe(token('quartz'));
+    expect(THEME_SILICON.label).toBe(token('quartz-2'));
   });
 });
