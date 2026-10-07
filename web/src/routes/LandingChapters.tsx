@@ -19,8 +19,9 @@ function Chapter(props: { n: number; roman: string; name: string; title: Compone
     <section ref={props.root as never} class="chapter" data-chapter={props.n} aria-labelledby={`ch-${props.n}`} tabIndex={-1}>
       <div class="l-wrap chapter__wrap">
         <div class="chapter__card">
-          <p class="chapter__no">{props.roman}</p>
-          <p class="label">{props.name}</p>
+          <p class="label">
+            {props.roman} · {props.name}
+          </p>
           <RevealLines as="h2" id={`ch-${props.n}`} class="chapter__title">
             {props.title}
           </RevealLines>
@@ -113,8 +114,10 @@ export function chapters({ demo, f, first }: { demo: LandingDemo | null; f: Land
             return (
               <figure key={id}>
                 <Seal hex={hex ?? COLD} label={`State ${id}`} size={72} loading={hex === null} />
-                <figcaption class="mono">
-                  {id} {hex ?? '…'}
+                <figcaption>
+                  State {id}
+                  <br />
+                  {hex ?? '…'}
                 </figcaption>
               </figure>
             );

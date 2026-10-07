@@ -1,12 +1,17 @@
 // A heading whose lines rise from masks the first time it scrolls into view (its top crosses 85% of the viewport),
 // then turns back into plain text.
 //
-// The text Preact renders stays in place the whole time (transparent while the lines run, so the layout never
-// moves and screen readers read it as usual). Once the fonts have loaded, the line breaks are measured with Ranges
-// on that text, and a copy of each line is drawn over it in an overflow-hidden mask, its inline wrappers (em,
-// strong, a) cloned along. Each copy rises from translateY(100%) with the reveal ease, 70 ms apart. When the last
-// one lands the copies are removed and the real text is shown again. Under prefers-reduced-motion, or without
-// IntersectionObserver or the Web Animations API, the text is simply there.
+// The text Preact renders stays in place the whole time (painted in a transparent colour while the lines run, so the
+// layout never moves, screen readers read it as usual, and the browser counts the heading as painted from the first
+// frame: a hero headline that rises does not hold back the page's largest paint). Once the fonts are settled, the
+// line breaks are measured with Ranges on that text, and a copy of each line is drawn over it in an overflow-hidden
+// mask, its inline wrappers (em, strong, a) cloned along. Each copy rises from translateY(100%) with the reveal ease,
+// 70 ms apart. When the last one lands the copies are removed and the real text takes its colour back. Under
+// prefers-reduced-motion, or without IntersectionObserver or the Web Animations API, the text is simply there.
+//
+// Fonts are font-display: optional (styles/fonts.css): a face that misses the browser's short block period is not
+// swapped in later on this page, so the lines are measured once the fonts are ready or FONT_WAIT_MS have passed,
+// whichever comes first, and the fallback's line breaks are final when the face did not make it.
 
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
@@ -27,6 +32,9 @@ export interface RevealLinesProps {
   /** Called once the text is plain again (immediately when there is nothing to animate). */
   onDone?: () => void;
 }
+
+/** Longer than the browser's block period for font-display: optional (about 100 ms). */
+const FONT_WAIT_MS = 200;
 
 const canAnimate = (): boolean =>
   motionAllowed() && typeof IntersectionObserver === 'function' && typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function';
@@ -61,7 +69,8 @@ export function RevealLines({ as: T = 'h2', children, class: cls, id, delay = 0,
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         io.disconnect();
-        void (document.fonts?.ready ?? Promise.resolve()).then(() => {
+        const fonts = document.fonts?.ready ?? Promise.resolve();
+        void Promise.race([fonts, new Promise((r) => setTimeout(r, FONT_WAIT_MS))]).then(() => {
           if (!live || !src.current || !layer.current) return;
           if (getComputedStyle(el).position === 'static') {
             el.style.position = 'relative';
@@ -92,7 +101,7 @@ export function RevealLines({ as: T = 'h2', children, class: cls, id, delay = 0,
 
   return (
     <T ref={host as never} class={cls} id={id} style={T === 'span' ? BLOCK : undefined}>
-      <span ref={src} style={waiting ? { opacity: 0 } : undefined}>
+      <span ref={src} class={waiting ? 'rl-src' : undefined}>
         {children}
       </span>
       <span ref={layer} aria-hidden="true" style={waiting ? LAYER : HIDDEN} />
@@ -120,6 +129,12 @@ function drawLines(text: HTMLElement, layer: HTMLElement): HTMLElement[] {
   for (let n = walk.nextNode() as Text | null; n; n = walk.nextNode() as Text | null) {
     const chain: Element[] = [];
     for (let p = n.parentElement; p && p !== text; p = p.parentElement) chain.unshift(p);
+    // A text node of spaces only (JSX's {' '}, or the gap between "{name} " and an <em>) still separates two words.
+    if (!/\S/.test(n.data)) {
+      const last = words[words.length - 1];
+      if (last && n.data.length > 0 && !/\s$/.test(last.text)) last.text += ' ';
+      continue;
+    }
     for (const m of n.data.matchAll(/\s*(\S+)\s*/g)) {
       const start = m.index + m[0].indexOf(m[1]);
       range.setStart(n, start);

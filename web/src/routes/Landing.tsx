@@ -108,9 +108,15 @@ export function Landing() {
         <header ref={hero} class="hero">
           <div class="l-wrap hero__inner">
             <p class="label hero__label">
-              TapeOut circuit · {CHAIN.name} {CHAIN.id} · Flow Governor · {fmtInt(FG_SIZE.nand)} NAND + {FG_SIZE.latch} latch
+              <span>
+                TapeOut circuit · {CHAIN.name} {CHAIN.id}
+              </span>
+              <span class="hero__label-sep"> · </span>
+              <span>
+                Flow Governor · {fmtInt(FG_SIZE.nand)} NAND + {FG_SIZE.latch} latch
+              </span>
             </p>
-            <RevealLines as="h1" class="hero__title" delay={150}>
+            <RevealLines as="h1" class="hero__title">
               A token’s trading tax, routed by a chip anyone can read <em>and nobody can change.</em>
             </RevealLines>
             <div class="hero__foot">

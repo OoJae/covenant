@@ -101,7 +101,20 @@
   );
 }
 
-/* The crossing to paper at the end of the track: opacity only, set by DieStage from the scroll position. */
+/* The press, at the end of the track (DieStage sets every value from the scroll position):
+   - the Seal is stamped in ink where the 3D seal lies, on its own square of paper (.die-stage__sheet);
+   - that square spreads from the impression until it covers the screen: one square of the paper colour, drawn at
+     full size and scaled down (transform only, so its edge stays sharp);
+   - the paper's grain (.die-stage__paper) comes in by opacity over the last tenth.
+   The header turns to paper once the square has passed under it (data-cover on the stage). */
+.die-stage__sheet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  background: var(--deed);
+  transform-origin: 50% 50%;
+}
 .die-stage__paper {
   position: absolute;
   inset: 0;
@@ -113,7 +126,38 @@
   position: absolute;
   left: 0;
   top: 0;
-  transform-origin: 0 0;
+  opacity: 0;
+  background: none;
+}
+.die-stage__seal .seal {
+  width: 100%;
+  height: 100%;
+}
+/* The frame is a hairline at any size the 3D seal gives the Seal. */
+.die-stage__seal .seal path {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1px;
+}
+.die-stage__caption {
+  position: absolute;
+  top: calc(100% + var(--sp-4, 1rem));
+  left: 0;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2 * var(--grid-margin, 1rem)));
+  margin: 0;
+  font: var(--step-micro, 0.6875rem) / 1.6 var(--font-mono);
+  letter-spacing: var(--track-micro, 0.04em);
+  color: var(--fg-2);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--dur-reveal, 900ms) var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--dur-reveal, 900ms) var(--ease-reveal, cubic-bezier(0.16, 1, 0.3, 1));
+}
+/* The caption comes in once the paper has spread under it (DieStage sets data-spread). */
+.die-stage__seal[data-spread] .die-stage__caption {
+  opacity: 1;
+  transform: none;
 }
 
 /* ---- the chapters, over the pin ---- */
@@ -140,6 +184,14 @@
 .die-stage__block > .chapter {
   position: sticky;
   top: var(--stage-hold);
+}
+/* Room for the hold: a chapter's card stays whole on screen for at least this much scroll, however tall its text
+   is (a sticky card can only travel inside its block's content box, so this is a spacer, not padding). */
+.die-stage__block:not([data-block='0'])::after {
+  content: '';
+  flex: 0 0 auto;
+  height: 35vh;
+  height: 35lvh;
 }
 .die-stage__block[data-block='0'] {
   flex: 0 0 auto;
@@ -176,10 +228,14 @@
   flex-grow: 20;
 }
 
+/* The tail: the handoff runs from chapter IV's end (its block's bottom at 15% of the screen, scroll.ts) to the
+   track's end, that is over (tail - 85lvh) of scroll: 45lvh here, 40lvh on a phone. Of that, the press takes the
+   first 45% (DieStage.tsx); the page's paper overlaps the last 20lvh (landing.css .landing__pa), so §01 comes up
+   beside the held Seal. */
 .die-stage__tail {
   flex: 0 0 auto;
-  height: 120vh;
-  height: 120lvh;
+  height: 130vh;
+  height: 130lvh;
 }
 
 @media (max-width: 767px) {
@@ -190,8 +246,8 @@
     min-height: 40vh;
   }
   .die-stage__tail {
-    height: 110vh;
-    height: 110lvh;
+    height: 125vh;
+    height: 125lvh;
   }
 }
 
@@ -237,6 +293,9 @@
   flex: 0 0 auto;
   min-height: 0;
   padding-block: var(--sp-7, 3rem);
+}
+.die-stage[data-motion='off'] .die-stage__block::after {
+  display: none;
 }
 .die-stage[data-motion='off'] .die-stage__block > .chapter {
   position: relative;

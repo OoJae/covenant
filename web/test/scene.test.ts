@@ -339,7 +339,7 @@ describe('composed still, sway and framing', () => {
 });
 
 describe('stage scroll mapping', () => {
-  // A desktop track: viewport 900, hero 900, chapters I..IV, tail 1080 (scene.css proportions).
+  // A desktop track: viewport 900, hero 900, chapters I..IV, tail 1170 (scene.css proportions: 130lvh).
   const vh = 900;
   const heights = [900, 420, 700, 520, 470];
   const blocks: StageBlock[] = [];
@@ -348,7 +348,7 @@ describe('stage scroll mapping', () => {
     blocks.push({ top, height: h });
     top += h;
   }
-  const trackHeight = top + 1080;
+  const trackHeight = top + 1170;
   const a = stageAnchors(trackHeight, vh, blocks);
 
   test('anchors: chapter 0 at the top, later chapters when their block crosses the middle, then the handoff', () => {

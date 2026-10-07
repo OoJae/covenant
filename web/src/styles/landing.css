@@ -35,20 +35,26 @@
   opacity: 0;
   pointer-events: none;
 }
+/* Focused, it shows where "Skip to content" does (base.css .skip): fixed, above the header, never under it. */
 .skip-anim:focus-visible {
+  position: fixed;
+  z-index: 101;
+  top: var(--sp-2);
   opacity: 1;
   pointer-events: auto;
   outline: var(--focus-width) solid var(--bond);
   outline-offset: 2px;
 }
 
-/* Jump targets (chapters, §01) take the focus without a ring unless the keyboard brought it. */
+/* Jump targets (chapters, §01) take the focus without a ring unless the keyboard brought it, and then the ring goes
+   round what the reader looks at (a chapter's card, a clause's heading), not round a screen-sized section. */
 .landing [tabindex='-1']:focus {
   outline: none;
 }
-.landing [tabindex='-1']:focus-visible {
+.landing .chapter:focus-visible .chapter__card,
+.landing .l-sec:focus-visible .clause__title {
   outline: var(--focus-width) solid var(--focus);
-  outline-offset: calc(-1 * var(--sp-2));
+  outline-offset: var(--sp-2);
 }
 
 /* ------------------------------------------------------------------------------------------------- silicon band */
@@ -75,26 +81,46 @@
   min-height: 100vh;
   min-height: 100svh;
 }
-/* Keeps the text readable over the die without hiding it: a wash from the text side only. On a phone the text
-   covers most of the die, so the wash is stronger under the lede. */
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(0deg, var(--bg) 0%, var(--bg) 30%, color-mix(in srgb, var(--bg) 82%, transparent) 55%, transparent 80%);
+/* Keeps the text readable over the die without hiding it. On a wide screen, a wash from the text side only. Below
+   1024 px the headline sits over the die, so the die is a ghost behind it (86%) and the wash is whole under the
+   lede: the headline is set on clean wafer and the die rises into view as the hero scrolls away.
+   The wash moves with the hero, and it does not end at the hero's edge: it runs --wash-foot further and fades out
+   there (a mask), so no straight seam crosses the die as the page scrolls. The foot is shorter than the gap to
+   chapter I's card, so it never dims the card. Defined on the silicon band, so var(--bg) is the wafer. */
+.landing__si {
+  --wash-foot: 7rem;
+  --hero-wash: linear-gradient(
+    180deg,
+    transparent 0,
+    color-mix(in srgb, var(--bg) 86%, transparent) 14%,
+    color-mix(in srgb, var(--bg) 86%, transparent) 52%,
+    var(--bg) 72%
+  );
 }
 @media (min-width: 1024px) {
-  .hero::before {
-    background:
+  .landing__si {
+    --hero-wash:
       linear-gradient(0deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 78%, transparent) 38%, transparent 72%),
       linear-gradient(90deg, color-mix(in srgb, var(--bg) 70%, transparent) 0%, transparent 55%);
   }
 }
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 calc(-1 * var(--wash-foot));
+  z-index: -1;
+  pointer-events: none;
+  background: var(--hero-wash);
+  -webkit-mask-image: linear-gradient(0deg, transparent 0, #000 var(--wash-foot));
+  mask-image: linear-gradient(0deg, transparent 0, #000 var(--wash-foot));
+}
 /* Under reduced motion the die behind the hero is one still frame of the lit die, which is brighter than the
-   power-on: the wash is heavier there. */
+   power-on: the wash is heavier there. Nothing scrolls under the hero's edge (the still frame is one screen tall),
+   so the wash ends with the hero and never reaches the stacked chapters. */
 @media (prefers-reduced-motion: reduce) {
+  .landing__si {
+    --wash-foot: 0px;
+  }
   .hero::before {
     background:
       linear-gradient(0deg, var(--bg) 0%, var(--bg) 25%, color-mix(in srgb, var(--bg) 80%, transparent) 60%, color-mix(in srgb, var(--bg) 55%, transparent) 100%);
@@ -104,7 +130,7 @@
   .hero::before {
     background:
       linear-gradient(0deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 80%, transparent) 40%, transparent 75%),
-      linear-gradient(90deg, color-mix(in srgb, var(--bg) 88%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 50%, transparent 72%);
+      linear-gradient(90deg, color-mix(in srgb, var(--bg) 88%, transparent) 0%, color-mix(in srgb, var(--bg) 78%, transparent) 60%, transparent 84%);
   }
 }
 .hero__inner {
@@ -117,11 +143,14 @@
 }
 .hero__label {
   margin: 0;
-  max-width: 44ch;
 }
-@media (min-width: 640px) {
-  .hero__label {
-    max-width: none;
+/* On a phone the die marking takes two lines, one per part, never a line that starts with its separator. */
+@media (max-width: 639px) {
+  .hero__label > span {
+    display: block;
+  }
+  .hero__label > .hero__label-sep {
+    display: none;
   }
 }
 .hero__title {
@@ -222,9 +251,13 @@
 }
 
 @media (min-width: 1024px) {
+  /* Four lines, the italic clause whole on the last one, where it runs over the die (the plan's deliberate break). */
   .hero__title {
-    max-width: 13.5ch;
+    max-width: 10.75em;
     font-size: clamp(4rem, 6.3vw, 8rem);
+  }
+  .hero__title em {
+    white-space: nowrap;
   }
   .hero__foot {
     grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -282,18 +315,10 @@
   background: color-mix(in srgb, var(--bg) 84%, transparent);
   border: var(--hairline) solid var(--rule);
 }
-.chapter__no {
-  float: right;
-  margin: calc(-1 * var(--sp-2)) 0 0 var(--sp-4);
-  font: var(--wght-display) clamp(2.75rem, 2rem + 3vw, 4.5rem) / 1 var(--font-display);
-  letter-spacing: var(--track-display);
-  color: var(--accent-ink);
-}
 .chapter__card .label {
   margin: 0 0 var(--sp-4);
 }
 .chapter__title {
-  clear: both;
   margin: 0 0 var(--sp-5);
   padding: 0;
   border: 0;
@@ -335,7 +360,7 @@
 .chapter__seals {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-5);
+  gap: var(--sp-4) var(--sp-5);
   margin: var(--sp-2) 0 0;
 }
 .chapter__seals figure {
@@ -343,10 +368,12 @@
   gap: var(--sp-2);
   margin: 0;
 }
+/* Two lines (the state, its hex), so the two Seals sit side by side even on a phone. */
 .chapter__seals figcaption {
-  font-size: var(--step-micro);
+  font: var(--step-micro) / 1.5 var(--font-mono);
   letter-spacing: var(--track-micro);
   color: var(--fg-2);
+  white-space: nowrap;
 }
 .chapter__mem {
   width: 100%;
@@ -379,12 +406,12 @@
   text-align: right;
 }
 
-/* Where the tax goes: nodes joined by wires that end in pads (the icon system's arrow). */
+/* Where the tax goes: nodes stacked on one Manhattan wire, each wire ending in a pad (the icon system's arrow). A
+   column, so no wire is ever left at the end of a line; the three destinations share the last row. */
 .l-flow {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
+  flex-direction: column;
+  align-items: flex-start;
   margin-top: var(--sp-2);
   font: var(--step-micro) / 1.4 var(--font-mono);
   letter-spacing: var(--track-micro);
@@ -414,29 +441,30 @@
   border-left: 4px solid var(--c-res);
 }
 .l-flow__dests {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2);
 }
 .l-flow__wire {
   position: relative;
-  width: 1.25rem;
-  height: 1px;
+  width: 1px;
+  height: var(--sp-4);
+  margin-left: var(--sp-4);
   background: var(--fg-2);
 }
 .l-flow__wire::after,
 .l-flow__wire--both::before {
   content: '';
   position: absolute;
-  top: -2px;
-  right: -1px;
+  bottom: -1px;
+  left: -2px;
   width: 5px;
   height: 5px;
   background: var(--fg-2);
 }
 .l-flow__wire--both::before {
-  right: auto;
-  left: -1px;
+  bottom: auto;
+  top: -1px;
 }
 
 /* Under reduced motion the chapters are stacked and nothing sits beside them, so on a wide screen each card spans
@@ -448,11 +476,6 @@
     grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
     column-gap: calc(2 * var(--grid-gap));
     align-items: start;
-  }
-  .chapter__no {
-    float: none;
-    grid-column: 1;
-    margin: 0 0 var(--sp-3);
   }
   .chapter__card .label,
   .chapter__title {
@@ -467,6 +490,20 @@
   .chapter__card {
     padding: var(--sp-5) var(--sp-4);
   }
+  .chapter__mem th,
+  .chapter__mem td {
+    padding-block: var(--sp-1);
+  }
+}
+
+/* With the stage running, the page's paper overlaps the last 20lvh of its track (scene.css .die-stage__tail): the
+   press has made the stage paper by then, so §01 rises beside the held Seal and the crossing reads as one deed. */
+.landing:has(.die-stage[data-motion='on']) > .landing__pa {
+  position: relative;
+  z-index: 2;
+  background-color: var(--bg);
+  margin-top: -20vh;
+  margin-top: -20lvh;
 }
 
 /* §01 and §02 to §05 hold their place until their chunks arrive (Landing.tsx), so the scroll length does not jump. */
@@ -480,7 +517,8 @@
 /* --------------------------------------------------------------------------------------------- motion (landing) */
 
 @media (prefers-reduced-motion: no-preference) {
-  /* The load sequence: label at 100 ms, the h1's lines from 150 ms (RevealLines), lede and CTAs at 600 ms. */
+  /* The load sequence: the h1's lines rise from the first frame (RevealLines), the label at 100 ms, lede and CTAs at
+     600 ms, the ledger at 720 ms; behind them the die powers on. */
   .hero__label {
     animation: l-rise var(--dur-reveal) var(--ease-reveal) 100ms both;
   }

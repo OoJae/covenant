@@ -292,6 +292,30 @@ The three phase-1 tracks are merged on `main`. How the landing (`routes/Landing.
   DieStage 19,500 B (limit 24,000), its 2D fallback 1.3 KB, Lenis 14,181 B, TwoStates and the clauses (with
   `landing-paper.css` injected as a style element) about 25 KB.
 
+### 3.9 After the design and QA critiques (2026-10-07, redesign phase 1)
+
+- **The press.** The handoff is no longer a crossfade. The Seal is stamped in ink on a square of paper exactly where
+  the 3D seal lies (`STAMP`), and that square spreads from the impression until it covers the screen
+  (`SPREAD_FROM`..`PAPER_TO`, transform only: one square of `--deed` drawn at full size and scaled down, so its edge
+  stays sharp; it overgrows to 1.2x so the ease's tail happens off screen). The grain comes in by opacity over the last
+  tenth. The header turns to paper once the square has passed under its strip. While the camera is still settling,
+  each drawn frame re-places the press (`onFrame`). The stage Seal's frame is a 1 px non-scaling stroke.
+- **Handoff length.** It runs from chapter IV's end (its block's bottom at 15% of the screen) to the track's end, so
+  it lasts `tail - 85lvh` of scroll: the tail is 130lvh (125lvh on a phone), giving 45lvh (40lvh). The page's paper
+  (`.landing__pa`) overlaps the track's last 20lvh, so §01 rises under the held Seal; that overlap must stay shorter
+  than the handoff after `PAPER_TO`, or §01 would show before the paper is whole.
+- **Holds.** Each chapter block ends in a 35lvh spacer, so its card holds whole on screen however tall its text is
+  (a sticky card cannot travel into padding). A card too tall for the hold line is lifted to fit (`fitHolds`).
+  Measured: every card stays whole for at least 400 px of scroll at 1440, 768 and 375.
+- **Hero.** The wash moves with the hero and runs 7rem past its edge, fading out by a mask: no straight seam crosses
+  the die. Below 1024 px the die is an 86% ghost behind the headline. The headline's own text is painted transparent
+  while its line copies rise (RevealLines), so the browser counts it as painted on the first frame: landing LCP went
+  from about 3.25 s to 1.55 s on a slow-4G, 4x-CPU phone profile, the same as with reduced motion.
+- **Software WebGL.** `failIfMajorPerformanceCaveat` plus a renderer-name check send SwiftShader and llvmpipe to the
+  Canvas 2D die (it was blocking the main thread for about 6 s); ten frames in a row over 50 ms go straight to the
+  still frame. The hero's sway settles after 8 s without a scroll and the scene stops drawing; Lenis's frame loop
+  sleeps between smooth scrolls.
+
 ## 4. Verified
 
 All on 2026-10-04 from this machine, read-only.

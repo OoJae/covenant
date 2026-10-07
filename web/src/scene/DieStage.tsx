@@ -4,9 +4,10 @@
 //
 //   - Scroll stays native (Lenis only smooths the wheel). The blocks' positions set where each chapter of the
 //     scene starts (scroll.ts), so the die and the text change chapter together at any width.
-//   - After the last chapter the seal is pressed into the die; in the track's tail the paper comes in over it
-//     (opacity only) and the Seal (components/Seal.tsx) is stamped in ink where the 3D seal was: the crossing from
-//     silicon to paper. The next section of the page continues on paper.
+//   - After the last chapter the seal is pressed into the die. In the track's tail the press makes the crossing
+//     from silicon to paper: the Seal (components/Seal.tsx) is stamped in ink on a square of paper exactly where
+//     the 3D seal lies, and that square spreads from the impression until it covers the screen (transform only;
+//     the paper's grain comes in by opacity at the very end). The next section of the page continues on paper.
 //   - Reduced motion: one composed still frame behind the hero, the chapters stacked below, nothing pinned.
 //   - No WebGL2, a failed start or a lost context: the Canvas 2D die shot in a CSS perspective container
 //     (fallback.ts, loaded only then).
@@ -14,7 +15,7 @@
 //
 // Styles: src/styles/scene.css. Data: a LandingDemo (kernel/demo.ts); this chunk never bundles the netlist.
 
-import { toChildArray, type ComponentChildren } from 'preact';
+import { Fragment, toChildArray, type ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Seal } from '../components/Seal.tsx';
 import type { LandingDemo } from '../kernel/demo.ts';
@@ -50,19 +51,66 @@ export interface DieStageProps {
 
 /** The DOM Seal's cell grid matches the 3D seal's: 8 cells over 7.9 of 8.9 pitches there, 78 of 102 units here. */
 const SEAL_FIT = (7.9 / 8.9) * (102 / 78);
-/** The DOM Seal is drawn at this size and scaled to the 3D one. */
+/** The DOM Seal's nominal size; the stage sizes it to the 3D one (scene.css stretches the svg). */
 const SEAL_PX = 240;
-/** Handoff points: the paper comes in over [PAPER_FROM, PAPER_TO]; the Seal is stamped at STAMP. */
-const PAPER_FROM = 0.2;
-const PAPER_TO = 0.7;
-const STAMP = 0.62;
+/** The strip at the top of the screen the header covers, in CSS pixels (base.css --header-h, at most 4rem). */
+const HEADER_STRIP = 64;
+/** Handoff points, as shares of the handoff (scroll.ts: from chapter IV's end to the track's end): the Seal is
+ * stamped on its square of paper at STAMP; the paper spreads from it over [SPREAD_FROM, PAPER_TO] and its grain
+ * comes in over the last tenth of that. The page's paper (landing.css .landing__pa) overlaps the track's last 20lvh,
+ * so §01 rises beside the held Seal, never before the paper is whole: scene.css sizes the tail so that 20lvh is
+ * less than the handoff after PAPER_TO. */
+const STAMP = 0.06;
+const SPREAD_FROM = 0.12;
+const PAPER_TO = 0.45;
+const GRAIN_FROM = PAPER_TO - 0.1 * (PAPER_TO - SPREAD_FROM);
+/** The paper square's last scale, as a share of the size that just covers the screen. */
+const SPREAD_END = 1.2;
 
 const smooth = (x: number): number => x * x * (3 - 2 * x);
+
+/** The reveal ease, cubic-bezier(.16, 1, .3, 1) (motion/prefs.ts EASE_REVEAL), for a value the scroll drives. */
+function revealEase(x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const bx = (u: number): number => 3 * (1 - u) * (1 - u) * u * 0.16 + 3 * (1 - u) * u * u * 0.3 + u * u * u;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (bx(mid) < x) lo = mid;
+    else hi = mid;
+  }
+  const u = (lo + hi) / 2;
+  return 3 * (1 - u) * (1 - u) * u + 3 * (1 - u) * u * u + u * u * u;
+}
+
+/**
+ * A chapter holds still at the stage's hold line (scene.css --stage-hold) while its block passes; one too tall to
+ * fit below that line holds higher instead, so its last line stays on screen (never above the header).
+ */
+function fitHolds(box: HTMLElement, vh: number): void {
+  const header = document.querySelector<HTMLElement>('header.top')?.offsetHeight ?? 64;
+  for (const block of box.children) {
+    const ch = block.firstElementChild as HTMLElement | null;
+    if (!ch || block.getAttribute('data-block') === '0') continue;
+    ch.style.removeProperty('top');
+    const cs = getComputedStyle(ch);
+    const hold = parseFloat(cs.top);
+    const padTop = parseFloat(cs.paddingTop) || 0;
+    const need = ch.offsetHeight - (parseFloat(cs.paddingBottom) || 0);
+    if (!Number.isFinite(hold)) continue;
+    const fit = Math.max(header + 8 - padTop, Math.min(hold, vh - need - 16));
+    if (fit < hold - 0.5) ch.style.top = `${Math.round(fit)}px`;
+  }
+}
 
 export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOptions, children }: DieStageProps) {
   const [motion, setMotion] = useState(motionAllowed);
   const [mode, setMode] = useState<StageMode>('wait');
-  const [stamped, setStamped] = useState(false);
+  // Counts the stamps: the Seal is pressed again (a new element, so the press plays) each time the scroll crosses
+  // STAMP going down.
+  const [stamps, setStamps] = useState(0);
   const root = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const pin = useRef<HTMLDivElement>(null);
@@ -70,6 +118,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
   const flatBox = useRef<HTMLDivElement>(null);
   const flatCanvas = useRef<HTMLCanvasElement>(null);
   const chapters = useRef<HTMLDivElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   const paper = useRef<HTMLDivElement>(null);
   const seal = useRef<HTMLDivElement>(null);
 
@@ -79,6 +128,9 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
   const modeRef = useRef<StageMode>('wait');
   const prog = useRef<StageProgress>({ t: 0, chapter: 0, handoff: 0 });
   const update = useRef<() => void>(() => {});
+  // Called after each frame the 3D die draws: during the handoff the press follows the seal while the camera
+  // settles (a fast scroll reaches the tail before the scene has caught up).
+  const afterFrame = useRef<() => void>(() => {});
   const cbs = useRef({ onProgress, onStage, sceneOptions });
   cbs.current = { onProgress, onStage, sceneOptions };
   const built = useRef<{ demo: LandingDemo; data: SceneData } | null>(null);
@@ -120,6 +172,10 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       ? null
       : mountScene(glCanvas.current!, built.current.data, {
           ...cbs.current.sceneOptions,
+          onFrame: (ms) => {
+            cbs.current.sceneOptions?.onFrame?.(ms);
+            afterFrame.current();
+          },
           reducedMotion: !motion,
           // A reader who arrives mid-page sees that chapter at once, not a fly-through from the top.
           progress: motion ? prog.current.t : undefined,
@@ -180,6 +236,8 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
         vw = innerWidth;
         vh = innerHeight;
       }
+      press.big = 0;
+      fitHolds(box, vh);
       const top = tr.getBoundingClientRect().top;
       const blocks: StageBlock[] = [];
       for (const el of box.children as HTMLCollectionOf<HTMLElement>) {
@@ -189,15 +247,18 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       stageAnchors(tr.offsetHeight, vh, blocks, anchors);
     };
 
-    // The DOM Seal goes where the 3D seal was pressed (in the 3D die's last frame); over the 2D die, on its
-    // middle; over a still frame, in the middle of the stage.
+    // Where the press happens: the 3D seal's place in the die's last frame; over the 2D die, its middle; over a
+    // still frame, the middle of the stage. `side` is the DOM Seal's size, whose cells line up with the 3D seal's.
+    const press = { cx: 0, cy: 0, side: 0, w: 0, h: 0, big: 0 };
+    let stamped = false;
     const placeSeal = (): void => {
-      const el = seal.current;
       const box = pin.current;
-      if (!el || !box) return;
-      let cx = box.clientWidth / 2;
-      let cy = box.clientHeight / 2;
-      let side = Math.min(box.clientWidth, box.clientHeight) * 0.3;
+      if (!box) return;
+      const w = box.clientWidth;
+      const hh = box.clientHeight;
+      let cx = w / 2;
+      let cy = hh / 2;
+      let side = Math.min(w, hh) * 0.3;
       const r = modeRef.current === 'gl' ? scene.current?.sealRect() : null;
       if (r) {
         cx = r.x + r.width / 2;
@@ -209,7 +270,50 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
         cx = f.left + f.width / 2 - b.left;
         cy = f.top + f.height / 2 - b.top;
       }
-      el.style.transform = `translate3d(${(cx - side / 2).toFixed(1)}px, ${(cy - side / 2).toFixed(1)}px, 0) scale(${(side / SEAL_PX).toFixed(4)})`;
+      // The paper is one square, as big as the screen needs from this centre, drawn at full size and scaled down to
+      // the Seal: scaling down keeps its edge sharp.
+      const big = Math.ceil(2 * Math.max(cx, w - cx, cy, hh - cy)) + 4;
+      if (big !== press.big && sheet.current) sheet.current.style.width = sheet.current.style.height = `${big}px`;
+      const el = seal.current;
+      if (el && Math.abs(side - press.side) > 0.5) el.style.width = el.style.height = `${side.toFixed(1)}px`;
+      if (el) el.style.transform = `translate3d(${(cx - side / 2).toFixed(1)}px, ${(cy - side / 2).toFixed(1)}px, 0)`;
+      Object.assign(press, { cx, cy, side, w, h: hh, big });
+    };
+
+    /** The press at handoff h: stamp the Seal, spread the paper from it, bring in the grain. */
+    const pressAt = (h: number): void => {
+      const sh = sheet.current;
+      const pa = paper.current;
+      const el = seal.current;
+      if (!sh || !pa || !el) return;
+      const on = h >= STAMP;
+      if (on !== stamped) {
+        stamped = on;
+        el.style.opacity = on ? '1' : '';
+        sh.style.opacity = on ? '1' : '';
+        if (on) setStamps((n) => n + 1);
+      }
+      let covers = false;
+      el.toggleAttribute('data-spread', on && h >= SPREAD_FROM + 0.5 * (PAPER_TO - SPREAD_FROM));
+      if (on) {
+        // It grows a fifth past the size that covers the screen, so the ease's long tail happens off screen and the
+        // paper is whole (and the header turns) well before PAPER_TO.
+        const k0 = press.side / press.big;
+        const k = k0 + (SPREAD_END - k0) * revealEase(span(h, SPREAD_FROM, PAPER_TO));
+        const x = press.cx - press.big / 2;
+        const y = press.cy - press.big / 2;
+        sh.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${k.toFixed(4)})`;
+        // Once the square reaches past the header's strip, the stage counts as paper for the header (app.tsx).
+        const half = (press.big * k) / 2;
+        covers = press.cx - half <= 0 && press.cx + half >= press.w && press.cy - half <= HEADER_STRIP;
+      }
+      const g = smooth(span(h, GRAIN_FROM, PAPER_TO));
+      pa.style.opacity = g > 0 ? g.toFixed(3) : '';
+      const st = root.current;
+      if (st && covers !== st.hasAttribute('data-cover')) {
+        if (covers) st.setAttribute('data-cover', 'paper');
+        else st.removeAttribute('data-cover');
+      }
     };
 
     const onScroll = (): void => {
@@ -218,8 +322,8 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       stageProgress(-tr.getBoundingClientRect().top, anchors, p);
       scene.current?.setProgress(p.t);
       flat.current?.setProgress(p.t);
-      // For the CSS: data-chapter on the stage names the chapter on screen ("end" once the paper starts to come
-      // in), and data-on marks its block.
+      // For the CSS: data-chapter on the stage names the chapter on screen ("end" once the handoff starts), and
+      // data-on marks its block.
       const shown = p.handoff > 0 ? -1 : p.chapter;
       if (shown !== chapter) {
         chapter = shown;
@@ -229,16 +333,8 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       const h = p.handoff;
       const moved = p.t !== lastT || h !== lastHandoff;
       if (h !== lastHandoff) {
-        const o = smooth(span(h, PAPER_FROM, PAPER_TO));
-        if (paper.current) paper.current.style.opacity = o > 0 ? o.toFixed(3) : '';
-        // Once the paper is more there than not, the stage counts as paper for the header (app.tsx).
-        const el = root.current;
-        if (el && o >= 0.5 !== el.hasAttribute('data-cover')) {
-          if (o >= 0.5) el.setAttribute('data-cover', 'paper');
-          else el.removeAttribute('data-cover');
-        }
         if (h > 0) placeSeal();
-        if (h >= STAMP) setStamped(true);
+        pressAt(h);
         lastHandoff = h;
       }
       lastT = p.t;
@@ -251,6 +347,11 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       onScroll();
     };
     update.current = refresh;
+    afterFrame.current = () => {
+      if (lastHandoff <= 0) return;
+      placeSeal();
+      pressAt(lastHandoff);
+    };
     // The track keeps its height while text reflows inside it (fonts arriving, a live number), so the blocks are
     // watched too.
     const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(refresh) : null;
@@ -264,9 +365,14 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       removeEventListener('scroll', onScroll);
       removeEventListener('resize', refresh);
       update.current = () => {};
+      afterFrame.current = () => {};
       root.current?.removeAttribute('data-chapter');
       root.current?.removeAttribute('data-cover');
-      for (const el of chapters.current?.children ?? []) el.removeAttribute('data-on');
+      for (const el of [seal.current, sheet.current, paper.current]) el?.removeAttribute('style');
+      for (const el of chapters.current?.children ?? []) {
+        el.removeAttribute('data-on');
+        (el.firstElementChild as HTMLElement | null)?.style.removeProperty('top');
+      }
     };
   }, [motion]);
 
@@ -282,11 +388,22 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
           </div>
           <div class="die-stage__scrim" />
           {motion && (
-            <div ref={paper} class="paper die-stage__paper">
-              <div ref={seal} class="die-stage__seal">
-                {stamped && demo && <Seal hex={demo.stateB} size={SEAL_PX} material="paper" press label="State B" />}
+            <>
+              <div ref={sheet} class="die-stage__sheet" />
+              <div ref={paper} class="paper die-stage__paper" />
+              <div ref={seal} class="paper die-stage__seal">
+                {stamps > 0 && demo && (
+                  <Fragment key={stamps}>
+                    <Seal hex={demo.stateB} size={SEAL_PX} material="paper" press label="State B" />
+                    <p class="die-stage__caption">
+                      State B · {demo.stateB}
+                      <br />
+                      The chip's 64 latches, one square each
+                    </p>
+                  </Fragment>
+                )}
               </div>
-            </div>
+            </>
           )}
         </div>
         <div ref={chapters} class="die-stage__chapters">
