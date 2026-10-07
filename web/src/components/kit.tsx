@@ -2,8 +2,11 @@
 // banner and clause heads. Styles: src/styles/components.css.
 
 import type { ComponentChildren } from 'preact';
-import { SIMULATION } from '../config.ts';
 import { pct256, type RouteView } from '../kernel/chip.ts';
+
+// The simulation banner lives in its own module so the landing can show it without bringing kit (and kernel/chip.ts)
+// into the entry script; kit re-exports it for the other pages.
+export { SimBanner } from './SimBanner.tsx';
 
 /** How one settle's tax is split, as a bar of 256ths, plus the release from the reserve. */
 export function RouteBar({ view, compact }: { view: RouteView; compact?: boolean }) {
@@ -92,16 +95,6 @@ export function Stat({ label, value, sub }: { label: string; value: ComponentChi
 }
 
 /** Shown on every page when the site reads the local fork fixture instead of X Layer: a warn plate. */
-export function SimBanner() {
-  if (!SIMULATION) return null;
-  return (
-    <div class="plate warn silicon simbanner" role="note">
-      <strong>SIMULATION</strong> This build reads a local anvil fork of X Layer (block {SIMULATION.block}) made by{' '}
-      <span class="mono">web/scripts/fork-fixture.sh</span>. Nothing shown here happened on X Layer.
-    </div>
-  );
-}
-
 /**
  * A clause head: the section number hangs in the gutter (§01), the title is set in the display face. Put it first
  * in a `<section class="clause">`; both parts are grid items of the clause.

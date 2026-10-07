@@ -12,18 +12,15 @@
 // height, measured before the first paint.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { readAll } from '@covenant/chain';
-import { erc20, kernel } from '@covenant/chain/kernel';
-import { SimBanner } from '../components/kit.tsx';
 import { RevealLines } from '../components/RevealLines.tsx';
-import { CHAIN, COVENANT, rpc } from '../config.ts';
+import { SimBanner } from '../components/SimBanner.tsx';
+import { CHAIN, COVENANT } from '../config.ts';
 import { fmtInt } from '../format.ts';
 import { FG_SIZE, landingDemo, type LandingDemo } from '../kernel/demo.ts';
 import { jumpTo } from '../motion/lenis.ts';
 import { useAsync, type Async } from '../router.ts';
+import type { Bound } from '../kernel/bound.ts';
 import { Chapters } from './LandingChapters.tsx';
-
-const ZERO = '0x0000000000000000000000000000000000000000';
 
 type Stage = typeof import('../scene/DieStage.tsx').DieStage;
 type S01 = typeof import('../components/TwoStates.tsx').TwoStates;
@@ -32,14 +29,7 @@ const loadStage = (): Promise<Stage> => import('../scene/DieStage.tsx').then((m)
 const loadS01 = (): Promise<S01> => import('../components/TwoStates.tsx').then((m) => m.TwoStates);
 const loadRest = (): Promise<Rest> => import('./LandingClauses.tsx').then((m) => m.Clauses);
 
-/** A kernel and the token bound to it, read from the chain. */
-export interface Bound {
-  version: 1 | 2;
-  kernel: string;
-  token: string | null;
-  symbol: string | null;
-  count: number | null;
-}
+export type { Bound };
 
 /** The flagship kernels deployments/xlayer.json names, v1 first. */
 export function flagships(): { version: 1 | 2; kernel: string }[] {
@@ -49,27 +39,9 @@ export function flagships(): { version: 1 | 2; kernel: string }[] {
   return ks;
 }
 
-/** Bound token, its symbol and the settle count of each flagship kernel. */
-async function boundTokens(): Promise<Bound[]> {
-  const ks: Bound[] = flagships().map((k) => ({ ...k, token: null, symbol: null, count: null }));
-  if (ks.length === 0) return ks;
-  const r = await readAll(rpc, ks.flatMap((k) => [kernel(k.kernel).token(), kernel(k.kernel).count()]));
-  ks.forEach((k, i) => {
-    const t = r[2 * i];
-    const c = r[2 * i + 1];
-    k.token = typeof t === 'string' && t.toLowerCase() !== ZERO ? t : null;
-    k.count = typeof c === 'number' ? c : null;
-  });
-  const withToken = ks.filter((k) => k.token !== null);
-  if (withToken.length > 0) {
-    const s = await readAll(rpc, withToken.map((k) => erc20(k.token!).symbol()));
-    withToken.forEach((k, i) => {
-      const v = s[i];
-      k.symbol = typeof v === 'string' ? v : null;
-    });
-  }
-  return ks;
-}
+/** Bound token, its symbol and the settle count of each flagship kernel. The reads (and the chain's kernel ABI)
+ * load on demand, so they stay out of the entry script. */
+const boundTokens = (): Promise<Bound[]> => import('../kernel/bound.ts').then((m) => m.boundTokens(flagships()));
 
 export const settles = (n: number | null): string => (n === null ? '? settles' : `${fmtInt(n)} settle${n === 1 ? '' : 's'}`);
 
