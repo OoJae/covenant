@@ -45,7 +45,7 @@ export function parseRoute(hash: string): Route {
  * The current route. A route change runs inside a view transition where there is one (src/motion/transitions.ts:
  * the old page fades and lifts, the new one rises, the header holds still); elsewhere the keyed <main> rises on
  * mount, and under reduced motion the change is instant. Either way the new page starts at the top, through Lenis
- * at once when it runs, so the smooth scroll never animates the jump.
+ * at once when it runs, so the smooth scroll never animates the jump, and the focus moves to the new <main>.
  */
 export function useRoute(): Route {
   const [hash, setHash] = useState(location.hash);
@@ -57,6 +57,9 @@ export function useRoute(): Route {
         setHash(next);
         await afterRender();
         jumpTo(0, { immediate: true });
+        // The new page takes the focus (app.tsx gives <main> tabindex -1 and no ring), so a screen reader starts
+        // there and the next Tab lands inside it; document.title names it (app.tsx titleFor).
+        document.getElementById('main')?.focus({ preventScroll: true });
       });
     };
     addEventListener('hashchange', onChange);

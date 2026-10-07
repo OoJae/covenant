@@ -12,7 +12,6 @@
 .pinid,
 .stat .label,
 .menu-btn,
-summary,
 .facts > dt,
 fieldset.bits legend,
 .deed h3 {
@@ -20,6 +19,20 @@ fieldset.bits legend,
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--fg-2);
+}
+/* Mono capitals are for labels of a few words. A disclosure or a form field says a sentence: the UI cut of the sans,
+   in sentence case. */
+summary,
+.field-label {
+  font: 500 var(--step-small) / 1.4 var(--font-sans);
+  font-stretch: var(--stretch-ui);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-2);
+}
+.field-label {
+  display: block;
+  color: var(--fg);
 }
 thead th,
 .keys,
@@ -430,14 +443,13 @@ html.sheet-open {
 .plate p {
   max-width: var(--measure);
 }
-.plate.ok {
-  background-color: var(--ok-bg);
-}
-.plate.bad {
-  background-color: var(--bad-bg);
-}
+/* A verdict colours its lamp and its word, never the plate: the plate stays the material's raised surface, so a
+   page of MATCHes is not a page of green slabs (a third material), and the same verdict looks the same on every
+   page. */
+.plate.ok,
+.plate.bad,
 .plate.warn {
-  background-color: var(--warn-bg);
+  border-color: var(--rule-strong);
 }
 .plate.idle {
   color: var(--fg-2);
@@ -677,16 +689,9 @@ li.checkrow {
 .copy {
   overflow: hidden;
 }
-.copy__label {
-  display: block;
-}
 .copy[data-state='ok'] {
   border-color: var(--ok);
   color: var(--ok);
-}
-.copy[data-state='ok'] .copy__label,
-.copy[data-state='fail'] .copy__label {
-  animation: rise-in var(--dur-micro) var(--ease-reveal);
 }
 
 /* ------------------------------------------------------------------------------------------------ marks and tags */
@@ -1001,8 +1006,16 @@ fieldset.bits legend {
 
 @media (prefers-reduced-motion: reduce) {
   .bit.flip,
-  .copy__label,
   .sheet.is-first.is-open .sheet__nav a span {
     animation: none !important;
   }
+}
+
+/* A loading line or a verdict that stands in for a page is its h1 (routes/shared.tsx): set as the line, not as a
+   display heading. */
+.loading__text,
+h1.verdict {
+  font: inherit;
+  letter-spacing: inherit;
+  text-wrap: pretty;
 }

@@ -107,7 +107,9 @@ export const explorer = (address: string): string => `https://www.oklink.com/xla
 /** Where the printed `cast` lines point: the public endpoint, or the fork. */
 export const CAST_RPC = ADDR.rpc[0];
 
-export const rpc = createRpc(ADDR.rpc);
+// 8 s per try (the package's default is 20 s): with two hosts and one retry each, a node that hangs without answering
+// costs at most 32 s before the page says it could not read, not 80 s.
+export const rpc = createRpc(ADDR.rpc, { timeout: 8000 });
 
 /** Source files are linked on the public repository. */
 export const REPO = 'https://github.com/OoJae/covenant';

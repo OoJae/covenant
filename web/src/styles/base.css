@@ -102,6 +102,18 @@ ol {
 li + li {
   margin-top: var(--sp-2);
 }
+/* Lists laid out as grids or ruled rows keep every item level: the sibling margin above is for prose lists only
+   (it pushed every tile after the first 8 px down). */
+.l-tiles > li,
+.deeds > li,
+.register > li,
+.checks > li,
+.judge > li,
+.jlines > li,
+.keys > li,
+.legend > li {
+  margin-top: 0;
+}
 li::marker {
   color: var(--fg-2);
 }
@@ -250,6 +262,13 @@ button.small {
   min-height: 2rem;
   padding: 0 var(--sp-3);
   font-size: 0.8125rem;
+}
+/* On a touch screen every small control and disclosure is a full tap target. */
+@media (pointer: coarse) {
+  button.small,
+  summary {
+    min-height: var(--tap);
+  }
 }
 button:hover:not(:disabled) {
   border-color: var(--fg);

@@ -17,8 +17,8 @@ import { amount, approx, OKB_UNIT, pct256, REF_ENVELOPE, routeView, V2_REFERENCE
 import { bitsOf, bytesOf, CLAMPS, exp8s, INPUT_FIELDS, lg8s, pack, route, wordOf, type Routed } from '../kernel/model.ts';
 import { beat, flowGovernor, glutton, glutton512, shadowRun, type ShadowRow } from '../kernel/sim.ts';
 import { fmtUnits } from '../format.ts';
-import { useAsync } from '../router.ts';
-import { PageHead } from './shared.tsx';
+import { useAsync, type Async } from '../router.ts';
+import { Failure, Loading, PageHead } from './shared.tsx';
 
 const OKB = 10n ** 18n;
 const TAX_CHOICES: [string, bigint][] = [
@@ -59,7 +59,9 @@ export function Hostile() {
     if (!COVENANT.kernel) return null;
     const kc = kernelCalls(COVENANT.kernel);
     const [env, count] = await readAll(rpc, [kc.envelope(), kc.count()] as const);
-    if (env instanceof Error || count instanceof Error) return null;
+    // A failed read is an error, never "no records": the page says it could not ask.
+    if (env instanceof Error) throw env;
+    if (count instanceof Error) throw count;
     return { env, count };
   }, []);
   // The v2 flagship kernel (USD₮0 quote), once deployments/xlayer.json records it; until then the reference envelope
@@ -68,7 +70,9 @@ export function Hostile() {
     if (!COVENANT.kernelV2) return null;
     const kc = kernelV2Calls(COVENANT.kernelV2);
     const [env2, count2, shift2] = await readAll(rpc, [kc.envelope(), kc.count(), kc.quoteShift()] as const);
-    if (env2 instanceof Error || count2 instanceof Error || shift2 instanceof Error) return null;
+    if (env2 instanceof Error) throw env2;
+    if (count2 instanceof Error) throw count2;
+    if (shift2 instanceof Error) throw shift2;
     return { env: env2, count: count2, shift: shift2 };
   }, []);
   const [v2, setV2] = useState(false);
@@ -204,7 +208,7 @@ export function Hostile() {
             ))}
           </div>
         </div>
-        <div class="scroll">
+        <div class="scroll" tabIndex={0} role="region" aria-label="One settle of each chip, clipped">
           <table class="clip">
             <thead>
               <tr>
@@ -248,18 +252,20 @@ export function Hostile() {
         </p>
       </section>
 
-      <ShadowSection count={k.data?.count ?? 0} env={k.data?.env ?? REF_ENVELOPE} kernel={COVENANT.kernel} lensAddr={COVENANT.lens} shift={0} unit={OKB_UNIT} pin="03" />
+      <ShadowSection read={k} env={k.data?.env ?? REF_ENVELOPE} kernel={COVENANT.kernel} lensAddr={COVENANT.lens} shift={0} unit={OKB_UNIT} pin="03" />
       {COVENANT.kernelV2 && (
-        <ShadowSection count={k2.data?.count ?? 0} env={k2.data?.env ?? REF_ENVELOPE} kernel={COVENANT.kernelV2} lensAddr={COVENANT.lensV2} shift={k2.data?.shift ?? V2_REFERENCE.shift} unit={USDT0} pin="04" />
+        <ShadowSection read={k2} env={k2.data?.env ?? REF_ENVELOPE} kernel={COVENANT.kernelV2} lensAddr={COVENANT.lensV2} shift={k2.data?.shift ?? V2_REFERENCE.shift} unit={USDT0} pin="04" />
       )}
     </article>
   );
 }
 
-function ShadowSection({ count, env, kernel, lensAddr, shift, unit, pin }: { count: number; env: Env; kernel: string | null; lensAddr: string | null; shift: number; unit: Unit; pin: string }) {
+function ShadowSection({ read, env, kernel, lensAddr, shift, unit, pin }: { read: Async<{ count: number } | null>; env: Env; kernel: string | null; lensAddr: string | null; shift: number; unit: Unit; pin: string }) {
   const v2 = shift > 0;
+  // The kernel's record count, once the chain has answered; null while it is being read or if it could not be.
+  const count = read.data ? read.data.count : null;
   const q = useAsync(async () => {
-    if (!kernel || count === 0) return null;
+    if (!kernel || !count) return null;
     const rows = await loadRecords(rpc, kernel, 1, count, v2 ? 2 : 1);
     const local = shadowRun(glutton().netlist, env, rows.map((r) => ({ n: r.n, rec: r.rec, cumInflow: r.cumInflow })), shift);
     let chain: ShadowRow[] | Error | null = null;
@@ -278,7 +284,11 @@ function ShadowSection({ count, env, kernel, lensAddr, shift, unit, pin }: { cou
   return (
     <section class="clause">
       <Pin id={pin}>{v2 ? "On the kernel v2 token's real inflow (USD₮0 quote)" : "On the reference token's real tax"}</Pin>
-      {!kernel || count === 0 ? (
+      {kernel && read.loading ? (
+        <Loading what={`how many settles kernel ${v2 ? 'v2' : 'v1'} has recorded`} />
+      ) : kernel && (read.error || count === null) ? (
+        <Failure error={read.error} retry={read.reload} />
+      ) : !kernel || !count ? (
         <p class="plate idle">
           This runs the Glutton over every settle the {v2 ? 'v2 ' : ''}flagship kernel has recorded, once there is one. {kernel ? 'The kernel has no record yet.' : 'The kernel is not deployed yet.'}
         </p>
@@ -313,11 +323,13 @@ function ShadowTable({ d, capBps, unit }: { d: { local: ShadowRow[]; chain: Shad
   const share = (x: bigint): string => (d.actual.inflow > 0n ? `${(Number((x * 10000n) / d.actual.inflow) / 100).toFixed(2)}%` : '–');
   return (
     <>
-      <div class="scroll">
+      <div class="scroll" tabIndex={0} role="region" aria-label="The real chip and the Glutton on the same records">
       <table class="cmp">
         <thead>
           <tr>
-            <th />
+            <th>
+              <span class="sr-only">chip</span>
+            </th>
             <th class="num">allowance</th>
             <th class="num">share of {unit.symbol === 'OKB' ? 'tax' : 'inflow'}</th>
             <th class="num">bought and locked (decided)</th>

@@ -1,6 +1,7 @@
 // Pieces every page shares: the page head, and the loading and failure states of a page that reads the chain.
 
 import type { ComponentChildren } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
 import { RevealLines } from '../components/RevealLines.tsx';
 import { Seal } from '../components/Seal.tsx';
 import { Icon } from '../components/Icon.tsx';
@@ -25,25 +26,41 @@ export function PageHead({ crumbs, title, lede, children }: { crumbs: ComponentC
   );
 }
 
-/** While a page reads the chain: the Seal fills in level order, like a beat running through the die. */
-export function Loading({ what }: { what: string }) {
+/**
+ * While a page reads the chain: the Seal fills in level order, like a beat running through the die. `page`: it
+ * stands in for a whole page, so its line is the page's h1 until the page arrives.
+ */
+export function Loading({ what, page = false }: { what: string; page?: boolean }) {
+  const T = page ? 'h1' : 'span';
+  // After SLOW_MS without an answer, say so: the node is slow, the page has not given up.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), SLOW_MS);
+    return () => clearTimeout(t);
+  }, []);
   return (
     <div class="loading" role="status">
       <Seal hex={COLD} loading size={44} label="Reading" />
-      <span>Reading {what}…</span>
+      <T class="loading__text">
+        Reading {what}…{slow && <span class="loading__slow"> {CHAIN.name} is slow to answer; still asking.</span>}
+      </T>
     </div>
   );
 }
 
-export function Failure({ error, retry }: { error: Error | undefined; retry: () => void }) {
+const SLOW_MS = 6000;
+
+/** A read that failed, with a way to try again. `page`: it stands in for a whole page, so its verdict is the h1. */
+export function Failure({ error, retry, page = false }: { error: Error | undefined; retry: () => void; page?: boolean }) {
+  const V = page ? 'h1' : 'div';
   // data/processor.ts's Missing, told by its name so this entry module does not pull in the processor loader.
   if (error?.name === 'Missing') {
     // The node answered; what was asked for does not exist. Trying again would not help.
     return (
       <div class="plate warn silicon" role="alert">
-        <div class="verdict">
+        <V class="verdict">
           <strong>Not found on {CHAIN.name}</strong>
-        </div>
+        </V>
         <p class="mono">{error.message}</p>
         <p>
           <a href="#/">Back to the start</a>
@@ -53,9 +70,9 @@ export function Failure({ error, retry }: { error: Error | undefined; retry: () 
   }
   return (
     <div class="plate bad silicon" role="alert">
-      <div class="verdict">
+      <V class="verdict">
         <strong>Could not read the chain</strong>
-      </div>
+      </V>
       <p class="mono">{error ? error.message : 'unknown error'}</p>
       <p>
         The page talks only to {ADDR.rpc.map((u) => new URL(u).host).join(' and ')}. If both are unreachable or rate-limited, wait a

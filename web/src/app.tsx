@@ -29,37 +29,37 @@ const COLD = '0x0000000000000000';
 
 function GuidePage({ page }: { page: 'judge' | 'trust' }) {
   const q = useAsync(loadGuides, []);
-  if (q.loading) return <Loading what={page === 'judge' ? 'the judge guide' : 'the trust model'} />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what={page === 'judge' ? 'the judge guide' : 'the trust model'} />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   return page === 'judge' ? <q.data.Judge /> : <q.data.Trust />;
 }
 
 function ProcessorPage({ address }: { address: string }) {
   const q = useAsync(loadProcessor, []);
-  if (q.loading) return <Loading what="the processor page" />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what="the processor page" />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   return <q.data.Processor address={address} />;
 }
 
 function NotFoundPage({ hash }: { hash: string }) {
   const q = useAsync(loadNotFound, []);
-  if (q.loading) return <Loading what="the page" />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what="the page" />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   return <q.data.NotFound hash={hash} />;
 }
 
 function CircuitPage(props: { processor: string; id: string }) {
   const q = useAsync(loadBench, []);
-  if (q.loading) return <Loading what="the circuit bench" />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what="the circuit bench" />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   const Bench = q.data.Circuit;
   return <Bench {...props} />;
 }
 
 function KernelPage(props: { page: 'vault' | 'audit' | 'hostile'; kernel?: string; n?: number }) {
   const q = useAsync(loadKernelPages, []);
-  if (q.loading) return <Loading what="the kernel pages" />;
-  if (q.error || !q.data) return <Failure error={q.error} retry={q.reload} />;
+  if (q.loading) return <Loading page what="the kernel pages" />;
+  if (q.error || !q.data) return <Failure page error={q.error} retry={q.reload} />;
   const { Vault, Audit, Hostile } = q.data;
   if (props.page === 'vault') return <Vault kernel={props.kernel!} />;
   if (props.page === 'audit') return <Audit kernel={props.kernel!} n={props.n!} />;
@@ -67,6 +67,42 @@ function KernelPage(props: { page: 'vault' | 'audit' | 'hostile'; kernel?: strin
 }
 
 const same = (a: string | null | undefined, b: string | null | undefined): boolean => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+
+const short = (a: string): string => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+/** A kernel's name in the nav (Vault v1, Vault v2), or its short address. */
+function vaultName(kernel: string): string {
+  if (same(kernel, COVENANT.kernel)) return COVENANT.kernelV2 ? 'Vault v1' : 'Vault';
+  if (same(kernel, COVENANT.kernelV2)) return 'Vault v2';
+  return `Vault ${short(kernel)}`;
+}
+
+/** The document title of a route, so a tab, the history and a screen reader name the page. */
+export function titleFor(route: Route): string {
+  const page = ((): string | null => {
+    switch (route.page) {
+      case 'landing':
+        return null;
+      case 'vault':
+        return vaultName(route.kernel);
+      case 'audit':
+        return `Settle ${route.n} · ${vaultName(route.kernel)}`;
+      case 'processor':
+        return `Processor ${short(route.processor)}`;
+      case 'circuit':
+        return `Circuit ${route.id} · Processor ${short(route.processor)}`;
+      case 'hostile':
+        return 'Hostile chip';
+      case 'judge':
+        return 'Judge guide';
+      case 'trust':
+        return 'Trust';
+      default:
+        return 'Not found';
+    }
+  })();
+  return page ? `${page} · Covenant` : 'Covenant · a token’s tax, routed by a chip';
+}
 
 function navLinks(route: Route): NavLink[] {
   const k = route.page === 'vault' || route.page === 'audit' ? route.kernel : null;
@@ -143,6 +179,11 @@ function Header({ route, routeKey }: { route: Route; routeKey: string }) {
   const [open, setOpen] = useState(false);
   const [Sheet, setSheet] = useState<SheetComponent | null>(null);
   const menuBtn = useRef<HTMLButtonElement>(null);
+  // The route the sheet was opened on: closed by following a link, it leaves the focus on the new page (router.ts
+  // puts it on <main>); closed any other way, the focus goes back to the Menu button.
+  const openedOn = useRef(routeKey);
+  const latest = useRef(routeKey);
+  latest.current = routeKey;
   // The sheet's code arrives the first time the button is pointed at, focused or pressed.
   const fetchSheet = (): Promise<void> =>
     Sheet
@@ -177,6 +218,7 @@ function Header({ route, routeKey }: { route: Route; routeKey: string }) {
             onPointerEnter={() => void fetchSheet().catch(() => {})}
             onFocus={() => void fetchSheet().catch(() => {})}
             onClick={() => {
+              openedOn.current = routeKey;
               setOpen(true);
               // If the sheet cannot be loaded, the button simply does nothing; the links are also in the footer.
               fetchSheet().catch(() => setOpen(false));
@@ -194,7 +236,8 @@ function Header({ route, routeKey }: { route: Route; routeKey: string }) {
           routeKey={routeKey}
           onClosed={() => {
             setOpen(false);
-            menuBtn.current?.focus();
+            if (latest.current === openedOn.current) menuBtn.current?.focus();
+            else document.getElementById('main')?.focus({ preventScroll: true });
           }}
         />
       )}
@@ -315,6 +358,9 @@ const keyOf = (r: Route): string => JSON.stringify(r);
 export function App() {
   const route = useRoute();
   const routeKey = keyOf(route);
+  useEffect(() => {
+    document.title = titleFor(route);
+  }, [routeKey]);
   // Fetch the on-demand scripts in the background once the first page is up.
   useEffect(() => {
     const t = setTimeout(() => {
