@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Covenant motion bench</title>
+    <link rel="icon" href="data:," />
+    <!-- Dev only: `pnpm --filter web dev`, then /motion.html. Not part of the production build (vite builds index.html). -->
+    <style>
+      :root {
+        --wafer: #0b0d10;
+        --wafer-2: #12161b;
+        --deed: #ece7db;
+        --deed-2: #e3ddcf;
+        --ink: #17150f;
+        --ink-2: #5b564b;
+        --quartz: #e8e4da;
+        --quartz-2: #8e949c;
+        --bond: #e6b450;
+        --bond-ink: #7d5710;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --sans: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        --serif: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 16px/1.5 var(--sans); background: var(--wafer); color: var(--quartz); }
+      .silicon { background: var(--wafer); color: var(--quartz); }
+      .paper { background: var(--deed); color: var(--ink); }
+      section { padding: 48px max(16px, 5vw); }
+      .label { font: 11px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--quartz-2); margin: 0 0 16px; }
+      .paper .label { color: var(--ink-2); }
+      h1, h2 { font-family: var(--serif); font-weight: 500; margin: 0 0 24px; }
+      h1 { font-size: clamp(2.75rem, 7vw, 8rem); line-height: .95; letter-spacing: -.01em; max-width: 14ch; }
+      h2 { font-size: clamp(1.75rem, 4vw, 3.5rem); line-height: 1.05; max-width: 20ch; }
+      .row { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+      figure { margin: 0; }
+      figcaption { font: 11px/1.4 var(--mono); margin-top: 8px; color: inherit; opacity: .7; max-width: 160px; overflow-wrap: anywhere; }
+      button.cta { font: 500 15px/1 var(--sans); padding: 16px 22px; min-height: 48px; border: 0; border-radius: 0; cursor: pointer; display: inline-flex; gap: 10px; align-items: center; }
+      .cta.primary { background: var(--bond); color: var(--ink); --impression: var(--ink); }
+      .cta.ghost { background: transparent; color: var(--quartz); box-shadow: inset 0 0 0 1px var(--quartz-2); }
+      .paper .cta.ghost { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink-2); }
+      .cta:focus-visible { outline: 2px solid var(--bond); outline-offset: 2px; }
+      .readout { font: 12px/1.4 var(--mono); min-height: 1.4em; margin-top: 12px; }
+      .tall { min-height: 70vh; }
+      .card { padding: 24px; background: var(--deed-2); max-width: 36rem; }
+    </style>
+  </head>
+  <body>
+    <div id="bench"></div>
+    <script type="module" src="/src/motion/dev.tsx"></script>
+  </body>
+</html>
