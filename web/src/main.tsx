@@ -15,6 +15,11 @@ const root = document.documentElement;
 root.classList.add('is-booting');
 setTimeout(() => root.classList.remove('is-booting'), 1600);
 
+// The three preloaded faces (vite.config.ts): load them now. Firefox sets text in a preloaded face only once its
+// FontFace has loaded, so a page that first used one after the chain answered was laid out in the fallback and
+// reflowed a moment later.
+for (const f of ['1em "Bodoni Moda"', 'italic 1em "Bodoni Moda"', '1em "Instrument Sans"']) document.fonts?.load(f).catch(() => {});
+
 render(<App />, document.getElementById('app')!);
 installPress();
 
