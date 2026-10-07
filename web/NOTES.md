@@ -270,6 +270,28 @@ Unchanged: no CDN, no external `url()`, no `@import`, no source maps, relative p
 of 3.5. `index.html`'s font preloads count towards first paint, its icons are images, everything else it names is
 entry.
 
+### 3.8 Landing and stage, merged (2026-10-07, redesign phase 1)
+
+The three phase-1 tracks are merged on `main`. How the landing (`routes/Landing.tsx`), its chapters
+(`routes/LandingChapters.tsx`) and the die stage (`scene/DieStage.tsx`, `styles/scene.css`) fit together:
+
+- **One child per chapter.** DieStage wraps each child in a block (`.die-stage__block[data-block=0..4]`); the blocks'
+  measured positions set where each chapter of the scene starts (`scene/scroll.ts`). `chapters()` therefore returns
+  five separate elements (chapter 0 is a spacer of the hero's height), never one component. The stage sizes each
+  block and holds its card (sticky at `--stage-hold`); `landing.css` styles only what is inside the card.
+- **Sticky rules.** No ancestor of the stage may scroll: `main.route` clips horizontal overflow with `overflow-x: clip`
+  (a stamp scaling in must not widen the page), never `hidden`. The chapters are pulled up over the pin with a
+  negative top margin; a negative bottom margin on the pin would keep it stuck a screen past the track's end.
+- **Handoff.** Once the stage's paper is mostly in, DieStage sets `data-cover="paper"` on the stage; `app.tsx`'s
+  over-silicon observer does not count a silicon surface with such a cover, so the header turns to paper with it.
+  Over silicon the clear header carries a band of the silicon ground that fades out below it, so text scrolling
+  under it does not run into the wordmark.
+- **Entry.** The hero's live ledger reads the chain through `kernel/bound.ts`, loaded with `import()`, and
+  `SimBanner` has its own module, so `packages/chain/src/kernel.ts`, `kit.tsx`, `kernel/chip.ts` with the witness and
+  `kernel/model.ts` stay out of the entry (129,624 B before, 106,857 B after; first paint 187,805 B). On demand:
+  DieStage 19,500 B (limit 24,000), its 2D fallback 1.3 KB, Lenis 14,181 B, TwoStates and the clauses (with
+  `landing-paper.css` injected as a style element) about 25 KB.
+
 ## 4. Verified
 
 All on 2026-10-04 from this machine, read-only.
