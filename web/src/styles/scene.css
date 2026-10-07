@@ -179,9 +179,9 @@
    .say__body). On paper and on the page's grid. DieStage picks the place (data-place) from the Seal's rectangle: in
    the grid's first 5, 4 or 3 columns beside the Seal where those end short of it ("side-n", lifted so their last line
    is level with the Seal's bottom edge), else under the Seal's caption from the Seal's left edge, as the caption
-   ("below": --sx, set by DieStage, is that edge less the grid's), or across the grid where that is too tall ("wide"),
-   with the first line only where the second would reach §01 ("line"), or not at all ("none"). DieStage moves the
-   whole layer to the Seal's height (transform only). They rise with the caption once the paper is under them
+   ("below": they give up --sx at the right, that edge less the grid's, and DieStage moves them right by it), or across
+   the grid where that is too tall ("wide"), with the first line only where the second would reach §01 ("line"), or
+   not at all ("none"). DieStage moves the whole layer to the Seal's height (transform only). They rise with the caption once the paper is under them
    (data-said), after the stamp has landed, and go at once if the paper recedes. */
 .die-stage__words {
   position: absolute;
@@ -214,7 +214,7 @@
 }
 .die-stage__words[data-place='below'] .die-stage__say,
 .die-stage__words[data-place='line'] .die-stage__say {
-  margin-left: var(--sx, 0px);
+  margin-right: var(--sx, 0px);
 }
 .die-stage__words[data-place='line'] .say__body {
   display: none;

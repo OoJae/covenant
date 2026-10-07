@@ -275,7 +275,8 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
     // The words beside the Seal. Where they can go is measured with the layout (on resize, not each frame): for each
     // place, how tall they are there and where their grid columns end; and how deep the Seal's caption hangs under it
     // (1rem, then two lines of the micro step: scene.css). placeSeal takes the first place that fits. Under the Seal
-    // they start at its left edge: `left` is where the grid starts, `sx` how far they are moved from there (--sx).
+    // they start at its left edge: `left` is where the grid starts, `sx` the room they give up at the right for that
+    // (--sx), so they can be moved right by up to that much.
     const say = { places: [] as { place: string; right: number; h: number }[], cap: 0, place: '', left: 0, sx: 0 };
     const measureWords = (): void => {
       const wd = words.current;
@@ -328,10 +329,11 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
       // The words: beside the Seal in the widest columns that end short of it, their last line level with its bottom
       // edge (never under the header); else under its caption; never down where §01 comes up at the track's end.
       const wd = words.current;
-      // Under the Seal the words start at its left edge, as the caption does, and end at the grid's: moved, they are
-      // narrower, so they are measured again (when the Seal has moved half a pixel, as for its size).
+      // Under the Seal the words start at its left edge, as the caption does, and end at the grid's. They are moved
+      // there by transform; the room they give up at the right (--sx) changes their lines, so it is set only while
+      // they are not shown (they never reflow under the reader), and they are measured again then.
       const sx = Math.max(0, cx - side / 2 - say.left);
-      if (wd && Math.abs(sx - say.sx) > 0.5) {
+      if (wd && !wd.hasAttribute('data-said') && Math.abs(sx - say.sx) > 0.5) {
         wd.style.setProperty('--sx', `${(say.sx = sx).toFixed(1)}px`);
         measureWords();
       }
@@ -349,7 +351,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
           break;
         }
         if (place !== say.place) wd.dataset.place = say.place = place;
-        wd.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
+        wd.style.transform = `translate3d(${(place === 'below' || place === 'line' ? Math.min(sx, say.sx) : 0).toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
       }
       Object.assign(press, { cx, cy, side, w, h: hh, big });
     };
