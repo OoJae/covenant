@@ -227,13 +227,15 @@
   gap: var(--sp-2) var(--sp-3);
   align-items: center;
 }
+/* Each line: its label and its copy button on one row, the command under them at the full width. */
 .terminal__prompt {
-  grid-column: 1 / -1;
+  grid-row: 1;
   color: var(--quartz-2);
   font: var(--step-micro) / 1.4 var(--font-mono);
   letter-spacing: var(--track-micro);
 }
 .terminal__line pre {
+  grid-column: 1 / -1;
   margin: 0;
   padding: var(--sp-2) 0;
   white-space: pre-wrap;
@@ -242,10 +244,14 @@
   line-height: 1.6;
   color: var(--fg);
 }
-/* Each copy button stays in its line's grid column, beside the command it copies (components.css puts a terminal's
+/* Each copy button stays on its own line's first row, above the command it copies (components.css puts a terminal's
    one button in its corner). */
 .terminal__line .copy {
+  grid-area: 1 / 2;
   position: static;
+  /* As wide as "Copied" with its tick, so the button keeps its edge when it is pressed. */
+  min-width: 5.75rem;
+  justify-content: center;
   min-height: 2.5rem;
   padding-inline: var(--sp-3);
   gap: var(--sp-2);
