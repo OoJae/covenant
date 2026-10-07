@@ -1,0 +1,228 @@
+/* Covenant tokens: "Sealed by a die". Guidelines: docs/brand/README.md. Brand sheet: docs/brand/sheet.html.
+
+   Two materials and no theme toggle. Silicon is everything the chip computes; paper is everything people wrote.
+   :root is paper. A surface becomes silicon with class="silicon" and turns back to paper inside it with
+   class="paper"; each class re-points the same semantic tokens (--bg, --fg, --rule, the route and verdict colours,
+   the seal and the grain), so components only ever read the semantic names. prefers-color-scheme is not followed.
+
+   This file stands alone: it declares tokens and the two material classes, nothing else. */
+
+:root {
+  /* ---- Raw palette. Near-monochrome with one accent; route colours are for data only. ---- */
+  --wafer: #0b0d10; /* silicon surface */
+  --wafer-2: #12161b; /* raised silicon: plates, seal, bands */
+  --deed: #ece7db; /* paper surface */
+  --deed-2: #e3ddcf; /* raised paper: plates, seal, table heads */
+  --ink: #17150f; /* text on paper */
+  --ink-2: #5b564b; /* secondary text on paper */
+  --quartz: #e8e4da; /* text on silicon; memory (latches, seal) */
+  --quartz-2: #8e949c; /* secondary text on silicon */
+  --bond: #e6b450; /* the one accent: activity, CTAs, pin 1, link underlines */
+  --bond-ink: #7d5710; /* the accent as text and focus on paper (gold on deed is 1.55:1) */
+
+  /* Routes, one pair per material (silicon / paper). Data only: bars, ribbons, keys. Never body text. */
+  --route-buy-si: #e6b450;
+  --route-buy-pa: #a87a12;
+  --route-allow-si: #7aa7ff;
+  --route-allow-pa: #2e5bc0;
+  --route-res-si: #3fd3c0;
+  --route-res-pa: #0f7a6e;
+
+  /* Verdicts, one set per material. Always paired with the word (MATCH, DIFFERENT, STALE), never colour alone. */
+  --ok-si: #86d49b;
+  --ok-bg-si: #10261a;
+  --bad-si: #f28b7d;
+  --bad-bg-si: #2a1513;
+  --warn-si: #ee9455;
+  --warn-bg-si: #2a1a0e;
+  --ok-pa: #22663a;
+  --ok-bg-pa: #d8e3cf;
+  --bad-pa: #9e2b20;
+  --bad-bg-pa: #f0d6cf;
+  --warn-pa: #8a440a;
+  --warn-bg-pa: #efdcc3;
+
+  /* ---- Type ---- */
+  --font-display: 'Bodoni Moda', 'Bodoni 72', 'Didot', 'Bodoni MT', 'Times New Roman', serif;
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Fragment Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Fluid scale. Bodoni steps never go below 1.75rem (the subset's opsz floor). */
+  --step-hero: clamp(2.75rem, 7vw, 8rem); /* display, one per site: the landing h1 */
+  --step-display: clamp(2.25rem, 1.35rem + 3.8vw, 5rem); /* display: page titles */
+  --step-chapter: clamp(1.75rem, 1.05rem + 3vw, 3.5rem); /* display: chapter lines over the die */
+  --step-h2: clamp(1.75rem, 1.45rem + 1.3vw, 2.5rem); /* display: section heads */
+  --step-h3: 1.25rem; /* sans 600 */
+  --step-lede: clamp(1.125rem, 1rem + 0.55vw, 1.4375rem); /* sans */
+  --step-body: 1.0625rem; /* sans, 17px */
+  --step-small: 0.875rem; /* sans */
+  --step-label: 0.75rem; /* mono, uppercase */
+  --step-micro: 0.6875rem; /* mono: die markings, axis ticks */
+
+  --lh-hero: 0.92;
+  --lh-display: 1;
+  --lh-heading: 1.1;
+  --lh-lede: 1.45;
+  --lh-body: 1.6;
+  --lh-label: 1.35;
+
+  --track-hero: -0.025em;
+  --track-display: -0.015em;
+  --track-wordmark: -0.01em;
+  --track-label: 0.08em;
+  --track-micro: 0.06em;
+
+  --wght-display: 400;
+  --wght-display-strong: 500;
+  --wght-body: 400;
+  --wght-body-strong: 600;
+  --stretch-body: 100%;
+  --stretch-ui: 88%; /* buttons, nav, table heads: Instrument Sans narrowed */
+
+  /* ---- Space: a 4 px pitch, like the die's routing grid ---- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+  --sp-9: 6rem;
+  --sp-10: 8rem;
+  --sp-section: clamp(4rem, 2.5rem + 7vw, 10rem);
+
+  /* ---- Grid: 4 columns below 640 px, 8 from 640, 12 from 1024 ---- */
+  --grid-cols: 4;
+  --grid-gap: 1rem;
+  --grid-margin: 1rem; /* 16 px side gutter at phone width */
+  --grid-max: 90rem; /* 1440 px of content; silicon inserts bleed past it */
+  --clause-gutter: 0; /* where the section number hangs; 0 = above the clause on small screens */
+  --measure: 64ch;
+
+  /* ---- Form: square, flat ---- */
+  --radius: 0;
+  --shadow: none;
+  --hairline: 1px;
+  --wire: 2px; /* the gold underline of the active link; the Bond's wire at text size */
+  --focus-width: 2px;
+  --tap: 3rem; /* 48 px minimum target for CTAs at phone width */
+
+  /* ---- Motion ---- */
+  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1); /* things arriving: lines, plates, pages */
+  --ease-toggle: cubic-bezier(0.65, 0, 0.35, 1); /* things changing state: A to B, switches */
+  --dur-press: 120ms;
+  --dur-micro: 240ms;
+  --dur-toggle: 320ms;
+  --dur-release: 350ms;
+  --dur-exit: 350ms;
+  --dur-reveal: 900ms;
+  --dur-page: 1100ms;
+  --stagger: 60ms; /* per level, in level order, like the wavefront */
+  --press-scale: 0.97;
+  --press-y: 1px;
+
+  /* ---- Grain: an SVG noise tile, light at 5% on silicon, ink at 3% on paper ---- */
+  --grain-si: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2 0 0 0 -.5'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  --grain-pa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .09 0 0 0 0 .082 0 0 0 0 .059 2 0 0 0 -.5'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+}
+
+@media (min-width: 640px) {
+  :root {
+    --grid-cols: 8;
+    --grid-gap: 1.5rem;
+    --grid-margin: clamp(1.5rem, 4vw, 3rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --grid-cols: 12;
+    --grid-gap: 1.5rem;
+    --grid-margin: clamp(3rem, 5vw, 6rem);
+    --clause-gutter: 5rem; /* section numbers hang in the left margin */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 0ms;
+    --dur-micro: 0ms;
+    --dur-toggle: 0ms;
+    --dur-release: 0ms;
+    --dur-exit: 0ms;
+    --dur-reveal: 0ms;
+    --dur-page: 0ms;
+    --stagger: 0ms;
+    --press-scale: 1;
+    --press-y: 0px;
+  }
+}
+
+/* ---- Materials. Every semantic token is set by both, so either can sit inside the other. ---- */
+:root,
+.paper {
+  color-scheme: light;
+  --bg: var(--deed);
+  --bg-2: var(--deed-2);
+  --fg: var(--ink);
+  --fg-2: var(--ink-2);
+  --rule: #cfc7b5; /* hairlines and clause rules: decorative, 1.36:1 */
+  --rule-strong: var(--ink-2); /* component edges that must be seen: 5.9:1 */
+  --accent: var(--bond); /* fills: CTA, pin 1, the Bond's pad, underlines */
+  --accent-ink: var(--bond-ink); /* the accent as text */
+  --on-accent: var(--ink); /* text on a gold fill: 9.6:1 */
+  --focus: var(--bond-ink);
+  --link: var(--ink);
+  --c-buy: var(--route-buy-pa);
+  --c-allow: var(--route-allow-pa);
+  --c-res: var(--route-res-pa);
+  --c-rel: var(--route-res-pa); /* release is money leaving the reserve: the reserve's hue */
+  --ok: var(--ok-pa);
+  --ok-bg: var(--ok-bg-pa);
+  --bad: var(--bad-pa);
+  --bad-bg: var(--bad-bg-pa);
+  --warn: var(--warn-pa);
+  --warn-bg: var(--warn-bg-pa);
+  --wait: var(--ink-2);
+  --wait-bg: var(--deed-2);
+  --seal-plate: var(--deed-2);
+  --bit-on: var(--ink); /* a latch that holds 1 */
+  --bit: #cfc7b5; /* a latch that holds 0 */
+  --grain: var(--grain-pa);
+  background-color: var(--bg);
+  color: var(--fg);
+}
+
+.silicon {
+  color-scheme: dark;
+  --bg: var(--wafer);
+  --bg-2: var(--wafer-2);
+  --fg: var(--quartz);
+  --fg-2: var(--quartz-2);
+  --rule: #262d36;
+  --rule-strong: var(--quartz-2); /* 6.4:1 */
+  --accent: var(--bond);
+  --accent-ink: var(--bond); /* 10.2:1 on wafer */
+  --on-accent: var(--ink);
+  --focus: var(--bond);
+  --link: var(--quartz);
+  --c-buy: var(--route-buy-si);
+  --c-allow: var(--route-allow-si);
+  --c-res: var(--route-res-si);
+  --c-rel: var(--route-res-si);
+  --ok: var(--ok-si);
+  --ok-bg: var(--ok-bg-si);
+  --bad: var(--bad-si);
+  --bad-bg: var(--bad-bg-si);
+  --warn: var(--warn-si);
+  --warn-bg: var(--warn-bg-si);
+  --wait: var(--quartz-2);
+  --wait-bg: var(--wafer-2);
+  --seal-plate: var(--wafer-2);
+  --bit-on: var(--quartz);
+  --bit: #262d36;
+  --grain: var(--grain-si);
+  background-color: var(--bg);
+  color: var(--fg);
+}
