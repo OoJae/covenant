@@ -344,6 +344,20 @@ ol.judge {
   border-bottom: var(--hairline) solid var(--rule);
 }
 
+/* A value still being read (Trust.tsx Unseen): a stand-in of its size holds the place, hidden, so the sentence does
+   not grow when it arrives; "reading…" sits over its start and is what a screen reader hears. */
+.unseen {
+  position: relative;
+  visibility: hidden;
+}
+.unseen::before {
+  content: 'reading…';
+  position: absolute;
+  visibility: visible;
+  white-space: nowrap;
+  color: var(--fg-2);
+}
+
 /* ------------------------------------------------------------------------------------------------ circuit bench */
 
 .bench .die {

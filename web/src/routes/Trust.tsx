@@ -8,9 +8,9 @@ import { readAll } from '@covenant/chain';
 import { beaconImpl, erc20, kernelFactory, kernelFactoryV2, ownerOf, safe } from '@covenant/chain/kernel';
 import { Address } from '../components/common.tsx';
 import { SimBanner } from '../components/kit.tsx';
-import { ADDR, CHAIN, COVENANT, REPO, rpc } from '../config.ts';
+import { ADDR, COVENANT, REPO, rpc } from '../config.ts';
 import { useAsync } from '../router.ts';
-import { Loading, PageHead } from './shared.tsx';
+import { PageHead } from './shared.tsx';
 
 const MANAGER = '0x96B51c57e5346D0C0198899243cf851D1E23C309';
 
@@ -57,12 +57,26 @@ async function readTether(): Promise<{ quote: string; symbol: string | null; own
   return { quote, symbol: symbol instanceof Error ? null : symbol, owner: owner instanceof Error ? null : owner };
 }
 
-function Safe({ w, what }: { w: Who | undefined; what: string }) {
-  // The page shows once the reads are done (Trust), so no value here means they failed.
+/**
+ * Holds the place of values still being read: laid out, not shown, with "reading…" over its start (pages.css). The
+ * page shows at once, and the owners are written into its sentences when they arrive; the stand-ins are their size
+ * (an address is always 0x + 4 … 4 in the mono face), so no sentence grows under a reader.
+ */
+const Unseen = ({ children }: { children: ComponentChildren }) => <span class="unseen">{children}</span>;
+const Addr0 = () => <span class="mono">0x0000…0000</span>;
+
+/** A Safe that owns a contract: its address and threshold, read now; stand-ins while `wait`. */
+function Safe({ w, wait }: { w: Who | undefined; wait: boolean }) {
+  if (wait)
+    return (
+      <Unseen>
+        <Addr0 />, a Safe needing <b>0 of 0</b> signatures (read now)
+      </Unseen>
+    );
   if (!w?.owner) return <span class="warn">could not be read</span>;
   return (
     <>
-      {what} <Address value={w.owner} />
+      <Address value={w.owner} />
       {w.threshold !== null && w.owners !== null ? (
         <>
           , a Safe needing <b>
@@ -102,9 +116,9 @@ function Party({ name, can, cannot, children }: { name: string; can: ComponentCh
 
 export function Trust() {
   const q = useAsync(readOwners, []);
-  // The owners are written into the deeds' sentences, so the page waits for them: filled in later, a sentence a reader
-  // had scrolled to would grow and push the page down. A failed read shows the page, saying what could not be read.
-  if (q.loading) return <Loading page what={`the owners from ${CHAIN.name}`} />;
+  // The page shows at once; the owners fill their stand-ins (Unseen) when the reads are done. A failed read says what
+  // could not be read.
+  const wait = q.loading;
   const d = q.data;
   const hosts = ADDR.rpc.map((u) => new URL(u).host);
   return (
@@ -146,14 +160,28 @@ export function Trust() {
         name="TapeOut"
         can={[
           <>
-            Upgrade the code that stores and steps every circuit. The circuit beacon is owned by TapeOut’s factory{d?.beaconOwner ? <> (<Address value={d.beaconOwner} />)</> : ''}, whose owner is <Safe w={d?.tapeout} what="" />.
+            Upgrade the code that stores and steps every circuit. The circuit beacon is owned by TapeOut’s factory
+            {wait ? (
+              <>
+                {' '}
+                <Unseen>
+                  (<Addr0 />)
+                </Unseen>
+              </>
+            ) : d?.beaconOwner ? <> (<Address value={d.beaconOwner} />)</> : ''}, whose owner is <Safe w={d?.tapeout} wait={wait} />.
           </>,
           'Change what TapeOut’s Circuits contract says about chip ownership and netlists (it is behind that beacon).',
         ]}
         cannot={[
           <>
             Change what a kernel’s chip computes. On every settle the kernel checks the beacon’s implementation, its code hash, the chip’s pin counts and its netlist hash against values pinned in the factory; if any differs it steps the same netlist bytes on Covenant’s SealedVM, from the Fab’s own copy. Both evaluators compute the same function, so switching cannot change a result.{' '}
-            {d && d.pinsLive !== null && <b>Pins hold now: {String(d.pinsLive)}.</b>}
+            {wait ? (
+              <Unseen>
+                <b>Pins hold now: true.</b>
+              </Unseen>
+            ) : (
+              d && d.pinsLive !== null && <b>Pins hold now: {String(d.pinsLive)}.</b>
+            )}
           </>,
           'Stall a settle: if TapeOut’s step fails for any reason, the SealedVM is asked in the same settle.',
         ]}
@@ -163,7 +191,7 @@ export function Trust() {
         name="IGNIX"
         can={[
           <>
-            Upgrade the IgnixManager, the contract that runs the curve, takes the tax on curve trades and executes the kernel’s buys. Its owner is <Safe w={d?.ignix} what="" />.
+            Upgrade the IgnixManager, the contract that runs the curve, takes the tax on curve trades and executes the kernel’s buys. Its owner is <Safe w={d?.ignix} wait={wait} />.
           </>,
           'Pause buys (the decided amounts wait in the kernel’s reserve) and pause claims for 72 hours at a time, renewably (the tax waits in the vault).',
           'With an upgrade: stop the buy leg or the claim (settles go on, the amounts wait), or make every settle revert (the tax waits in the vault). Covenant cannot constrain what upgraded Manager code does.',
@@ -176,8 +204,18 @@ export function Trust() {
         can={[
           <>
             Block a kernel v2’s address. USD₮0’s owner is{' '}
-            {d?.tether?.owner ? <Address value={d.tether.owner} /> : COVENANT.kernelFactoryV2 ? 'not readable now' : 'read here once a kernel v2 is deployed'}
-            {d?.tether?.owner ? ' (read now)' : ''}; the same owner can upgrade USD₮0. A blocked kernel still receives claims and payments and keeps settling, but its
+            {wait && COVENANT.kernelFactoryV2 ? (
+              <Unseen><Addr0 /> (read now)</Unseen>
+            ) : d?.tether?.owner ? (
+              <>
+                <Address value={d.tether.owner} /> (read now)
+              </>
+            ) : COVENANT.kernelFactoryV2 ? (
+              'not readable now'
+            ) : (
+              'read here once a kernel v2 is deployed'
+            )}
+            ; the same owner can upgrade USD₮0. A blocked kernel still receives claims and payments and keeps settling, but its
             buys and its credit withdrawals fail until it is unblocked.
           </>,
           'Destroy a blocked kernel’s USD₮0. The kernel routes what is left and never reverts. After a destruction, USD₮0 that arrives later (tax or revenue) first refills the credits the destroyed balance covered, and the chip sees none of it until they are covered.',
