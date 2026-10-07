@@ -1019,3 +1019,19 @@ h1.verdict {
   letter-spacing: inherit;
   text-wrap: pretty;
 }
+
+/* On a touch screen every small control and disclosure is a full tap target. Last in the file, so it wins over the
+   rules above of the same weight (summary in base.css, .menu-btn, .colophon__nav a). */
+@media (pointer: coarse) {
+  button.small,
+  summary,
+  .menu-btn,
+  .colophon__nav a,
+  input.hex {
+    min-height: var(--tap);
+  }
+  .bit {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}

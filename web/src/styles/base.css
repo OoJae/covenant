@@ -263,13 +263,6 @@ button.small {
   padding: 0 var(--sp-3);
   font-size: 0.8125rem;
 }
-/* On a touch screen every small control and disclosure is a full tap target. */
-@media (pointer: coarse) {
-  button.small,
-  summary {
-    min-height: var(--tap);
-  }
-}
 button:hover:not(:disabled) {
   border-color: var(--fg);
 }
