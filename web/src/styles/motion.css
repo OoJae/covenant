@@ -1,0 +1,213 @@
+/* Motion (plan sections C and D). Transform and opacity only. Every rule here is switched off under
+   prefers-reduced-motion at the end of the file. The scripts that drive it are in src/motion/. */
+
+:root {
+  --ease-reveal: cubic-bezier(.16, 1, .3, 1);
+  --ease-toggle: cubic-bezier(.65, 0, .35, 1);
+  --dur-micro: 240ms;
+  --dur-toggle: 320ms;
+  --dur-reveal: 900ms;
+  --dur-page: 1100ms;
+  --stagger: 60ms;
+}
+
+/* ---------------------------------------------------------------- page transitions (src/motion/transitions.ts) */
+
+/* Old page fades and lifts; new page rises. */
+::view-transition-old(root) {
+  animation: 350ms var(--ease-toggle) both vt-leave;
+}
+::view-transition-new(root) {
+  animation: var(--dur-reveal) var(--ease-reveal) both vt-rise;
+}
+
+/* The header holds still: no cross-fade, the live new header shows through from the first frame. */
+header.top,
+.vt-header {
+  view-transition-name: header;
+}
+::view-transition-group(header) {
+  animation: none;
+}
+::view-transition-old(header) {
+  display: none;
+}
+::view-transition-new(header) {
+  animation: none;
+}
+
+/* The Bond's gold pad blinks once per route change. */
+.vt-nav [data-bond-pad] {
+  animation: bond-blink var(--dur-toggle) var(--ease-toggle) 1;
+}
+
+/* Without view transitions: a keyed <main> rises on mount. */
+.page-enter {
+  animation: vt-rise var(--dur-reveal) var(--ease-reveal) both;
+}
+
+@keyframes vt-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+@keyframes vt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes bond-blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+/* ------------------------------------------------------------------------------- CTA press (src/motion/press.ts) */
+
+.press {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 350ms var(--ease-reveal);
+  -webkit-tap-highlight-color: transparent;
+}
+.press.is-pressed {
+  transform: scale(0.97) translateY(1px);
+  transition: transform 120ms var(--ease-toggle);
+}
+/* The square impression, under the label. A gold button sets --impression to its ink. */
+.press-impression {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--impression, var(--bond, #e6b450));
+  transform: scale(0);
+  animation: impression var(--dur-reveal) var(--ease-reveal) forwards;
+}
+@keyframes impression {
+  from {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+/* The wire arrow (a wire that ends in a pad) nudges forward on hover. */
+.press .wire-arrow {
+  transition: transform var(--dur-micro) var(--ease-reveal);
+}
+@media (hover: hover) {
+  .press:hover .wire-arrow {
+    transform: translateX(3px);
+  }
+}
+
+/* --------------------------------------------------------------------------------- Seal (src/components/Seal.tsx) */
+
+.seal {
+  display: block;
+  overflow: visible;
+  transform-origin: 50% 50%;
+}
+/* Pressed: settles from 1.04 to 1 each time the state changes. */
+.seal-press {
+  animation: seal-press var(--dur-reveal) var(--ease-reveal) both;
+}
+@keyframes seal-press {
+  from {
+    transform: scale(1.04);
+  }
+}
+/* Loading: the cells fill in level order, one diagonal every 60 ms, like the wavefront. */
+.seal-loading .seal-cell {
+  animation: seal-wave 1800ms var(--ease-toggle) infinite both;
+  animation-delay: calc(var(--d, 0) * var(--stagger));
+}
+@keyframes seal-wave {
+  0% {
+    opacity: 0.08;
+  }
+  30% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0.08;
+  }
+}
+
+/* ----------------------------------------------------------------------------- reveal once (src/motion/reveal.ts) */
+
+.reveal,
+.reveal [data-stagger] {
+  transition:
+    opacity var(--dur-reveal) var(--ease-reveal),
+    transform var(--dur-reveal) var(--ease-reveal);
+}
+.reveal [data-stagger] {
+  transition-delay: calc(var(--i, 0) * var(--stagger));
+}
+.reveal:not(.is-revealed),
+.reveal:not(.is-revealed) [data-stagger] {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.reveal.is-revealed [data-stagger] {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------------------- Lenis (src/motion/lenis.ts) */
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------------------------------------ reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-image-pair(*) {
+    animation: none !important;
+  }
+  .page-enter,
+  .seal-press,
+  .seal-loading .seal-cell,
+  .vt-nav [data-bond-pad] {
+    animation: none !important;
+  }
+  .press,
+  .press.is-pressed,
+  .press .wire-arrow,
+  .press:hover .wire-arrow {
+    transition: none !important;
+    transform: none !important;
+  }
+  .press-impression {
+    display: none;
+  }
+  .reveal,
+  .reveal [data-stagger] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

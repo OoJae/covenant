@@ -23,6 +23,7 @@
     "@covenant/chain": "workspace:*",
     "@covenant/dieshot": "workspace:*",
     "@covenant/tap20": "workspace:*",
+    "lenis": "1.2.3",
     "preact": "^11.0.0"
   },
   "devDependencies": {

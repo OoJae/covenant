@@ -1,0 +1,56 @@
+/* Covenant type: three SIL OFL families, self-hosted as subset woff2 (docs/brand/tools/build_fonts.py).
+   Licences: web/src/fonts/OFL-*.txt. None declares a Reserved Font Name, so the families keep their names.
+
+   font-display: optional. A face that has not arrived within the browser's short block period is not swapped in
+   for this page view: no layout shift, and the system fallback stays (the faces are preloaded, so this is rare).
+   unicode-range lists exactly the code points each subset carries; anything else (₮ in the sans, for one) falls
+   through to the next family in the stack. */
+
+/* Display: Bodoni Moda, roman. Variable: opsz 28-96 (font-optical-sizing follows the font size), wght 400-600.
+   Only at 1.75rem (28px) and up: below that the hairlines break, and opsz 28 is the floor of this file. */
+@font-face {
+  font-family: 'Bodoni Moda';
+  src: url('../fonts/bodoni-moda-roman.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: optional;
+  unicode-range: U+0020-007E, U+00A0-00AC, U+00AE-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014,
+    U+2018-201A, U+201C-201E, U+2022, U+2026, U+2039-203A, U+2044, U+20AC, U+2122, U+2212, U+2248, U+2260, U+2264-2265;
+}
+
+/* Display italic: one emphasised clause per heading. Pinned at opsz 72, wght 400-500, letters and sentence
+   punctuation only. */
+@font-face {
+  font-family: 'Bodoni Moda';
+  src: url('../fonts/bodoni-moda-italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 400 500;
+  font-display: optional;
+  unicode-range: U+0020-007E, U+00A0, U+00E8-00E9, U+00EF, U+00F6, U+00FC, U+2013-2014, U+2018-2019, U+201C-201D, U+2026;
+}
+
+/* Body: Instrument Sans. Variable: wdth 85-100, wght 400-600. Kerning is the default instance's (wdth 100,
+   wght 400) to keep the file under 40 KB. */
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('../fonts/instrument-sans.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400 600;
+  font-stretch: 85% 100%;
+  font-display: optional;
+  unicode-range: U+0020-007E, U+00A0-00A3, U+00A5, U+00A7-00AB, U+00AE-00B0, U+00B4, U+00B6-00B8, U+00BA-00BB,
+    U+00BF-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026,
+    U+2039-203A, U+20AC, U+2122, U+2190-2193, U+2212;
+}
+
+/* Data, labels and die markings: Fragment Mono Regular (static). Carries ₮ and the status marks. */
+@font-face {
+  font-family: 'Fragment Mono';
+  src: url('../fonts/fragment-mono.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  unicode-range: U+0020-007E, U+00A0-00AC, U+00AE-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014,
+    U+2018-201A, U+201C-201E, U+2022, U+2026, U+2032-2033, U+2039-203A, U+2044, U+20AC, U+20AE, U+2122, U+2190-2193,
+    U+2212, U+2248, U+2260, U+2264-2265, U+25CB, U+25CF, U+2713, U+2717;
+}

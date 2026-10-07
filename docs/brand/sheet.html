@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Covenant brand sheet</title>
+<meta name="description" content="Covenant brand system, phase 0: the Bond, the wordmark, the Seal, colour, type, interface, surface and motion.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%2317150F' d='M2 3h2v10H2zM2 3h9v2H2zM2 11h9v2H2zM10 1h5v5h-5z'/%3E%3Cpath fill='%23E6B450' d='M10 10h5v5h-5z'/%3E%3C/svg%3E">
+<link rel="preload" href="../../web/src/fonts/bodoni-moda-roman.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../../web/src/fonts/bodoni-moda-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../../web/src/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../../web/src/fonts/fragment-mono.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../web/src/styles/fonts.css">
+<link rel="stylesheet" href="../../web/src/styles/tokens.css">
+<style>
+  /* Sheet-only layout. Every colour, size, space and curve comes from tokens.css. */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; font: var(--wght-body) var(--step-body)/var(--lh-body) var(--font-sans); overflow-wrap: anywhere; font-synthesis: none; }
+  b, strong { font-weight: var(--wght-body-strong); }
+  .paper, .silicon { background-image: var(--grain); }
+  h1, h2, h3, p, figure, dl, dd, ul, ol { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+  em { font-style: italic; }
+  :focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 2px; }
+
+  .wrap { max-width: calc(var(--grid-max) + 2 * var(--grid-margin)); margin: 0 auto; padding-inline: var(--grid-margin); }
+  .grid { display: grid; grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr)); column-gap: var(--grid-gap); }
+  .band { padding-block: var(--sp-section); position: relative; }
+  .band + .band.paper, .band.paper + .band.paper { border-top: var(--hairline) solid var(--rule); }
+
+  .label { font: var(--step-label)/var(--lh-label) var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-2); }
+  .micro { font: var(--step-micro)/1.45 var(--font-mono); letter-spacing: var(--track-micro); color: var(--fg-2); }
+  .mono { font-family: var(--font-mono); font-size: 0.92em; }
+  .gold { color: var(--accent-ink); }
+  .display { font-family: var(--font-display); font-weight: var(--wght-display); letter-spacing: var(--track-display); }
+
+  /* the clause: section number hangs left of the text column */
+  .clause { margin-bottom: var(--sp-8); }
+  .clause .num { grid-column: 1 / -1; display: flex; gap: var(--sp-3); align-items: baseline; margin-bottom: var(--sp-4); }
+  .clause .num b { font: 400 var(--step-label) var(--font-mono); color: var(--accent-ink); letter-spacing: var(--track-label); }
+  .clause h2 { grid-column: 1 / -1; font: var(--wght-display) var(--step-display)/var(--lh-display) var(--font-display); letter-spacing: var(--track-display); }
+  .clause .lede { grid-column: 1 / -1; margin-top: var(--sp-5); font-size: var(--step-lede); line-height: var(--lh-lede); color: var(--fg-2); max-width: 38ch; }
+  @media (min-width: 1024px) {
+    .clause .num { grid-column: 1 / 3; margin: 0; padding-top: 0.9em; flex-direction: column; gap: var(--sp-1); }
+    .clause h2 { grid-column: 3 / 11; }
+    .clause .lede { grid-column: 3 / 10; }
+    .body-col { grid-column: 3 / -1; }
+  }
+  .body-col { grid-column: 1 / -1; }
+
+  .rule { border: 0; border-top: var(--hairline) solid var(--rule); margin: 0; }
+  .cap { margin-top: var(--sp-3); }
+  .cap .label { display: block; color: var(--fg); }
+  .cap p { margin-top: var(--sp-1); color: var(--fg-2); font-size: var(--step-small); line-height: 1.5; max-width: 46ch; }
+
+  svg.use { display: block; }
+  /* classes inside the marks' symbols */
+  .w { fill: var(--fg); }
+  .p, .p1 { fill: var(--accent); }
+  .pl { fill: var(--seal-plate); }
+  .on { fill: var(--bit-on); }
+  .off { fill: var(--bit); }
+  .ed { fill: none; stroke: var(--bit); stroke-width: 1; }
+
+  /* ---------- cover ---------- */
+  .cover { padding-block: var(--sp-5) var(--sp-8); overflow: hidden; }
+  .cover .top { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); flex-wrap: wrap; padding-bottom: var(--sp-5); border-bottom: var(--hairline) solid var(--rule); }
+  .cover .top svg { height: 30px; width: auto; }
+  .cover .kicker { grid-column: 1 / -1; margin-top: var(--sp-9); }
+  .cover h1 { grid-column: 1 / -1; margin-top: var(--sp-5); font: var(--wght-display) var(--step-hero)/var(--lh-hero) var(--font-display); letter-spacing: var(--track-hero); }
+  .cover h1 em { font-weight: var(--wght-display-strong); }
+  .cover h1 .line { display: block; }
+  @media (max-width: 1023px) { .cover h1 { font-size: max(var(--step-hero), 15vw); } }
+  .cover .seal-hero { grid-column: 1 / -1; margin-top: var(--sp-7); }
+  .cover .seal-hero svg { width: min(100%, 22rem); height: auto; aspect-ratio: 1; }
+  .cover .defs { grid-column: 1 / -1; margin-top: var(--sp-7); display: grid; gap: var(--sp-5); }
+  .def { border-top: var(--hairline) solid var(--rule); padding-top: var(--sp-3); }
+  .def dt { font: var(--wght-display) 1.75rem/1 var(--font-display); }
+  .def dt sup { font: var(--step-micro) var(--font-mono); color: var(--accent-ink); vertical-align: top; margin-left: 0.15em; }
+  .def dt span { font: var(--step-label) var(--font-mono); letter-spacing: var(--track-label); color: var(--fg-2); margin-left: var(--sp-2); text-transform: uppercase; }
+  .def dd { margin-top: var(--sp-2); color: var(--fg-2); }
+  .cover .concept { grid-column: 1 / -1; margin-top: var(--sp-7); font-size: var(--step-lede); line-height: var(--lh-lede); max-width: 40ch; }
+  .toc { grid-column: 1 / -1; margin-top: var(--sp-9); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3) var(--grid-gap); border-top: var(--hairline) solid var(--rule); padding-top: var(--sp-4); }
+  .toc li { font: var(--step-label)/1.4 var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; }
+  .toc li b { color: var(--accent-ink); font-weight: 400; margin-right: var(--sp-2); }
+  @media (min-width: 640px) {
+    .cover .defs { grid-template-columns: 1fr 1fr; }
+    .toc { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1024px) {
+    .cover .kicker { grid-column: 1 / 9; }
+    .cover h1 { grid-column: 1 / 9; font-size: calc(var(--step-hero) * 1.35); }
+    .cover .seal-hero { grid-column: 9 / -1; grid-row: 2 / 5; margin-top: var(--sp-9); justify-self: end; width: 100%; }
+    .cover .seal-hero svg { width: 100%; max-width: none; }
+    .cover .defs { grid-column: 1 / 8; }
+    .cover .concept { grid-column: 1 / 7; }
+  }
+
+  /* ---------- §01 the Bond ---------- */
+  .construct { grid-column: 1 / -1; display: grid; gap: var(--sp-6); align-items: start; }
+  .construct figure svg { width: 100%; height: auto; max-width: 30rem; }
+  .construct .g-minor { stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .construct .g-box { fill: none; stroke: var(--fg-2); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .construct .g-clear { fill: none; stroke: var(--accent-ink); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+  .construct .wfill { fill: var(--fg); opacity: 0.9; }
+  .construct .t { font: 1.1px var(--font-mono); fill: var(--fg-2); }
+  .spec { display: grid; gap: 0; }
+  .spec div { display: grid; grid-template-columns: 7rem 1fr; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: var(--hairline) solid var(--rule); font-size: var(--step-small); }
+  .spec dt { font: var(--step-label)/1.6 var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-2); }
+  .spec dd .mono { color: var(--fg); }
+  .sizes { grid-column: 1 / -1; margin-top: var(--sp-7); display: grid; gap: var(--grid-gap); }
+  .tile { padding: var(--sp-5); border: var(--hairline) solid var(--rule); }
+  .tile.silicon { border-color: transparent; }
+  .tile .row { display: flex; align-items: flex-end; gap: var(--sp-4); flex-wrap: wrap; }
+  .tile .row figure { display: grid; gap: var(--sp-2); justify-items: start; }
+  .tile .head { display: flex; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-6); flex-wrap: wrap; }
+  @media (min-width: 1024px) {
+    .construct { grid-column: 3 / -1; grid-template-columns: minmax(0, 6fr) minmax(0, 4fr); }
+    .sizes { grid-column: 3 / -1; grid-template-columns: 1fr 1fr; }
+  }
+  .m256 { width: 256px; height: 256px; max-width: 100%; }
+
+  /* ---------- §02 wordmark ---------- */
+  .wm-hero { grid-column: 1 / -1; margin-top: var(--sp-6); }
+  .wm-hero svg { width: 100%; height: auto; max-width: 64rem; }
+  .wm-cuts { grid-column: 1 / -1; margin-top: var(--sp-6); display: grid; gap: var(--sp-6); }
+  .wm-ladder { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-6); }
+  .lockups { grid-column: 1 / -1; margin-top: var(--sp-7); display: grid; gap: var(--grid-gap); }
+  .lockups .tile { display: grid; align-content: space-between; min-height: 15rem; gap: var(--sp-6); }
+  .lockups .tile svg { height: 3.5rem; width: auto; max-width: 100%; }
+  .lockups .tile.stack svg { height: 8rem; }
+  @media (min-width: 640px) { .lockups { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) {
+    .wm-hero, .wm-cuts { grid-column: 3 / -1; }
+    .wm-cuts { grid-template-columns: 1fr 1fr; }
+    .lockups { grid-column: 3 / -1; grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ---------- §03 the Seal ---------- */
+  .seals { grid-column: 1 / -1; display: grid; gap: var(--sp-7) var(--grid-gap); }
+  .seals figure svg { width: 100%; max-width: 15rem; height: auto; }
+  .seals .tag { display: inline-block; font: var(--step-micro) var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; padding: 0.15rem 0.4rem; border: var(--hairline) solid var(--rule-strong); margin-top: var(--sp-2); }
+  .seals .tag.go { border-color: var(--accent); color: var(--accent-ink); }
+  .bitmap { grid-column: 1 / -1; margin-top: var(--sp-8); display: grid; gap: var(--sp-6); }
+  .bits { display: grid; grid-template-columns: 4.5rem repeat(8, minmax(0, 2.25rem)) 3.5rem; gap: 3px; font: var(--step-micro) var(--font-mono); align-items: center; }
+  .bits span { aspect-ratio: 1; display: grid; place-items: center; background: var(--bit); color: var(--fg-2); }
+  .bits span.set { background: var(--bit-on); color: var(--bg); }
+  .bits .rh, .bits .ch, .bits .hx { background: none; aspect-ratio: auto; color: var(--fg-2); }
+  .bits .rh { justify-items: start; }
+  .bits .hx { color: var(--accent-ink); justify-items: start; padding-left: var(--sp-2); }
+  .uses { display: grid; gap: 0; }
+  .uses li { display: grid; grid-template-columns: 9rem 1fr; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: var(--hairline) solid var(--rule); font-size: var(--step-small); }
+  .uses li b { font: 400 var(--step-label)/1.6 var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-2); }
+  @media (min-width: 640px) { .seals { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) {
+    .seals { grid-column: 3 / -1; }
+    .bitmap { grid-column: 3 / -1; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-8); }
+  }
+
+  /* ---------- §04 colour ---------- */
+  .materials { grid-column: 1 / -1; display: grid; gap: var(--grid-gap); }
+  .material { padding: var(--sp-5); display: grid; gap: var(--sp-5); }
+  .material.paper { border: var(--hairline) solid var(--rule); }
+  .material h3 { font: var(--wght-display) 2rem/1 var(--font-display); }
+  .material h3 em { font-weight: var(--wght-display-strong); }
+  .swatches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .sw { display: grid; gap: var(--sp-2); align-content: start; }
+  .sw .chip { height: 4.5rem; border: var(--hairline) solid var(--rule); display: flex; align-items: flex-end; padding: var(--sp-2); }
+  .sw .chip i { font: normal 1.75rem/1 var(--font-display); }
+  .sw .meta { font: var(--step-micro)/1.5 var(--font-mono); letter-spacing: var(--track-micro); color: var(--fg-2); }
+  .sw .meta b { display: block; font-weight: 400; color: var(--fg); }
+  .accent-band { grid-column: 1 / -1; margin-top: var(--grid-gap); background: var(--bond); color: var(--ink); padding: var(--sp-6) var(--sp-5); display: grid; gap: var(--sp-4); }
+  .accent-band p.big { font: var(--wght-display) var(--step-h2)/1.05 var(--font-display); max-width: 22ch; }
+  .accent-band .micro { color: var(--ink); }
+  .routes, .verdicts { grid-column: 1 / -1; margin-top: var(--sp-7); display: grid; gap: var(--grid-gap); }
+  .rtable { width: 100%; min-width: 36rem; border-collapse: collapse; font-size: var(--step-small); }
+  .rtable td:first-child { white-space: nowrap; }
+  .rtable th { text-align: left; font: 400 var(--step-label)/1.4 var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-2); padding: var(--sp-2) var(--sp-2) var(--sp-2) 0; border-bottom: var(--hairline) solid var(--rule-strong); }
+  .rtable td { padding: var(--sp-3) var(--sp-2) var(--sp-3) 0; border-bottom: var(--hairline) solid var(--rule); vertical-align: middle; }
+  .rtable .dot { display: inline-block; width: 1.5rem; height: 1.5rem; vertical-align: middle; margin-right: var(--sp-2); }
+  .rtable .mono { font-size: var(--step-micro); }
+  .plates { display: flex; flex-wrap: wrap; gap: var(--sp-3); padding: var(--sp-5); }
+  .plate { display: inline-grid; gap: 2px; padding: var(--sp-2) var(--sp-3); border: var(--hairline) solid currentColor; min-width: 8.5rem; }
+  .plate b { font: 400 var(--step-label)/1.3 var(--font-mono); letter-spacing: var(--track-label); }
+  .plate span { font: var(--step-micro)/1.3 var(--font-mono); opacity: 0.85; }
+  .plate.ok { color: var(--ok); background: var(--ok-bg); }
+  .plate.bad { color: var(--bad); background: var(--bad-bg); }
+  .plate.warn { color: var(--warn); background: var(--warn-bg); }
+  .plate.wait { color: var(--wait); background: var(--wait-bg); }
+  @media (min-width: 1024px) {
+    .materials { grid-column: 3 / -1; grid-template-columns: 1fr 1fr; }
+    .accent-band { grid-column: 3 / -1; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: end; }
+    .routes { grid-column: 3 / -1; }
+    .verdicts { grid-column: 3 / -1; grid-template-columns: 1fr 1fr; }
+    .swatches { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .scroll-x { overflow-x: auto; }
+  @media (max-width: 639px) {
+    .rtable { table-layout: fixed; }
+    .rtable th:nth-child(4), .rtable td:nth-child(4) { display: none; }
+    .rtable .dot { display: block; margin-bottom: var(--sp-1); }
+  }
+
+  /* ---------- §05 type ---------- */
+  .faces { grid-column: 1 / -1; display: grid; gap: var(--grid-gap); }
+  .face { border-top: var(--hairline) solid var(--rule-strong); padding-top: var(--sp-4); display: grid; gap: var(--sp-3); align-content: start; }
+  .face .aa { font-size: clamp(5rem, 3rem + 8vw, 9rem); line-height: 0.9; padding-bottom: 0.22em; }
+  .face .aa.d { font-family: var(--font-display); }
+  .face .aa.s { font-family: var(--font-sans); font-weight: 500; letter-spacing: -0.03em; }
+  .face .aa.m { font-family: var(--font-mono); letter-spacing: -0.04em; }
+  .face p { font-size: var(--step-small); color: var(--fg-2); }
+  .face .glyphs { font-size: 1.25rem; line-height: 1.4; color: var(--fg); }
+  .face .glyphs.d { font-family: var(--font-display); font-size: 1.75rem; }
+  .face .glyphs.m { font-family: var(--font-mono); font-size: 1rem; }
+  .scale { grid-column: 1 / -1; margin-top: var(--sp-8); }
+  .step { display: grid; gap: var(--sp-2); padding: var(--sp-5) 0; border-top: var(--hairline) solid var(--rule); }
+  .step .k { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+  .step .k b { font: 400 var(--step-label)/1.4 var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--accent-ink); }
+  .s-hero { font: var(--wght-display) var(--step-hero)/var(--lh-hero) var(--font-display); letter-spacing: var(--track-hero); }
+  .s-display { font: var(--wght-display) var(--step-display)/var(--lh-display) var(--font-display); letter-spacing: var(--track-display); }
+  .s-chapter { font: var(--wght-display) var(--step-chapter)/var(--lh-heading) var(--font-display); letter-spacing: var(--track-display); }
+  .s-h2 { font: var(--wght-display) var(--step-h2)/var(--lh-heading) var(--font-display); letter-spacing: var(--track-display); }
+  .s-lede { font-size: var(--step-lede); line-height: var(--lh-lede); max-width: 44ch; }
+  .s-body { font-size: var(--step-body); line-height: var(--lh-body); max-width: var(--measure); }
+  .s-label { font: var(--step-label)/var(--lh-label) var(--font-mono); letter-spacing: var(--track-label); text-transform: uppercase; }
+  .s-micro { font: var(--step-micro)/1.45 var(--font-mono); letter-spacing: var(--track-micro); }
+  .s-hero em, .s-display em, .s-chapter em, .s-h2 em { font-weight: var(--wght-display-strong); }
+  @media (min-width: 640px) { .faces { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) {
+    .faces, .scale { grid-column: 3 / -1; }
+    .step { grid-template-columns: 12rem minmax(0, 1fr); gap: var(--grid-gap); align-items: baseline; }
+    .step .k { flex-direction: column; gap: var(--sp-1); }
+  }
+
+  /* ---------- §06 interface ---------- */
+  .ui { grid-column: 1 / -1; display: grid; gap: var(--grid-gap); }
+  .ui .tile { display: grid; gap: var(--sp-6); align-content: start; }
+  .btns { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+  .btn {
+    position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 0.65rem;
+    min-height: var(--tap); padding: 0 1.25rem; border: var(--hairline) solid; border-radius: var(--radius); box-shadow: var(--shadow);
+    font: 500 1rem/1 var(--font-sans); font-stretch: var(--stretch-ui); cursor: pointer;
+    transition: transform var(--dur-release) var(--ease-reveal);
+  }
+  .btn svg { width: 20px; height: 20px; flex: none; }
+  .btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn-secondary { background: transparent; color: var(--fg); border-color: var(--rule-strong); }
+  .btn-secondary .pad { fill: var(--accent); }
+  .btn:active, .btn.is-pressed { transform: translateY(var(--press-y)) scale(var(--press-scale)); transition-duration: var(--dur-press); }
+  .btn.is-pressed::after { content: ''; position: absolute; width: 1.75rem; height: 1.75rem; left: calc(100% - 1.85rem); top: 50%; translate: -50% -50%; background: var(--accent); opacity: 0.32; mix-blend-mode: multiply; }
+  .btn-primary.is-pressed::after { background: var(--bond-ink); opacity: 0.28; }
+  .silicon .btn-secondary.is-pressed::after { mix-blend-mode: screen; opacity: 0.4; }
+  .btn-note { display: grid; gap: var(--sp-2); }
+  .routebar { display: flex; height: 2.75rem; width: 100%; }
+  .routebar i { display: block; height: 100%; }
+  .rkey { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin-top: var(--sp-3); font: var(--step-micro)/1.4 var(--font-mono); letter-spacing: var(--track-micro); text-transform: uppercase; color: var(--fg-2); }
+  .rkey span::before { content: ''; display: inline-block; width: 0.7rem; height: 0.7rem; margin-right: 0.4rem; vertical-align: -1px; background: var(--k); }
+  .rkey b { color: var(--fg); font-weight: 400; }
+  .icons { grid-column: 1 / -1; margin-top: var(--sp-7); display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: var(--sp-3); }
+  .icon { display: grid; gap: var(--sp-3); padding: var(--sp-4); border: var(--hairline) solid var(--rule); }
+  .icon .stage { width: 72px; height: 72px; background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px); background-size: 3px 3px; background-position: -1px -1px; display: grid; place-items: center; }
+  .icon .stage svg { width: 72px; height: 72px; }
+  .icon .small { display: flex; gap: var(--sp-3); align-items: center; }
+  .icon .small svg { width: 24px; height: 24px; }
+  .icon .small svg + svg { width: 16px; height: 16px; }
+  @media (min-width: 1024px) {
+    .ui { grid-column: 3 / -1; grid-template-columns: 1fr 1fr; }
+    .icons { grid-column: 3 / -1; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+
+  /* ---------- §07 surface and motion ---------- */
+  .surface { grid-column: 1 / -1; display: grid; gap: var(--grid-gap); }
+  .gridviz { display: grid; gap: var(--sp-3); }
+  .cols { display: grid; gap: 4px; height: 3.25rem; }
+  .cols i { background: color-mix(in srgb, var(--accent) 38%, transparent); border-inline: var(--hairline) solid var(--accent-ink); }
+  .grain-pair { display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 11rem; background-image: none !important; }
+  .grain-pair > div { padding: var(--sp-3); display: flex; align-items: flex-end; }
+  .grain-pair .grain { background-image: var(--grain); }
+  .grain-pair .zoom { background-image: var(--grain); background-size: 800px 800px; }
+  .curves { display: grid; grid-template-columns: 1fr 1fr; gap: var(--grid-gap); }
+  .curves svg { width: 100%; height: auto; overflow: visible; }
+  .curves .ax { stroke: var(--rule-strong); stroke-width: 1; vector-effect: non-scaling-stroke; fill: none; }
+  .curves .cv { stroke: var(--accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; fill: none; }
+  .curves .hd { stroke: var(--fg-2); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; fill: none; }
+  .curves .pt { fill: var(--fg); }
+  .durs { display: grid; gap: var(--sp-2); }
+  .dur { display: grid; grid-template-columns: 6.5rem 1fr; gap: var(--sp-3); align-items: center; font: var(--step-micro)/1.3 var(--font-mono); letter-spacing: var(--track-micro); text-transform: uppercase; color: var(--fg-2); }
+  .dur i { display: block; height: 0.75rem; background: var(--fg); width: calc(var(--ms) / 1100 * 100%); }
+  .dur i.g { background: var(--accent); }
+  .wave { display: flex; gap: 6px; align-items: flex-end; height: 3.5rem; }
+  .wave i { width: 1.25rem; background: var(--bit-on); height: calc(18% + var(--n) * 11%); opacity: calc(0.35 + var(--n) * 0.09); }
+  @media (min-width: 1024px) {
+    .surface { grid-column: 3 / -1; grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ---------- §08 do / don't ---------- */
+  .rules { grid-column: 1 / -1; display: grid; gap: var(--grid-gap); }
+  .rules h3 { font: var(--wght-display) var(--step-h2)/1 var(--font-display); margin-bottom: var(--sp-4); }
+  .rules h3 em { font-weight: var(--wght-display-strong); }
+  .rules li { display: grid; grid-template-columns: 2.25rem 1fr; gap: var(--sp-2); padding: var(--sp-3) 0; border-top: var(--hairline) solid var(--rule); }
+  .rules li > b { font: 400 var(--step-label)/1.7 var(--font-mono); color: var(--fg-2); }
+  .rules .do li > b { color: var(--accent-ink); }
+  @media (min-width: 640px) { .rules { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) { .rules { grid-column: 3 / -1; } }
+
+  /* ---------- colophon ---------- */
+  .colophon { padding-block: var(--sp-8) var(--sp-6); }
+  .colophon .grid { row-gap: var(--sp-6); align-items: end; }
+  .colophon .lock { grid-column: 1 / -1; }
+  .colophon .lock svg { height: 7rem; width: auto; }
+  .colophon .credits { grid-column: 1 / -1; font-size: var(--step-small); color: var(--fg-2); display: grid; gap: var(--sp-3); }
+  .colophon .cold { grid-column: 1 / -1; display: flex; gap: var(--sp-4); align-items: end; }
+  .colophon .cold svg { width: 5.5rem; height: 5.5rem; flex: none; }
+  .colophon .base { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; border-top: var(--hairline) solid var(--rule); padding-top: var(--sp-4); margin-top: var(--sp-6); }
+  @media (min-width: 1024px) {
+    .colophon .lock { grid-column: 1 / 5; }
+    .colophon .credits { grid-column: 5 / 10; }
+    .colophon .cold { grid-column: 10 / -1; justify-content: end; }
+  }
+</style>
+</head>
+<body class="paper">
+<!-- sprite:start --><svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><symbol id="bond" viewBox="0 0 32 32"><g class="w"><rect x="5" y="6" width="3" height="20"/><rect x="5" y="6" width="17" height="3"/><rect x="5" y="23" width="17" height="3"/><rect x="20" y="3" width="9" height="9"/></g><rect class="p" x="20" y="20" width="9" height="9"/></symbol><symbol id="bond-16" viewBox="0 0 16 16"><g class="w"><rect x="2" y="3" width="2" height="10"/><rect x="2" y="3" width="9" height="2"/><rect x="2" y="11" width="9" height="2"/><rect x="10" y="1" width="5" height="5"/></g><rect class="p" x="10" y="10" width="5" height="5"/></symbol><symbol id="wm-text" viewBox="108.09 -1520 8117.13 1540"><path class="w" d="M632.6 20Q474.89 20 357.17 -44.5Q239.45 -109 173.77 -228Q108.09 -347 108.09 -510Q108.09 -715 177.66 -897.5Q247.23 -1080 369.05 -1220Q490.86 -1360 648.98 -1440Q807.1 -1520 984.2 -1520Q1105 -1520 1197.99 -1469.9Q1290.97 -1419.8 1339.74 -1322.16Q1388.51 -1224.52 1376.29 -1081.52H1362.09Q1370.39 -1186.82 1344.43 -1263.6Q1318.48 -1340.38 1268.58 -1390.12Q1218.69 -1439.87 1152.33 -1464.17Q1085.98 -1488.48 1012.6 -1488.48Q907.7 -1488.48 818.73 -1438.74Q729.76 -1388.99 657.15 -1302.75Q584.54 -1216.51 528.65 -1105.44Q472.76 -994.38 435.38 -870.5Q398 -746.62 378.7 -622.02Q359.4 -497.41 359.4 -384.91Q359.4 -284.31 390.72 -199.2Q422.03 -114.1 488.09 -62.53Q554.15 -10.96 658.15 -10.96Q787.95 -10.96 898.34 -64.52Q1008.74 -118.08 1092.79 -210.55Q1176.84 -303.02 1226.38 -418.48H1241.51Q1195.91 -295.48 1107.05 -195.88Q1018.18 -96.28 896.89 -38.14Q775.6 20 632.6 20ZM1119.33 0 1043.77 -139.21Q1081.92 -178.25 1120.83 -222.15Q1159.74 -266.06 1195.55 -333.85L1226.38 -418.48H1251.04L1141.04 0ZM1362.09 -1081.52 1369.37 -1153.01Q1365.03 -1212.99 1352.4 -1262.47Q1339.77 -1311.95 1310.23 -1357.44L1462.53 -1500H1484.24L1386.84 -1081.52ZM1699.94 20Q1545.72 20 1468.73 -69.2Q1391.74 -158.4 1391.74 -297.6Q1391.74 -427.06 1436.5 -543.06Q1481.26 -659.06 1558.5 -748.26Q1635.74 -837.46 1735.32 -888.73Q1834.9 -940 1944.54 -940Q2099.62 -940 2176.88 -849.6Q2254.14 -759.2 2254.14 -620Q2254.14 -491.1 2209.73 -375.45Q2165.32 -259.8 2088.22 -170.67Q2011.12 -81.54 1911.12 -30.77Q1811.12 20 1699.94 20ZM1687.24 -4.66Q1738.32 -4.66 1787.42 -40.49Q1836.51 -76.33 1881.49 -137.99Q1926.48 -199.65 1964.27 -277.97Q2002.07 -356.29 2030.14 -442.18Q2058.21 -528.06 2073.82 -612.32Q2089.43 -696.58 2089.43 -768.48Q2089.43 -836.18 2057.64 -875.33Q2025.84 -914.48 1957.24 -914.48Q1907.02 -914.48 1857.49 -878.65Q1807.97 -842.81 1762.98 -781.15Q1718 -719.49 1680.2 -641.17Q1642.41 -562.85 1614.34 -476.96Q1586.27 -391.08 1570.66 -307.32Q1555.04 -223.56 1555.04 -150.66Q1555.04 -83.96 1587.34 -44.31Q1619.64 -4.66 1687.24 -4.66ZM2724.14 20Q2628.14 20 2570.93 -13.66Q2513.72 -47.32 2495.72 -110.61Q2477.72 -173.9 2499.14 -262L2635.45 -830.26Q2637.45 -839.26 2638.97 -849.73Q2640.5 -860.19 2640.5 -867.19Q2640.5 -882.66 2631.27 -891.8Q2622.04 -900.93 2603.97 -900.93Q2569.69 -900.93 2538.13 -882.39Q2506.56 -863.84 2476.58 -828.05Q2446.61 -792.27 2418.81 -738.94Q2391.01 -685.61 2363.78 -615.12L2340.57 -622.03Q2369.2 -694.69 2399.27 -753.16Q2429.33 -811.63 2465.02 -853.19Q2500.7 -894.75 2545.21 -916.87Q2589.72 -939 2645.31 -939Q2722.15 -939 2767.53 -897.42Q2812.9 -855.84 2812.9 -795.62Q2812.9 -773.62 2809.19 -754.08Q2805.48 -734.54 2802.64 -720.6L2695.85 -262.19Q2676.79 -178.4 2670.7 -123.92Q2664.61 -69.44 2682.66 -42.61Q2700.7 -15.78 2752.01 -15.78Q2814.81 -15.78 2881.35 -62.38Q2947.88 -108.97 3009.6 -186.9Q3071.31 -264.84 3120.7 -360.43Q3170.09 -456.02 3198.79 -556.36Q3227.48 -656.7 3227.48 -745.4Q3227.48 -800.77 3211.25 -837.84Q3195.02 -874.9 3166.65 -893.83Q3138.28 -912.75 3102.14 -912.75V-936Q3138.18 -936 3167.63 -920.04Q3197.08 -904.07 3214.21 -875.38Q3231.34 -846.69 3231.34 -808.19Q3231.34 -755 3192.9 -718.5Q3154.46 -682 3102.14 -682Q3043.84 -682 3009.99 -716.85Q2976.14 -751.7 2976.14 -810Q2976.14 -862.3 3011.99 -900.15Q3047.84 -938 3102.14 -938Q3145.74 -938 3179.75 -915.63Q3213.76 -893.26 3232.95 -850.18Q3252.14 -807.1 3252.14 -745.4Q3252.14 -654.4 3222.24 -549.73Q3192.34 -445.06 3139.67 -344.38Q3087 -243.7 3019.7 -161.09Q2952.4 -78.48 2876.53 -29.24Q2800.66 20 2724.14 20ZM3655.98 20Q3556.48 20 3488.66 -21.06Q3420.84 -62.12 3386.14 -134.26Q3351.44 -206.4 3351.44 -300Q3351.44 -417.24 3394.56 -531.09Q3437.68 -644.94 3515.29 -737.31Q3592.9 -829.68 3697.01 -884.84Q3801.12 -940 3922.24 -940Q4039.76 -940 4104.65 -884.12Q4169.54 -828.24 4169.54 -746.16Q4169.54 -666.68 4116.48 -604.39Q4063.42 -542.1 3972.44 -498.33Q3881.46 -454.56 3767.7 -428.87Q3653.94 -403.19 3531.54 -395.19V-416.23Q3614.59 -421.81 3686.96 -442.25Q3759.33 -462.69 3817.14 -496.38Q3874.95 -530.06 3916.29 -575.95Q3957.63 -621.83 3979.85 -678.72Q4002.07 -735.6 4002.07 -802.12Q4002.07 -845.74 3983.67 -880.25Q3965.27 -914.77 3918.94 -914.77Q3865.33 -914.77 3815.7 -880.25Q3766.07 -845.73 3722.36 -786.33Q3678.65 -726.94 3642.74 -652.61Q3606.83 -578.28 3581.02 -497Q3555.21 -415.71 3541.32 -337.01Q3527.42 -258.31 3527.42 -191.87Q3527.42 -90.5 3570.4 -51.92Q3613.38 -13.34 3679.18 -13.34Q3759.67 -13.34 3829.64 -46.68Q3899.62 -80.02 3958 -138.17Q4016.38 -196.32 4060.17 -271.25L4081.98 -258.14Q4040.88 -183.68 3979.77 -120.47Q3918.66 -57.26 3837.92 -18.63Q3757.18 20 3655.98 20ZM4977.72 20Q4897.08 20 4856.54 -13.5Q4815.99 -47.01 4815.99 -113.11Q4815.99 -134.23 4820.53 -155.04Q4825.06 -175.86 4829.48 -190.54L4960.32 -619.95Q4984.19 -697.44 4993.39 -757.68Q5002.59 -817.91 4987.84 -852.3Q4973.08 -886.68 4924.7 -886.68Q4880.21 -886.68 4822.06 -834.41Q4763.91 -782.14 4704.21 -693.17Q4644.51 -604.21 4593.49 -493.52Q4542.48 -382.83 4511.65 -266H4494.37Q4515.01 -346.95 4550.93 -438.71Q4586.85 -530.48 4635.13 -618.89Q4683.41 -707.31 4740.35 -779.95Q4797.28 -852.59 4859.55 -895.79Q4921.81 -939 4986.19 -939Q5072.21 -939 5117.72 -898.06Q5163.24 -857.12 5172.48 -788.94Q5181.73 -720.75 5157.29 -639L4997.1 -94.79Q4994.24 -86.07 4992.6 -76.15Q4990.96 -66.23 4990.96 -58.23Q4990.96 -42.09 4998.8 -31.72Q5006.63 -21.35 5026.44 -21.35Q5098.84 -21.35 5157.45 -91.05Q5216.07 -160.74 5277.79 -316.31L5301 -308.23Q5256.32 -191.69 5210.1 -119.26Q5163.88 -46.84 5108.09 -13.42Q5052.29 20 4977.72 20ZM4252.18 0 4480.16 -895.34H4342.6V-920H4678.83L4444.34 0ZM5658.76 20Q5525.42 20 5464.59 -67.08Q5403.75 -154.15 5403.75 -305Q5403.75 -420 5446.58 -532.5Q5489.41 -645 5560.88 -737Q5632.34 -829 5719.15 -884.5Q5805.95 -940 5893.55 -940Q5963.91 -940 6002.57 -901.36Q6041.22 -862.71 6056.34 -799.53Q6071.46 -736.35 6071.46 -662.02Q6071.46 -599.4 6058.27 -524.67Q6045.08 -449.94 6019.62 -373.44Q5994.16 -296.94 5958.13 -226.53Q5922.09 -156.13 5875.97 -100.53Q5829.85 -44.92 5775.54 -12.46Q5721.24 20 5658.76 20ZM5706.17 -31.02Q5759.3 -31.02 5809.62 -71.12Q5859.94 -111.23 5903.75 -178.24Q5947.55 -245.26 5980.67 -328.14Q6013.8 -411.02 6032.41 -497.62Q6051.02 -584.22 6051.02 -662.08Q6051.02 -730.29 6039.19 -782.72Q6027.36 -835.14 6000.22 -864.78Q5973.08 -894.42 5926.83 -894.42Q5878.16 -894.42 5829.35 -849.82Q5780.54 -805.22 5736.95 -731.25Q5693.36 -657.28 5659.17 -568.31Q5624.98 -479.34 5605.44 -389.22Q5585.9 -299.09 5585.9 -223.19Q5585.9 -127.22 5618.27 -79.12Q5650.63 -31.02 5706.17 -31.02ZM6101.31 20Q6025.7 20 5990.39 -19.3Q5955.07 -58.61 5955.07 -121.62Q5955.07 -139.41 5956.2 -153.2Q5957.32 -167 5959.32 -177L5986.69 -324.54L6035.37 -478.2L6062.74 -647.18L6128.76 -920H6325.77L6104.24 -87.18Q6100.24 -72.18 6100.24 -55.6Q6100.24 -39.92 6109.03 -28.8Q6117.81 -17.67 6137.9 -17.67Q6182.54 -17.67 6222.95 -46.91Q6263.36 -76.15 6303.81 -141.69Q6344.27 -207.23 6387.48 -316.31L6411.28 -308.23Q6367.05 -193.8 6321.96 -121.22Q6276.88 -48.64 6223.89 -14.32Q6170.9 20 6101.31 20ZM7190.72 20Q7110.08 20 7069.54 -13.5Q7028.99 -47.01 7028.99 -113.11Q7028.99 -134.23 7033.53 -155.04Q7038.06 -175.86 7042.48 -190.54L7173.32 -619.95Q7197.19 -697.44 7206.39 -757.68Q7215.59 -817.91 7200.84 -852.3Q7186.08 -886.68 7137.7 -886.68Q7093.21 -886.68 7035.06 -834.41Q6976.91 -782.14 6917.21 -693.17Q6857.51 -604.21 6806.49 -493.52Q6755.48 -382.83 6724.65 -266H6707.37Q6728.01 -346.95 6763.93 -438.71Q6799.85 -530.48 6848.13 -618.89Q6896.41 -707.31 6953.35 -779.95Q7010.28 -852.59 7072.55 -895.79Q7134.81 -939 7199.19 -939Q7285.21 -939 7330.72 -898.06Q7376.24 -857.12 7385.48 -788.94Q7394.73 -720.75 7370.29 -639L7210.1 -94.79Q7207.24 -86.07 7205.6 -76.15Q7203.96 -66.23 7203.96 -58.23Q7203.96 -42.09 7211.8 -31.72Q7219.63 -21.35 7239.44 -21.35Q7311.84 -21.35 7370.45 -91.05Q7429.07 -160.74 7490.79 -316.31L7514 -308.23Q7469.32 -191.69 7423.1 -119.26Q7376.88 -46.84 7321.09 -13.42Q7265.29 20 7190.72 20ZM6465.18 0 6693.16 -895.34H6555.6V-920H6891.83L6657.34 0ZM7836.03 20Q7769.83 20 7729.07 0.01Q7688.31 -19.98 7669.47 -52.11Q7650.64 -84.24 7650.64 -118.94Q7650.64 -137.04 7656.41 -167.02Q7662.18 -197 7670.04 -227L7910.82 -1120H8098.82L7819.88 -101.91Q7816.83 -91.59 7813.83 -78.16Q7810.83 -64.73 7810.83 -50.73Q7810.83 -15.33 7867.34 -15.33Q7909.19 -15.33 7950.24 -34.65Q7991.28 -53.97 8029.75 -93.12Q8068.22 -132.28 8104.55 -192.26Q8140.88 -252.24 8173.42 -333.49L8197.22 -326Q8152.88 -214.54 8100.38 -137.18Q8047.88 -59.82 7982.9 -19.91Q7917.92 20 7836.03 20ZM7657.22 -894.75V-920H8225.22V-894.75Z"/></symbol><symbol id="wm-display" viewBox="108.6 -1520 8099.08 1540"><path class="w" d="M632.6 20Q475.4 20 357.68 -44.5Q239.96 -109 174.28 -228Q108.6 -347 108.6 -510Q108.6 -715 178.17 -897.5Q247.74 -1080 369.3 -1220Q490.86 -1360 648.98 -1440Q807.1 -1520 984.2 -1520Q1105 -1520 1197.78 -1469.9Q1290.56 -1419.8 1339.46 -1322.2Q1388.36 -1224.6 1376.8 -1081.6H1372.8Q1381.34 -1188.66 1355.69 -1268.77Q1330.04 -1348.88 1279.77 -1402.59Q1229.5 -1456.3 1160.53 -1483.31Q1091.56 -1510.32 1012.6 -1510.32Q907.7 -1510.32 818.73 -1459.06Q729.76 -1407.8 657.15 -1318.69Q584.54 -1229.58 528.65 -1116.11Q472.76 -1002.64 435.38 -876.15Q398 -749.66 378.7 -623.28Q359.4 -496.9 359.4 -384.4Q359.4 -283.8 390.46 -193.34Q421.52 -102.88 487.58 -46Q553.64 10.88 657.64 10.88Q787.44 10.88 901.76 -45.89Q1016.08 -102.66 1103.04 -199.77Q1190 -296.88 1237 -418.4H1241Q1195.4 -295.4 1106.79 -195.8Q1018.18 -96.2 896.89 -38.1Q775.6 20 632.6 20ZM1127 0 1044.76 -138.04Q1086.7 -178.58 1127.92 -225.37Q1169.14 -272.16 1211.36 -354.72L1237 -418.4H1241L1131 0ZM1372.8 -1081.6 1376 -1126.64Q1374.8 -1198.16 1361.2 -1256.37Q1347.6 -1314.58 1313.92 -1360.56L1470.2 -1500H1474.2L1376.8 -1081.6ZM1688.4 20Q1534.18 20 1457.19 -69.2Q1380.2 -158.4 1380.2 -297.6Q1380.2 -427.06 1424.96 -543.06Q1469.72 -659.06 1546.96 -748.26Q1624.2 -837.46 1723.78 -888.73Q1823.36 -940 1933 -940Q2088.08 -940 2165.34 -849.6Q2242.6 -759.2 2242.6 -620Q2242.6 -491.1 2198.19 -375.45Q2153.78 -259.8 2076.68 -170.67Q1999.58 -81.54 1899.58 -30.77Q1799.58 20 1688.4 20ZM1669.8 16Q1720.88 16 1770.86 -23.04Q1820.84 -62.08 1867.3 -128.46Q1913.76 -194.84 1952.99 -278.22Q1992.22 -361.6 2021.51 -452.21Q2050.8 -542.82 2067.3 -630.03Q2083.8 -717.24 2083.8 -789.14Q2083.8 -856.84 2052 -895.99Q2020.2 -935.14 1951.6 -935.14Q1901.38 -935.14 1850.97 -896.1Q1800.56 -857.06 1754.1 -790.68Q1707.64 -724.3 1668.41 -640.92Q1629.18 -557.54 1599.89 -466.93Q1570.6 -376.32 1554.1 -289.61Q1537.6 -202.9 1537.6 -130Q1537.6 -63.3 1569.9 -23.65Q1602.2 16 1669.8 16ZM2707.6 20Q2611.6 20 2554.39 -13.66Q2497.18 -47.32 2479.18 -110.61Q2461.18 -173.9 2482.6 -262L2624.48 -854.24Q2626.48 -863.24 2628.05 -873.87Q2629.62 -884.5 2629.62 -891.5Q2629.62 -906.8 2620.39 -915.1Q2611.16 -923.4 2593.42 -923.4Q2555.74 -923.4 2521.54 -905.43Q2487.34 -887.46 2455.04 -850.78Q2422.74 -814.1 2392.12 -756.89Q2361.5 -699.68 2329.98 -620.2L2326.84 -621.2Q2355.14 -693.12 2385 -751.55Q2414.86 -809.98 2450.42 -851.95Q2485.98 -893.92 2530.24 -916.46Q2574.5 -939 2629.6 -939Q2705.78 -939 2751.07 -897.42Q2796.36 -855.84 2796.36 -795.62Q2796.36 -773.62 2792.65 -754.08Q2788.94 -734.54 2786.1 -720.6L2674.16 -238.4Q2655.18 -154.78 2648.97 -100.34Q2642.76 -45.9 2660.64 -19.07Q2678.52 7.76 2729.74 7.76Q2798.02 7.76 2868.56 -40.27Q2939.1 -88.3 3004.06 -169.06Q3069.02 -249.82 3120.47 -348.47Q3171.92 -447.11 3201.76 -550.69Q3231.6 -654.26 3231.6 -745.4Q3231.6 -806.1 3213.34 -848.18Q3195.08 -890.26 3162.07 -912.13Q3129.06 -934 3085.6 -934V-936Q3121.8 -936 3151.25 -920.12Q3180.7 -904.24 3197.75 -875.67Q3214.8 -847.1 3214.8 -808.6Q3214.8 -755.42 3176.36 -718.71Q3137.92 -682 3085.6 -682Q3027.3 -682 2993.45 -716.85Q2959.6 -751.7 2959.6 -810Q2959.6 -862.3 2995.45 -900.15Q3031.3 -938 3085.6 -938Q3129.2 -938 3163.21 -915.63Q3197.22 -893.26 3216.41 -850.18Q3235.6 -807.1 3235.6 -745.4Q3235.6 -654.4 3205.7 -549.73Q3175.8 -445.06 3123.13 -344.38Q3070.46 -243.7 3003.16 -161.09Q2935.86 -78.48 2859.99 -29.24Q2784.12 20 2707.6 20ZM3650.44 20Q3550.94 20 3483.12 -21.06Q3415.3 -62.12 3380.6 -134.26Q3345.9 -206.4 3345.9 -300Q3345.9 -417.24 3389.02 -531.09Q3432.14 -644.94 3509.75 -737.31Q3587.36 -829.68 3691.47 -884.84Q3795.58 -940 3916.7 -940Q4034.22 -940 4099.11 -884.12Q4164 -828.24 4164 -746.16Q4164 -666.68 4110.94 -605.66Q4057.88 -544.64 3966.9 -502.14Q3875.92 -459.64 3762.16 -435.22Q3648.4 -410.8 3526 -402.8V-406.38Q3612.1 -411.96 3685.31 -432.94Q3758.52 -453.92 3815.99 -488.94Q3873.46 -523.96 3913.91 -571.94Q3954.36 -619.92 3975.94 -680.64Q3997.52 -741.36 3997.52 -812.96Q3997.52 -858.36 3980.26 -896.9Q3963 -935.44 3915.3 -935.44Q3861.52 -935.44 3811.56 -899.51Q3761.6 -863.58 3717.52 -801.7Q3673.44 -739.82 3637.16 -662.58Q3600.88 -585.34 3574.82 -500.93Q3548.76 -416.51 3534.7 -335.04Q3520.64 -253.58 3520.64 -185.12Q3520.64 -70.88 3563.29 -29.29Q3605.94 12.3 3671.74 12.3Q3757.77 12.3 3832.15 -23.37Q3906.52 -59.04 3967.89 -120.19Q4029.26 -181.34 4073.44 -259.28L4076.44 -258.14Q4035.34 -183.68 3974.23 -120.47Q3913.12 -57.26 3832.38 -18.63Q3751.64 20 3650.44 20ZM4971.12 20Q4892.14 20 4851.59 -14.01Q4811.04 -48.02 4811.04 -114.12Q4811.04 -136.26 4815.32 -154.79Q4819.6 -173.32 4824.02 -188L4951.8 -621.6Q4974.66 -699.6 4985.89 -764.11Q4997.12 -828.62 4983.59 -867.49Q4970.06 -906.36 4918.64 -906.36Q4872.1 -906.36 4813.02 -851.38Q4753.94 -796.4 4693.82 -703.84Q4633.7 -611.28 4582.9 -497.47Q4532.1 -383.66 4502.12 -266H4499.7Q4517.96 -342.38 4552.31 -432.58Q4586.66 -522.78 4633.88 -612Q4681.1 -701.22 4737.61 -775.38Q4794.12 -849.54 4855.63 -894.27Q4917.14 -939 4980.86 -939Q5066.46 -939 5110.59 -898.06Q5154.72 -857.12 5162.7 -789.19Q5170.68 -721.26 5147.26 -639L4985.64 -71.82Q4982.78 -63.1 4981.14 -53.18Q4979.5 -43.26 4979.5 -35.26Q4979.5 -19.12 4987.08 -8.75Q4994.66 1.62 5014.98 1.62Q5097.28 1.62 5162.36 -72.24Q5227.44 -146.1 5290.6 -310.22L5293.74 -309.22Q5249.06 -192.68 5202.76 -120.05Q5156.46 -47.42 5100.79 -13.71Q5045.12 20 4971.12 20ZM4245.7 0 4468.34 -916H4324.2V-920H4662.2L4437.86 0ZM5648.48 20Q5513.36 20 5453.58 -66.06Q5393.8 -152.12 5393.8 -305Q5393.8 -420 5435.87 -532.5Q5477.94 -645 5549.15 -737Q5620.36 -829 5707.42 -884.5Q5794.48 -940 5883.6 -940Q5953.36 -940 5988.22 -899.88Q6023.08 -859.76 6034.28 -796.19Q6045.48 -732.62 6045.48 -662.56Q6045.48 -601.46 6033.26 -527.37Q6021.04 -453.28 5997.32 -376.53Q5973.6 -299.78 5939.38 -229.13Q5905.16 -158.48 5860.73 -102.12Q5816.3 -45.76 5763.38 -12.88Q5710.46 20 5648.48 20ZM5698.18 -9.06Q5753.42 -9.06 5804.12 -51.4Q5854.82 -93.74 5898.28 -164.43Q5941.74 -235.12 5973.68 -321.46Q6005.62 -407.8 6023.55 -496.8Q6041.48 -585.8 6041.48 -663.4Q6041.48 -734.4 6030.96 -791.82Q6020.44 -849.24 5993.09 -883.11Q5965.74 -916.98 5916.18 -916.98Q5867.26 -916.98 5818.5 -870.06Q5769.74 -823.14 5726.28 -746.22Q5682.82 -669.3 5648.8 -576.87Q5614.78 -484.44 5595.2 -392.21Q5575.62 -299.98 5575.62 -224.08Q5575.62 -114.4 5609.13 -61.73Q5642.64 -9.06 5698.18 -9.06ZM6088.8 20Q6014.18 20 5979.36 -19.47Q5944.54 -58.94 5944.54 -121.04Q5944.54 -139.16 5945.75 -153.08Q5946.96 -167 5948.96 -177L5973.36 -307.78L6018.5 -457.88L6043.94 -612.14L6118.4 -920H6315.4L6086.96 -61.54Q6082.96 -46.54 6082.96 -29.96Q6082.96 -14.36 6091.62 -3.91Q6100.28 6.54 6120.04 6.54Q6171.04 6.54 6216.23 -23.72Q6261.42 -53.98 6305.54 -123.57Q6349.66 -193.16 6394.88 -310.22L6398.02 -309.22Q6354.04 -195.62 6309.49 -122.71Q6264.94 -49.8 6212.12 -14.9Q6159.3 20 6088.8 20ZM7176.12 20Q7097.14 20 7056.59 -14.01Q7016.04 -48.02 7016.04 -114.12Q7016.04 -136.26 7020.32 -154.79Q7024.6 -173.32 7029.02 -188L7156.8 -621.6Q7179.66 -699.6 7190.89 -764.11Q7202.12 -828.62 7188.59 -867.49Q7175.06 -906.36 7123.64 -906.36Q7077.1 -906.36 7018.02 -851.38Q6958.94 -796.4 6898.82 -703.84Q6838.7 -611.28 6787.9 -497.47Q6737.1 -383.66 6707.12 -266H6704.7Q6722.96 -342.38 6757.31 -432.58Q6791.66 -522.78 6838.88 -612Q6886.1 -701.22 6942.61 -775.38Q6999.12 -849.54 7060.63 -894.27Q7122.14 -939 7185.86 -939Q7271.46 -939 7315.59 -898.06Q7359.72 -857.12 7367.7 -789.19Q7375.68 -721.26 7352.26 -639L7190.64 -71.82Q7187.78 -63.1 7186.14 -53.18Q7184.5 -43.26 7184.5 -35.26Q7184.5 -19.12 7192.08 -8.75Q7199.66 1.62 7219.98 1.62Q7302.28 1.62 7367.36 -72.24Q7432.44 -146.1 7495.6 -310.22L7498.74 -309.22Q7454.06 -192.68 7407.76 -120.05Q7361.46 -47.42 7305.79 -13.71Q7250.12 20 7176.12 20ZM6450.7 0 6673.34 -916H6529.2V-920H6867.2L6642.86 0ZM7818.08 20Q7751.88 20 7711.2 0.01Q7670.52 -19.98 7651.81 -52.11Q7633.1 -84.24 7633.1 -118.94Q7633.1 -137.04 7638.87 -167.02Q7644.64 -197 7652.5 -227L7893.28 -1120H8081.28L7795.09 -74.7Q7791.96 -64.12 7788.96 -50.69Q7785.96 -37.26 7785.96 -23.26Q7785.96 11.06 7842.22 11.06Q7889.92 11.06 7935.27 -9.2Q7980.62 -29.46 8022.63 -70.86Q8064.64 -112.26 8103.4 -176.11Q8142.16 -239.96 8176.54 -327L8179.68 -326Q8135.42 -214.46 8082.92 -137.1Q8030.42 -59.74 7965.36 -19.87Q7900.3 20 7818.08 20ZM7639.68 -916V-920H8207.68V-916Z"/></symbol><symbol id="lockup-h" viewBox="5 3 141.23 26"><g class="w"><rect x="5" y="6" width="3" height="20"/><rect x="5" y="6" width="17" height="3"/><rect x="5" y="23" width="17" height="3"/><rect x="20" y="3" width="9" height="9"/></g><rect class="p" x="20" y="20" width="9" height="9"/><path class="w" transform="translate(36.56 26) scale(0.0133333)" d="M632.6 20Q474.89 20 357.17 -44.5Q239.45 -109 173.77 -228Q108.09 -347 108.09 -510Q108.09 -715 177.66 -897.5Q247.23 -1080 369.05 -1220Q490.86 -1360 648.98 -1440Q807.1 -1520 984.2 -1520Q1105 -1520 1197.99 -1469.9Q1290.97 -1419.8 1339.74 -1322.16Q1388.51 -1224.52 1376.29 -1081.52H1362.09Q1370.39 -1186.82 1344.43 -1263.6Q1318.48 -1340.38 1268.58 -1390.12Q1218.69 -1439.87 1152.33 -1464.17Q1085.98 -1488.48 1012.6 -1488.48Q907.7 -1488.48 818.73 -1438.74Q729.76 -1388.99 657.15 -1302.75Q584.54 -1216.51 528.65 -1105.44Q472.76 -994.38 435.38 -870.5Q398 -746.62 378.7 -622.02Q359.4 -497.41 359.4 -384.91Q359.4 -284.31 390.72 -199.2Q422.03 -114.1 488.09 -62.53Q554.15 -10.96 658.15 -10.96Q787.95 -10.96 898.34 -64.52Q1008.74 -118.08 1092.79 -210.55Q1176.84 -303.02 1226.38 -418.48H1241.51Q1195.91 -295.48 1107.05 -195.88Q1018.18 -96.28 896.89 -38.14Q775.6 20 632.6 20ZM1119.33 0 1043.77 -139.21Q1081.92 -178.25 1120.83 -222.15Q1159.74 -266.06 1195.55 -333.85L1226.38 -418.48H1251.04L1141.04 0ZM1362.09 -1081.52 1369.37 -1153.01Q1365.03 -1212.99 1352.4 -1262.47Q1339.77 -1311.95 1310.23 -1357.44L1462.53 -1500H1484.24L1386.84 -1081.52ZM1699.94 20Q1545.72 20 1468.73 -69.2Q1391.74 -158.4 1391.74 -297.6Q1391.74 -427.06 1436.5 -543.06Q1481.26 -659.06 1558.5 -748.26Q1635.74 -837.46 1735.32 -888.73Q1834.9 -940 1944.54 -940Q2099.62 -940 2176.88 -849.6Q2254.14 -759.2 2254.14 -620Q2254.14 -491.1 2209.73 -375.45Q2165.32 -259.8 2088.22 -170.67Q2011.12 -81.54 1911.12 -30.77Q1811.12 20 1699.94 20ZM1687.24 -4.66Q1738.32 -4.66 1787.42 -40.49Q1836.51 -76.33 1881.49 -137.99Q1926.48 -199.65 1964.27 -277.97Q2002.07 -356.29 2030.14 -442.18Q2058.21 -528.06 2073.82 -612.32Q2089.43 -696.58 2089.43 -768.48Q2089.43 -836.18 2057.64 -875.33Q2025.84 -914.48 1957.24 -914.48Q1907.02 -914.48 1857.49 -878.65Q1807.97 -842.81 1762.98 -781.15Q1718 -719.49 1680.2 -641.17Q1642.41 -562.85 1614.34 -476.96Q1586.27 -391.08 1570.66 -307.32Q1555.04 -223.56 1555.04 -150.66Q1555.04 -83.96 1587.34 -44.31Q1619.64 -4.66 1687.24 -4.66ZM2724.14 20Q2628.14 20 2570.93 -13.66Q2513.72 -47.32 2495.72 -110.61Q2477.72 -173.9 2499.14 -262L2635.45 -830.26Q2637.45 -839.26 2638.97 -849.73Q2640.5 -860.19 2640.5 -867.19Q2640.5 -882.66 2631.27 -891.8Q2622.04 -900.93 2603.97 -900.93Q2569.69 -900.93 2538.13 -882.39Q2506.56 -863.84 2476.58 -828.05Q2446.61 -792.27 2418.81 -738.94Q2391.01 -685.61 2363.78 -615.12L2340.57 -622.03Q2369.2 -694.69 2399.27 -753.16Q2429.33 -811.63 2465.02 -853.19Q2500.7 -894.75 2545.21 -916.87Q2589.72 -939 2645.31 -939Q2722.15 -939 2767.53 -897.42Q2812.9 -855.84 2812.9 -795.62Q2812.9 -773.62 2809.19 -754.08Q2805.48 -734.54 2802.64 -720.6L2695.85 -262.19Q2676.79 -178.4 2670.7 -123.92Q2664.61 -69.44 2682.66 -42.61Q2700.7 -15.78 2752.01 -15.78Q2814.81 -15.78 2881.35 -62.38Q2947.88 -108.97 3009.6 -186.9Q3071.31 -264.84 3120.7 -360.43Q3170.09 -456.02 3198.79 -556.36Q3227.48 -656.7 3227.48 -745.4Q3227.48 -800.77 3211.25 -837.84Q3195.02 -874.9 3166.65 -893.83Q3138.28 -912.75 3102.14 -912.75V-936Q3138.18 -936 3167.63 -920.04Q3197.08 -904.07 3214.21 -875.38Q3231.34 -846.69 3231.34 -808.19Q3231.34 -755 3192.9 -718.5Q3154.46 -682 3102.14 -682Q3043.84 -682 3009.99 -716.85Q2976.14 -751.7 2976.14 -810Q2976.14 -862.3 3011.99 -900.15Q3047.84 -938 3102.14 -938Q3145.74 -938 3179.75 -915.63Q3213.76 -893.26 3232.95 -850.18Q3252.14 -807.1 3252.14 -745.4Q3252.14 -654.4 3222.24 -549.73Q3192.34 -445.06 3139.67 -344.38Q3087 -243.7 3019.7 -161.09Q2952.4 -78.48 2876.53 -29.24Q2800.66 20 2724.14 20ZM3655.98 20Q3556.48 20 3488.66 -21.06Q3420.84 -62.12 3386.14 -134.26Q3351.44 -206.4 3351.44 -300Q3351.44 -417.24 3394.56 -531.09Q3437.68 -644.94 3515.29 -737.31Q3592.9 -829.68 3697.01 -884.84Q3801.12 -940 3922.24 -940Q4039.76 -940 4104.65 -884.12Q4169.54 -828.24 4169.54 -746.16Q4169.54 -666.68 4116.48 -604.39Q4063.42 -542.1 3972.44 -498.33Q3881.46 -454.56 3767.7 -428.87Q3653.94 -403.19 3531.54 -395.19V-416.23Q3614.59 -421.81 3686.96 -442.25Q3759.33 -462.69 3817.14 -496.38Q3874.95 -530.06 3916.29 -575.95Q3957.63 -621.83 3979.85 -678.72Q4002.07 -735.6 4002.07 -802.12Q4002.07 -845.74 3983.67 -880.25Q3965.27 -914.77 3918.94 -914.77Q3865.33 -914.77 3815.7 -880.25Q3766.07 -845.73 3722.36 -786.33Q3678.65 -726.94 3642.74 -652.61Q3606.83 -578.28 3581.02 -497Q3555.21 -415.71 3541.32 -337.01Q3527.42 -258.31 3527.42 -191.87Q3527.42 -90.5 3570.4 -51.92Q3613.38 -13.34 3679.18 -13.34Q3759.67 -13.34 3829.64 -46.68Q3899.62 -80.02 3958 -138.17Q4016.38 -196.32 4060.17 -271.25L4081.98 -258.14Q4040.88 -183.68 3979.77 -120.47Q3918.66 -57.26 3837.92 -18.63Q3757.18 20 3655.98 20ZM4977.72 20Q4897.08 20 4856.54 -13.5Q4815.99 -47.01 4815.99 -113.11Q4815.99 -134.23 4820.53 -155.04Q4825.06 -175.86 4829.48 -190.54L4960.32 -619.95Q4984.19 -697.44 4993.39 -757.68Q5002.59 -817.91 4987.84 -852.3Q4973.08 -886.68 4924.7 -886.68Q4880.21 -886.68 4822.06 -834.41Q4763.91 -782.14 4704.21 -693.17Q4644.51 -604.21 4593.49 -493.52Q4542.48 -382.83 4511.65 -266H4494.37Q4515.01 -346.95 4550.93 -438.71Q4586.85 -530.48 4635.13 -618.89Q4683.41 -707.31 4740.35 -779.95Q4797.28 -852.59 4859.55 -895.79Q4921.81 -939 4986.19 -939Q5072.21 -939 5117.72 -898.06Q5163.24 -857.12 5172.48 -788.94Q5181.73 -720.75 5157.29 -639L4997.1 -94.79Q4994.24 -86.07 4992.6 -76.15Q4990.96 -66.23 4990.96 -58.23Q4990.96 -42.09 4998.8 -31.72Q5006.63 -21.35 5026.44 -21.35Q5098.84 -21.35 5157.45 -91.05Q5216.07 -160.74 5277.79 -316.31L5301 -308.23Q5256.32 -191.69 5210.1 -119.26Q5163.88 -46.84 5108.09 -13.42Q5052.29 20 4977.72 20ZM4252.18 0 4480.16 -895.34H4342.6V-920H4678.83L4444.34 0ZM5658.76 20Q5525.42 20 5464.59 -67.08Q5403.75 -154.15 5403.75 -305Q5403.75 -420 5446.58 -532.5Q5489.41 -645 5560.88 -737Q5632.34 -829 5719.15 -884.5Q5805.95 -940 5893.55 -940Q5963.91 -940 6002.57 -901.36Q6041.22 -862.71 6056.34 -799.53Q6071.46 -736.35 6071.46 -662.02Q6071.46 -599.4 6058.27 -524.67Q6045.08 -449.94 6019.62 -373.44Q5994.16 -296.94 5958.13 -226.53Q5922.09 -156.13 5875.97 -100.53Q5829.85 -44.92 5775.54 -12.46Q5721.24 20 5658.76 20ZM5706.17 -31.02Q5759.3 -31.02 5809.62 -71.12Q5859.94 -111.23 5903.75 -178.24Q5947.55 -245.26 5980.67 -328.14Q6013.8 -411.02 6032.41 -497.62Q6051.02 -584.22 6051.02 -662.08Q6051.02 -730.29 6039.19 -782.72Q6027.36 -835.14 6000.22 -864.78Q5973.08 -894.42 5926.83 -894.42Q5878.16 -894.42 5829.35 -849.82Q5780.54 -805.22 5736.95 -731.25Q5693.36 -657.28 5659.17 -568.31Q5624.98 -479.34 5605.44 -389.22Q5585.9 -299.09 5585.9 -223.19Q5585.9 -127.22 5618.27 -79.12Q5650.63 -31.02 5706.17 -31.02ZM6101.31 20Q6025.7 20 5990.39 -19.3Q5955.07 -58.61 5955.07 -121.62Q5955.07 -139.41 5956.2 -153.2Q5957.32 -167 5959.32 -177L5986.69 -324.54L6035.37 -478.2L6062.74 -647.18L6128.76 -920H6325.77L6104.24 -87.18Q6100.24 -72.18 6100.24 -55.6Q6100.24 -39.92 6109.03 -28.8Q6117.81 -17.67 6137.9 -17.67Q6182.54 -17.67 6222.95 -46.91Q6263.36 -76.15 6303.81 -141.69Q6344.27 -207.23 6387.48 -316.31L6411.28 -308.23Q6367.05 -193.8 6321.96 -121.22Q6276.88 -48.64 6223.89 -14.32Q6170.9 20 6101.31 20ZM7190.72 20Q7110.08 20 7069.54 -13.5Q7028.99 -47.01 7028.99 -113.11Q7028.99 -134.23 7033.53 -155.04Q7038.06 -175.86 7042.48 -190.54L7173.32 -619.95Q7197.19 -697.44 7206.39 -757.68Q7215.59 -817.91 7200.84 -852.3Q7186.08 -886.68 7137.7 -886.68Q7093.21 -886.68 7035.06 -834.41Q6976.91 -782.14 6917.21 -693.17Q6857.51 -604.21 6806.49 -493.52Q6755.48 -382.83 6724.65 -266H6707.37Q6728.01 -346.95 6763.93 -438.71Q6799.85 -530.48 6848.13 -618.89Q6896.41 -707.31 6953.35 -779.95Q7010.28 -852.59 7072.55 -895.79Q7134.81 -939 7199.19 -939Q7285.21 -939 7330.72 -898.06Q7376.24 -857.12 7385.48 -788.94Q7394.73 -720.75 7370.29 -639L7210.1 -94.79Q7207.24 -86.07 7205.6 -76.15Q7203.96 -66.23 7203.96 -58.23Q7203.96 -42.09 7211.8 -31.72Q7219.63 -21.35 7239.44 -21.35Q7311.84 -21.35 7370.45 -91.05Q7429.07 -160.74 7490.79 -316.31L7514 -308.23Q7469.32 -191.69 7423.1 -119.26Q7376.88 -46.84 7321.09 -13.42Q7265.29 20 7190.72 20ZM6465.18 0 6693.16 -895.34H6555.6V-920H6891.83L6657.34 0ZM7836.03 20Q7769.83 20 7729.07 0.01Q7688.31 -19.98 7669.47 -52.11Q7650.64 -84.24 7650.64 -118.94Q7650.64 -137.04 7656.41 -167.02Q7662.18 -197 7670.04 -227L7910.82 -1120H8098.82L7819.88 -101.91Q7816.83 -91.59 7813.83 -78.16Q7810.83 -64.73 7810.83 -50.73Q7810.83 -15.33 7867.34 -15.33Q7909.19 -15.33 7950.24 -34.65Q7991.28 -53.97 8029.75 -93.12Q8068.22 -132.28 8104.55 -192.26Q8140.88 -252.24 8173.42 -333.49L8197.22 -326Q8152.88 -214.54 8100.38 -137.18Q8047.88 -59.82 7982.9 -19.91Q7917.92 20 7836.03 20ZM7657.22 -894.75V-920H8225.22V-894.75Z"/></symbol><symbol id="lockup-s" viewBox="-21.4 3 76.8 49.57"><g class="w"><rect x="5" y="6" width="3" height="20"/><rect x="5" y="6" width="17" height="3"/><rect x="5" y="23" width="17" height="3"/><rect x="20" y="3" width="9" height="9"/></g><rect class="p" x="20" y="20" width="9" height="9"/><path class="w" transform="translate(-22.42 52.38) scale(0.00946147)" d="M632.6 20Q474.89 20 357.17 -44.5Q239.45 -109 173.77 -228Q108.09 -347 108.09 -510Q108.09 -715 177.66 -897.5Q247.23 -1080 369.05 -1220Q490.86 -1360 648.98 -1440Q807.1 -1520 984.2 -1520Q1105 -1520 1197.99 -1469.9Q1290.97 -1419.8 1339.74 -1322.16Q1388.51 -1224.52 1376.29 -1081.52H1362.09Q1370.39 -1186.82 1344.43 -1263.6Q1318.48 -1340.38 1268.58 -1390.12Q1218.69 -1439.87 1152.33 -1464.17Q1085.98 -1488.48 1012.6 -1488.48Q907.7 -1488.48 818.73 -1438.74Q729.76 -1388.99 657.15 -1302.75Q584.54 -1216.51 528.65 -1105.44Q472.76 -994.38 435.38 -870.5Q398 -746.62 378.7 -622.02Q359.4 -497.41 359.4 -384.91Q359.4 -284.31 390.72 -199.2Q422.03 -114.1 488.09 -62.53Q554.15 -10.96 658.15 -10.96Q787.95 -10.96 898.34 -64.52Q1008.74 -118.08 1092.79 -210.55Q1176.84 -303.02 1226.38 -418.48H1241.51Q1195.91 -295.48 1107.05 -195.88Q1018.18 -96.28 896.89 -38.14Q775.6 20 632.6 20ZM1119.33 0 1043.77 -139.21Q1081.92 -178.25 1120.83 -222.15Q1159.74 -266.06 1195.55 -333.85L1226.38 -418.48H1251.04L1141.04 0ZM1362.09 -1081.52 1369.37 -1153.01Q1365.03 -1212.99 1352.4 -1262.47Q1339.77 -1311.95 1310.23 -1357.44L1462.53 -1500H1484.24L1386.84 -1081.52ZM1699.94 20Q1545.72 20 1468.73 -69.2Q1391.74 -158.4 1391.74 -297.6Q1391.74 -427.06 1436.5 -543.06Q1481.26 -659.06 1558.5 -748.26Q1635.74 -837.46 1735.32 -888.73Q1834.9 -940 1944.54 -940Q2099.62 -940 2176.88 -849.6Q2254.14 -759.2 2254.14 -620Q2254.14 -491.1 2209.73 -375.45Q2165.32 -259.8 2088.22 -170.67Q2011.12 -81.54 1911.12 -30.77Q1811.12 20 1699.94 20ZM1687.24 -4.66Q1738.32 -4.66 1787.42 -40.49Q1836.51 -76.33 1881.49 -137.99Q1926.48 -199.65 1964.27 -277.97Q2002.07 -356.29 2030.14 -442.18Q2058.21 -528.06 2073.82 -612.32Q2089.43 -696.58 2089.43 -768.48Q2089.43 -836.18 2057.64 -875.33Q2025.84 -914.48 1957.24 -914.48Q1907.02 -914.48 1857.49 -878.65Q1807.97 -842.81 1762.98 -781.15Q1718 -719.49 1680.2 -641.17Q1642.41 -562.85 1614.34 -476.96Q1586.27 -391.08 1570.66 -307.32Q1555.04 -223.56 1555.04 -150.66Q1555.04 -83.96 1587.34 -44.31Q1619.64 -4.66 1687.24 -4.66ZM2724.14 20Q2628.14 20 2570.93 -13.66Q2513.72 -47.32 2495.72 -110.61Q2477.72 -173.9 2499.14 -262L2635.45 -830.26Q2637.45 -839.26 2638.97 -849.73Q2640.5 -860.19 2640.5 -867.19Q2640.5 -882.66 2631.27 -891.8Q2622.04 -900.93 2603.97 -900.93Q2569.69 -900.93 2538.13 -882.39Q2506.56 -863.84 2476.58 -828.05Q2446.61 -792.27 2418.81 -738.94Q2391.01 -685.61 2363.78 -615.12L2340.57 -622.03Q2369.2 -694.69 2399.27 -753.16Q2429.33 -811.63 2465.02 -853.19Q2500.7 -894.75 2545.21 -916.87Q2589.72 -939 2645.31 -939Q2722.15 -939 2767.53 -897.42Q2812.9 -855.84 2812.9 -795.62Q2812.9 -773.62 2809.19 -754.08Q2805.48 -734.54 2802.64 -720.6L2695.85 -262.19Q2676.79 -178.4 2670.7 -123.92Q2664.61 -69.44 2682.66 -42.61Q2700.7 -15.78 2752.01 -15.78Q2814.81 -15.78 2881.35 -62.38Q2947.88 -108.97 3009.6 -186.9Q3071.31 -264.84 3120.7 -360.43Q3170.09 -456.02 3198.79 -556.36Q3227.48 -656.7 3227.48 -745.4Q3227.48 -800.77 3211.25 -837.84Q3195.02 -874.9 3166.65 -893.83Q3138.28 -912.75 3102.14 -912.75V-936Q3138.18 -936 3167.63 -920.04Q3197.08 -904.07 3214.21 -875.38Q3231.34 -846.69 3231.34 -808.19Q3231.34 -755 3192.9 -718.5Q3154.46 -682 3102.14 -682Q3043.84 -682 3009.99 -716.85Q2976.14 -751.7 2976.14 -810Q2976.14 -862.3 3011.99 -900.15Q3047.84 -938 3102.14 -938Q3145.74 -938 3179.75 -915.63Q3213.76 -893.26 3232.95 -850.18Q3252.14 -807.1 3252.14 -745.4Q3252.14 -654.4 3222.24 -549.73Q3192.34 -445.06 3139.67 -344.38Q3087 -243.7 3019.7 -161.09Q2952.4 -78.48 2876.53 -29.24Q2800.66 20 2724.14 20ZM3655.98 20Q3556.48 20 3488.66 -21.06Q3420.84 -62.12 3386.14 -134.26Q3351.44 -206.4 3351.44 -300Q3351.44 -417.24 3394.56 -531.09Q3437.68 -644.94 3515.29 -737.31Q3592.9 -829.68 3697.01 -884.84Q3801.12 -940 3922.24 -940Q4039.76 -940 4104.65 -884.12Q4169.54 -828.24 4169.54 -746.16Q4169.54 -666.68 4116.48 -604.39Q4063.42 -542.1 3972.44 -498.33Q3881.46 -454.56 3767.7 -428.87Q3653.94 -403.19 3531.54 -395.19V-416.23Q3614.59 -421.81 3686.96 -442.25Q3759.33 -462.69 3817.14 -496.38Q3874.95 -530.06 3916.29 -575.95Q3957.63 -621.83 3979.85 -678.72Q4002.07 -735.6 4002.07 -802.12Q4002.07 -845.74 3983.67 -880.25Q3965.27 -914.77 3918.94 -914.77Q3865.33 -914.77 3815.7 -880.25Q3766.07 -845.73 3722.36 -786.33Q3678.65 -726.94 3642.74 -652.61Q3606.83 -578.28 3581.02 -497Q3555.21 -415.71 3541.32 -337.01Q3527.42 -258.31 3527.42 -191.87Q3527.42 -90.5 3570.4 -51.92Q3613.38 -13.34 3679.18 -13.34Q3759.67 -13.34 3829.64 -46.68Q3899.62 -80.02 3958 -138.17Q4016.38 -196.32 4060.17 -271.25L4081.98 -258.14Q4040.88 -183.68 3979.77 -120.47Q3918.66 -57.26 3837.92 -18.63Q3757.18 20 3655.98 20ZM4977.72 20Q4897.08 20 4856.54 -13.5Q4815.99 -47.01 4815.99 -113.11Q4815.99 -134.23 4820.53 -155.04Q4825.06 -175.86 4829.48 -190.54L4960.32 -619.95Q4984.19 -697.44 4993.39 -757.68Q5002.59 -817.91 4987.84 -852.3Q4973.08 -886.68 4924.7 -886.68Q4880.21 -886.68 4822.06 -834.41Q4763.91 -782.14 4704.21 -693.17Q4644.51 -604.21 4593.49 -493.52Q4542.48 -382.83 4511.65 -266H4494.37Q4515.01 -346.95 4550.93 -438.71Q4586.85 -530.48 4635.13 -618.89Q4683.41 -707.31 4740.35 -779.95Q4797.28 -852.59 4859.55 -895.79Q4921.81 -939 4986.19 -939Q5072.21 -939 5117.72 -898.06Q5163.24 -857.12 5172.48 -788.94Q5181.73 -720.75 5157.29 -639L4997.1 -94.79Q4994.24 -86.07 4992.6 -76.15Q4990.96 -66.23 4990.96 -58.23Q4990.96 -42.09 4998.8 -31.72Q5006.63 -21.35 5026.44 -21.35Q5098.84 -21.35 5157.45 -91.05Q5216.07 -160.74 5277.79 -316.31L5301 -308.23Q5256.32 -191.69 5210.1 -119.26Q5163.88 -46.84 5108.09 -13.42Q5052.29 20 4977.72 20ZM4252.18 0 4480.16 -895.34H4342.6V-920H4678.83L4444.34 0ZM5658.76 20Q5525.42 20 5464.59 -67.08Q5403.75 -154.15 5403.75 -305Q5403.75 -420 5446.58 -532.5Q5489.41 -645 5560.88 -737Q5632.34 -829 5719.15 -884.5Q5805.95 -940 5893.55 -940Q5963.91 -940 6002.57 -901.36Q6041.22 -862.71 6056.34 -799.53Q6071.46 -736.35 6071.46 -662.02Q6071.46 -599.4 6058.27 -524.67Q6045.08 -449.94 6019.62 -373.44Q5994.16 -296.94 5958.13 -226.53Q5922.09 -156.13 5875.97 -100.53Q5829.85 -44.92 5775.54 -12.46Q5721.24 20 5658.76 20ZM5706.17 -31.02Q5759.3 -31.02 5809.62 -71.12Q5859.94 -111.23 5903.75 -178.24Q5947.55 -245.26 5980.67 -328.14Q6013.8 -411.02 6032.41 -497.62Q6051.02 -584.22 6051.02 -662.08Q6051.02 -730.29 6039.19 -782.72Q6027.36 -835.14 6000.22 -864.78Q5973.08 -894.42 5926.83 -894.42Q5878.16 -894.42 5829.35 -849.82Q5780.54 -805.22 5736.95 -731.25Q5693.36 -657.28 5659.17 -568.31Q5624.98 -479.34 5605.44 -389.22Q5585.9 -299.09 5585.9 -223.19Q5585.9 -127.22 5618.27 -79.12Q5650.63 -31.02 5706.17 -31.02ZM6101.31 20Q6025.7 20 5990.39 -19.3Q5955.07 -58.61 5955.07 -121.62Q5955.07 -139.41 5956.2 -153.2Q5957.32 -167 5959.32 -177L5986.69 -324.54L6035.37 -478.2L6062.74 -647.18L6128.76 -920H6325.77L6104.24 -87.18Q6100.24 -72.18 6100.24 -55.6Q6100.24 -39.92 6109.03 -28.8Q6117.81 -17.67 6137.9 -17.67Q6182.54 -17.67 6222.95 -46.91Q6263.36 -76.15 6303.81 -141.69Q6344.27 -207.23 6387.48 -316.31L6411.28 -308.23Q6367.05 -193.8 6321.96 -121.22Q6276.88 -48.64 6223.89 -14.32Q6170.9 20 6101.31 20ZM7190.72 20Q7110.08 20 7069.54 -13.5Q7028.99 -47.01 7028.99 -113.11Q7028.99 -134.23 7033.53 -155.04Q7038.06 -175.86 7042.48 -190.54L7173.32 -619.95Q7197.19 -697.44 7206.39 -757.68Q7215.59 -817.91 7200.84 -852.3Q7186.08 -886.68 7137.7 -886.68Q7093.21 -886.68 7035.06 -834.41Q6976.91 -782.14 6917.21 -693.17Q6857.51 -604.21 6806.49 -493.52Q6755.48 -382.83 6724.65 -266H6707.37Q6728.01 -346.95 6763.93 -438.71Q6799.85 -530.48 6848.13 -618.89Q6896.41 -707.31 6953.35 -779.95Q7010.28 -852.59 7072.55 -895.79Q7134.81 -939 7199.19 -939Q7285.21 -939 7330.72 -898.06Q7376.24 -857.12 7385.48 -788.94Q7394.73 -720.75 7370.29 -639L7210.1 -94.79Q7207.24 -86.07 7205.6 -76.15Q7203.96 -66.23 7203.96 -58.23Q7203.96 -42.09 7211.8 -31.72Q7219.63 -21.35 7239.44 -21.35Q7311.84 -21.35 7370.45 -91.05Q7429.07 -160.74 7490.79 -316.31L7514 -308.23Q7469.32 -191.69 7423.1 -119.26Q7376.88 -46.84 7321.09 -13.42Q7265.29 20 7190.72 20ZM6465.18 0 6693.16 -895.34H6555.6V-920H6891.83L6657.34 0ZM7836.03 20Q7769.83 20 7729.07 0.01Q7688.31 -19.98 7669.47 -52.11Q7650.64 -84.24 7650.64 -118.94Q7650.64 -137.04 7656.41 -167.02Q7662.18 -197 7670.04 -227L7910.82 -1120H8098.82L7819.88 -101.91Q7816.83 -91.59 7813.83 -78.16Q7810.83 -64.73 7810.83 -50.73Q7810.83 -15.33 7867.34 -15.33Q7909.19 -15.33 7950.24 -34.65Q7991.28 -53.97 8029.75 -93.12Q8068.22 -132.28 8104.55 -192.26Q8140.88 -252.24 8173.42 -333.49L8197.22 -326Q8152.88 -214.54 8100.38 -137.18Q8047.88 -59.82 7982.9 -19.91Q7917.92 20 7836.03 20ZM7657.22 -894.75V-920H8225.22V-894.75Z"/></symbol><symbol id="seal-a" viewBox="0 0 100 100"><path class="pl" d="M14 0H100V100H0V14Z"/><path class="ed" d="M14.2 .5H99.5V99.5H.5V14.2Z"/><rect class="p1" x="0" y="0" width="7" height="7"/><path class="off" d="M11 11h8v8h-8zM21 11h8v8h-8zM31 11h8v8h-8zM61 11h8v8h-8zM71 11h8v8h-8zM81 11h8v8h-8zM21 21h8v8h-8zM31 21h8v8h-8zM41 21h8v8h-8zM51 21h8v8h-8zM11 31h8v8h-8zM21 31h8v8h-8zM41 31h8v8h-8zM51 31h8v8h-8zM61 31h8v8h-8zM71 31h8v8h-8zM81 31h8v8h-8zM21 41h8v8h-8zM31 41h8v8h-8zM51 41h8v8h-8zM61 41h8v8h-8zM71 41h8v8h-8zM81 41h8v8h-8zM11 51h8v8h-8zM41 51h8v8h-8zM51 51h8v8h-8zM61 51h8v8h-8zM71 51h8v8h-8zM81 51h8v8h-8zM11 61h8v8h-8zM21 61h8v8h-8zM31 61h8v8h-8zM41 61h8v8h-8zM51 61h8v8h-8zM61 61h8v8h-8zM71 61h8v8h-8zM81 61h8v8h-8zM11 71h8v8h-8zM21 71h8v8h-8zM31 71h8v8h-8zM41 71h8v8h-8zM51 71h8v8h-8zM61 71h8v8h-8zM71 71h8v8h-8zM81 71h8v8h-8zM21 81h8v8h-8zM31 81h8v8h-8zM41 81h8v8h-8zM51 81h8v8h-8zM61 81h8v8h-8zM71 81h8v8h-8zM81 81h8v8h-8z"/><path class="on" d="M41 11h8v8h-8zM51 11h8v8h-8zM11 21h8v8h-8zM61 21h8v8h-8zM71 21h8v8h-8zM81 21h8v8h-8zM31 31h8v8h-8zM11 41h8v8h-8zM41 41h8v8h-8zM21 51h8v8h-8zM31 51h8v8h-8zM11 81h8v8h-8z"/></symbol><symbol id="seal-b" viewBox="0 0 100 100"><path class="pl" d="M14 0H100V100H0V14Z"/><path class="ed" d="M14.2 .5H99.5V99.5H.5V14.2Z"/><rect class="p1" x="0" y="0" width="7" height="7"/><path class="off" d="M11 11h8v8h-8zM21 11h8v8h-8zM31 11h8v8h-8zM41 11h8v8h-8zM51 11h8v8h-8zM61 11h8v8h-8zM71 11h8v8h-8zM81 11h8v8h-8zM21 21h8v8h-8zM31 21h8v8h-8zM41 21h8v8h-8zM51 21h8v8h-8zM11 31h8v8h-8zM21 31h8v8h-8zM41 31h8v8h-8zM51 31h8v8h-8zM61 31h8v8h-8zM71 31h8v8h-8zM21 41h8v8h-8zM31 41h8v8h-8zM51 41h8v8h-8zM61 41h8v8h-8zM71 41h8v8h-8zM81 41h8v8h-8zM11 51h8v8h-8zM21 51h8v8h-8zM41 51h8v8h-8zM51 51h8v8h-8zM61 51h8v8h-8zM71 51h8v8h-8zM81 51h8v8h-8zM11 61h8v8h-8zM21 61h8v8h-8zM31 61h8v8h-8zM41 61h8v8h-8zM51 61h8v8h-8zM61 61h8v8h-8zM71 61h8v8h-8zM81 61h8v8h-8zM11 71h8v8h-8zM21 71h8v8h-8zM31 71h8v8h-8zM41 71h8v8h-8zM51 71h8v8h-8zM61 71h8v8h-8zM71 71h8v8h-8zM21 81h8v8h-8zM31 81h8v8h-8zM41 81h8v8h-8zM51 81h8v8h-8zM61 81h8v8h-8zM71 81h8v8h-8zM81 81h8v8h-8z"/><path class="on" d="M11 21h8v8h-8zM61 21h8v8h-8zM71 21h8v8h-8zM81 21h8v8h-8zM31 31h8v8h-8zM81 31h8v8h-8zM11 41h8v8h-8zM41 41h8v8h-8zM31 51h8v8h-8zM81 71h8v8h-8zM11 81h8v8h-8z"/></symbol><symbol id="seal-cold" viewBox="0 0 100 100"><path class="pl" d="M14 0H100V100H0V14Z"/><path class="ed" d="M14.2 .5H99.5V99.5H.5V14.2Z"/><rect class="p1" x="0" y="0" width="7" height="7"/><path class="off" d="M11 11h8v8h-8zM21 11h8v8h-8zM31 11h8v8h-8zM41 11h8v8h-8zM51 11h8v8h-8zM61 11h8v8h-8zM71 11h8v8h-8zM81 11h8v8h-8zM11 21h8v8h-8zM21 21h8v8h-8zM31 21h8v8h-8zM41 21h8v8h-8zM51 21h8v8h-8zM61 21h8v8h-8zM71 21h8v8h-8zM81 21h8v8h-8zM11 31h8v8h-8zM21 31h8v8h-8zM31 31h8v8h-8zM41 31h8v8h-8zM51 31h8v8h-8zM61 31h8v8h-8zM71 31h8v8h-8zM81 31h8v8h-8zM11 41h8v8h-8zM21 41h8v8h-8zM31 41h8v8h-8zM41 41h8v8h-8zM51 41h8v8h-8zM61 41h8v8h-8zM71 41h8v8h-8zM81 41h8v8h-8zM11 51h8v8h-8zM21 51h8v8h-8zM31 51h8v8h-8zM41 51h8v8h-8zM51 51h8v8h-8zM61 51h8v8h-8zM71 51h8v8h-8zM81 51h8v8h-8zM11 61h8v8h-8zM21 61h8v8h-8zM31 61h8v8h-8zM41 61h8v8h-8zM51 61h8v8h-8zM61 61h8v8h-8zM71 61h8v8h-8zM81 61h8v8h-8zM11 71h8v8h-8zM21 71h8v8h-8zM31 71h8v8h-8zM41 71h8v8h-8zM51 71h8v8h-8zM61 71h8v8h-8zM71 71h8v8h-8zM81 71h8v8h-8zM11 81h8v8h-8zM21 81h8v8h-8zM31 81h8v8h-8zM41 81h8v8h-8zM51 81h8v8h-8zM61 81h8v8h-8zM71 81h8v8h-8zM81 81h8v8h-8z"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><title>Wire to a pad: go, open, next</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 12H16"/><rect class="pad" fill="currentColor" stroke="none" x="16" y="9.5" width="5" height="5"/></g></symbol><symbol id="i-arrow-down" viewBox="0 0 24 24"><title>Wire down to a pad: scroll on</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3V16"/><rect class="pad" fill="currentColor" stroke="none" x="9.5" y="16" width="5" height="5"/></g></symbol><symbol id="i-external" viewBox="0 0 24 24"><title>Leaves the site: explorer, source</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M11 5H5V19H19V13"/><path d="M10 14H16.5V8"/><rect class="pad" fill="currentColor" stroke="none" x="14" y="3" width="5" height="5"/></g></symbol><symbol id="i-match" viewBox="0 0 24 24"><title>Match: the chain agrees</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 4H20V20H4Z"/><path d="M8 10H16M8 14H16"/></g></symbol><symbol id="i-differ" viewBox="0 0 24 24"><title>Differ: the routes are not the same</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 4H20V20H4Z"/><path d="M8 10H16M11 14H16"/><rect class="pad" fill="currentColor" stroke="none" x="7" y="12.5" width="3" height="3"/></g></symbol><symbol id="i-chip" viewBox="0 0 24 24"><title>A chip: circuit, processor</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M7 7H17V17H7Z"/><path d="M10 7V3M14 7V3M10 21V17M14 21V17M3 10H7M3 14H7M17 10H21M17 14H21"/><rect class="pad" fill="currentColor" stroke="none" x="9" y="9" width="3" height="3"/></g></symbol><symbol id="i-clock" viewBox="0 0 24 24"><title>The epoch clock: settle, history</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 4H20V20H4Z"/><path d="M12 7V12H16"/></g></symbol><symbol id="i-lock" viewBox="0 0 24 24"><title>The envelope: limits fixed at creation</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 11H19V20H5Z"/><path d="M8 11V5H16V11"/><path d="M12 14.5V16.5"/></g></symbol><symbol id="i-menu" viewBox="0 0 24 24"><title>Menu</title><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 6H20M4 12H14M4 18H20"/><rect class="pad" fill="currentColor" stroke="none" x="15.5" y="9.5" width="5" height="5"/></g></symbol></svg><!-- sprite:end -->
+
+<!-- ================================================================ cover -->
+<header class="band silicon cover">
+  <div class="wrap">
+    <div class="top">
+      <svg class="use" viewBox="0 0 10 10" role="img" aria-label="Covenant"><use href="#lockup-h"/></svg>
+      <span class="label">Brand system · phase 0 · 2026-10-07</span>
+    </div>
+    <div class="grid">
+      <p class="label kicker">TapeOut circuit · X Layer 196 · Flow Governor · 1,888 NAND + 64 latch</p>
+      <h1><span class="line">Sealed by</span> <span class="line">a <em>die.</em></span></h1>
+      <figure class="seal-hero">
+        <svg class="use" viewBox="0 0 100 100" role="img" aria-label="The Seal, state A"><use href="#seal-a"/></svg>
+        <figcaption class="cap"><span class="label">The Seal · state A</span><p class="mono">reachA.state 0x18e1040906000001</p></figcaption>
+      </figure>
+      <dl class="defs">
+        <div class="def"><dt>die<sup>1</sup><span>noun</span></dt><dd>A block of silicon that carries a circuit.</dd></div>
+        <div class="def"><dt>die<sup>2</sup><span>noun</span></dt><dd>The engraved stamp that presses a seal.</dd></div>
+      </dl>
+      <p class="concept">A covenant is a sealed vow, and Covenant’s seal is pressed by a silicon die. The layout follows from that: <b>a deed with a window.</b> A strict clause grid is printed on paper and cut open wherever the chip itself is shown.</p>
+      <ol class="toc">
+        <li><b>§01</b>The Bond</li><li><b>§02</b>Wordmark</li><li><b>§03</b>The Seal</li><li><b>§04</b>Colour</li>
+        <li><b>§05</b>Type</li><li><b>§06</b>Interface</li><li><b>§07</b>Surface, motion</li><li><b>§08</b>Do and don’t</li>
+      </ol>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ================================================================ §01 the Bond -->
+<section class="band paper" aria-labelledby="h-bond">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§01</b><span class="label">Logomark</span></p>
+      <h2 id="h-bond">The <em>Bond</em></h2>
+      <p class="lede">One Manhattan wire bent into a C, closed by two pads. Rectangles only, square corners, on a 32-unit grid.</p>
+    </div>
+    <div class="construct">
+      <figure>
+        <svg viewBox="-5 -7 44 46" role="img" aria-label="Construction of the Bond on the 32-unit grid, with its clear space">
+          <g id="grid32"></g>
+          <rect class="g-box" x="0" y="0" width="32" height="32"/>
+          <rect class="g-clear" x="-4" y="-6" width="42" height="44"/>
+          <g class="wfill"><rect x="5" y="6" width="3" height="20"/><rect x="5" y="6" width="17" height="3"/><rect x="5" y="23" width="17" height="3"/><rect x="20" y="3" width="9" height="9"/></g>
+          <rect class="p" x="20" y="20" width="9" height="9"/>
+          <text class="t" x="0" y="34.6">0</text><text class="t" x="30.3" y="34.6">32</text>
+          <text class="t" x="-3.4" y="-4.4">clear space · 9</text>
+        </svg>
+        <figcaption class="cap"><span class="label">Construction</span><p>The dashed line is the clear space: one pad (9 units) on every side of the ink. Nothing else enters it.</p></figcaption>
+      </figure>
+      <dl class="spec">
+        <div><dt>Spine</dt><dd><span class="mono">x5 y6 · 3 × 20</span></dd></div>
+        <div><dt>Arms</dt><dd><span class="mono">x5 y6 · 17 × 3</span>, <span class="mono">x5 y23 · 17 × 3</span></dd></div>
+        <div><dt>Pad</dt><dd><span class="mono">x20 y3 · 9 × 9</span>, in the text colour</dd></div>
+        <div><dt>Pad, gold</dt><dd><span class="mono">x20 y20 · 9 × 9</span>, Bond Gold <span class="mono">#E6B450</span></dd></div>
+        <div><dt>16 px cut</dt><dd>Fitted by hand to whole pixels: wire 2, pads 5, the gap between the pads kept at a quarter of the height.</dd></div>
+        <div><dt>Minimum</dt><dd>16 px. Use the 16 px cut from 16 to 23 px; the 32-grid drawing from 24 px up.</dd></div>
+      </dl>
+    </div>
+    <div class="sizes">
+      <div class="tile paper">
+        <div class="head"><span class="label">On paper</span><span class="micro">256 · 96 · 32 · 16</span></div>
+        <div class="row">
+          <figure><svg class="use m256" viewBox="0 0 32 32" role="img" aria-label="Bond, 256 px"><use href="#bond"/></svg></figure>
+          <figure><svg class="use" width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><use href="#bond"/></svg><span class="micro">96</span></figure>
+          <figure><svg class="use" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><use href="#bond"/></svg><span class="micro">32</span></figure>
+          <figure><svg class="use" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><use href="#bond-16"/></svg><span class="micro">16</span></figure>
+        </div>
+      </div>
+      <div class="tile silicon">
+        <div class="head"><span class="label">On silicon</span><span class="micro">256 · 96 · 32 · 16</span></div>
+        <div class="row">
+          <figure><svg class="use m256" viewBox="0 0 32 32" role="img" aria-label="Bond on silicon, 256 px"><use href="#bond"/></svg></figure>
+          <figure><svg class="use" width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><use href="#bond"/></svg><span class="micro">96</span></figure>
+          <figure><svg class="use" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><use href="#bond"/></svg><span class="micro">32</span></figure>
+          <figure><svg class="use" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><use href="#bond-16"/></svg><span class="micro">16</span></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ §02 wordmark -->
+<section class="band paper" aria-labelledby="h-wm">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§02</b><span class="label">Wordmark, lockups</span></p>
+      <h2 id="h-wm">The name, <em>outlined</em></h2>
+      <p class="lede">Bodoni Moda Italic 500, sentence case, tracking −0.01em, kerned and outlined. No font is needed to draw it.</p>
+    </div>
+    <figure class="wm-hero">
+      <svg class="use" viewBox="0 0 10 10" role="img" aria-label="Covenant, display cut"><use href="#wm-display"/></svg>
+      <figcaption class="cap"><span class="label">Display cut · opsz 96</span><p>For the wordmark set at 48 px and above: hairlines as fine as the die’s wires.</p></figcaption>
+    </figure>
+    <div class="wm-cuts">
+      <figure>
+        <div class="wm-ladder">
+          <svg class="use" style="height:40px;width:auto" viewBox="0 0 10 10" aria-hidden="true"><use href="#wm-text"/></svg>
+          <svg class="use" style="height:24px;width:auto" viewBox="0 0 10 10" aria-hidden="true"><use href="#wm-text"/></svg>
+          <svg class="use" style="height:16px;width:auto" viewBox="0 0 10 10" aria-hidden="true"><use href="#wm-text"/></svg>
+        </div>
+        <figcaption class="cap"><span class="label">Text cut · opsz 18</span><p>Below 48 px: heavier hairlines that survive the header, the tab and the footer.</p></figcaption>
+      </figure>
+      <dl class="spec">
+        <div><dt>Face</dt><dd>Bodoni Moda Italic, wght 500</dd></div>
+        <div><dt>Tracking</dt><dd><span class="mono">−0.01em</span>, plus the font’s own kerning (v–e)</dd></div>
+        <div><dt>Case</dt><dd>Sentence case. Never all capitals, never letter-spaced.</dd></div>
+        <div><dt>Lockup</dt><dd>Cap height spans the Bond’s arms; one pad of space between.</dd></div>
+      </dl>
+    </div>
+    <div class="lockups">
+      <div class="tile paper"><span class="label">Horizontal · paper</span><svg class="use" viewBox="0 0 10 10" role="img" aria-label="Covenant horizontal lockup"><use href="#lockup-h"/></svg></div>
+      <div class="tile silicon"><span class="label">Horizontal · silicon</span><svg class="use" viewBox="0 0 10 10" role="img" aria-label="Covenant horizontal lockup on silicon"><use href="#lockup-h"/></svg></div>
+      <div class="tile paper stack"><span class="label">Stacked · paper</span><svg class="use" viewBox="0 0 10 10" role="img" aria-label="Covenant stacked lockup"><use href="#lockup-s"/></svg></div>
+      <div class="tile silicon stack"><span class="label">Stacked · silicon</span><svg class="use" viewBox="0 0 10 10" role="img" aria-label="Covenant stacked lockup on silicon"><use href="#lockup-s"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ §03 the Seal (a silicon window) -->
+<section class="band silicon" aria-labelledby="h-seal">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§03</b><span class="label">Signature</span></p>
+      <h2 id="h-seal">The <em>Seal</em></h2>
+      <p class="lede">The chip’s 64 latches as an 8 × 8 impression. Always real state bits, never decoration.</p>
+    </div>
+    <div class="seals">
+      <figure>
+        <svg class="use" viewBox="0 0 100 100" role="img" aria-label="Seal, state A"><use href="#seal-a"/></svg>
+        <figcaption class="cap"><span class="label">State A</span><p class="mono">0x18e1040906000001</p><p>Fields MODE 1 · A 280 · LIVE 6 · CLOCK 4. Given the word x it routes buy 160, allowance 32, reserve 64 of 256, and releases 2.</p><span class="tag go">answers in CRUISE</span></figcaption>
+      </figure>
+      <figure>
+        <svg class="use" viewBox="0 0 100 100" role="img" aria-label="Seal, state B"><use href="#seal-b"/></svg>
+        <figcaption class="cap"><span class="label">State B</span><p class="mono">0x00e1840904008001</p><p>Fields MODE 1 · A 256 · LIVE 4 · CLOCK 6. The same word x routes buy 256 of 256 and releases 34.</p><span class="tag">answers in DEFEND</span></figcaption>
+      </figure>
+      <figure>
+        <svg class="use" viewBox="0 0 100 100" role="img" aria-label="Seal, cold"><use href="#seal-cold"/></svg>
+        <figcaption class="cap"><span class="label">Cold</span><p class="mono">0x0000000000000000</p><p>Every latch holds 0: a kernel before its first settle, and the 404 page.</p><span class="tag">no state yet</span></figcaption>
+      </figure>
+    </div>
+    <div class="bitmap">
+      <figure>
+        <div class="bits" id="bits" role="img" aria-label="Bit order of state A: byte k is row k, least significant bit on the left"></div>
+        <figcaption class="cap"><span class="label">Bit order</span><p>Bit <span class="mono">i</span> sits at row <span class="mono">⌊i/8⌋</span>, column <span class="mono">i mod 8</span>: byte <span class="mono">k</span> of the word is row <span class="mono">k</span>, least significant bit on the left, exactly as <span class="mono">packBits</span> in <span class="mono">packages/tap20</span>. Pin 1 (bit 0) is by the gold square.</p></figcaption>
+      </figure>
+      <ul class="uses">
+        <li><b>Hero</b><span>The latches fly into the Seal; it flips from A to B.</span></li>
+        <li><b>A / B cards</b><span>Each card carries the state it starts from.</span></li>
+        <li><b>Vault</b><span>The live <span class="mono">state()</span> of the kernel’s chip.</span></li>
+        <li><b>Audit</b><span>Before and after one settle.</span></li>
+        <li><b>Loading</b><span>The Seal fills in level order.</span></li>
+        <li><b>404</b><span>The cold Seal.</span></li>
+        <li><b>Footer, OG</b><span>The flagship kernel’s state.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ §04 colour -->
+<section class="band paper" aria-labelledby="h-colour">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§04</b><span class="label">Colour</span></p>
+      <h2 id="h-colour">Two materials, <em>one accent</em></h2>
+      <p class="lede">Silicon is everything the chip computes. Paper is everything people wrote. Gold marks activity; route colours carry money and nothing else.</p>
+    </div>
+    <div class="materials">
+      <div class="material silicon">
+        <h3>Silicon <em>computes</em></h3>
+        <div class="swatches">
+          <div class="sw"><div class="chip" style="background:var(--wafer)"></div><div class="meta" data-hex="--wafer"><b>--wafer</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--wafer-2)"></div><div class="meta" data-hex="--wafer-2" data-cr="--wafer-2|--wafer"><b>--wafer-2</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--quartz)"></div><div class="meta" data-hex="--quartz" data-cr="--quartz|--wafer"><b>--quartz</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--quartz-2)"></div><div class="meta" data-hex="--quartz-2" data-cr="--quartz-2|--wafer"><b>--quartz-2</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--bond)"></div><div class="meta" data-hex="--bond" data-cr="--bond|--wafer"><b>--bond</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--rule)"></div><div class="meta" data-hex="--rule" data-cr="--rule|--wafer"><b>--rule</b></div></div>
+        </div>
+      </div>
+      <div class="material paper">
+        <h3>Paper <em>records</em></h3>
+        <div class="swatches">
+          <div class="sw"><div class="chip" style="background:var(--deed)"></div><div class="meta" data-hex="--deed"><b>--deed</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--deed-2)"></div><div class="meta" data-hex="--deed-2" data-cr="--deed-2|--deed"><b>--deed-2</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="meta" data-hex="--ink" data-cr="--ink|--deed"><b>--ink</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--ink-2)"></div><div class="meta" data-hex="--ink-2" data-cr="--ink-2|--deed"><b>--ink-2</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--bond-ink)"></div><div class="meta" data-hex="--bond-ink" data-cr="--bond-ink|--deed"><b>--bond-ink</b></div></div>
+          <div class="sw"><div class="chip" style="background:var(--rule)"></div><div class="meta" data-hex="--rule" data-cr="--rule|--deed"><b>--rule</b></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="accent-band">
+      <p class="big">Bond Gold is the one accent: a CTA, pin 1, the active wire, the pad that closes the C.</p>
+      <p class="micro"><span data-hex="--bond"></span> · ink on gold <span data-cr="--ink|--bond"></span> · as text on paper it becomes <span data-hex="--bond-ink"></span>, <span data-cr="--bond-ink|--deed"></span></p>
+    </div>
+    <div class="routes">
+      <div class="scroll-x">
+      <table class="rtable">
+        <thead><tr><th>Route</th><th>Silicon</th><th>Paper</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td>Buy</td><td><i class="dot" style="background:var(--route-buy-si)"></i><span class="mono" data-hex="--route-buy-si" data-cr="--route-buy-si|--wafer"></span></td><td><i class="dot" style="background:var(--route-buy-pa)"></i><span class="mono" data-hex="--route-buy-pa" data-cr="--route-buy-pa|--deed"></span></td><td>Tax the kernel spends on the token</td></tr>
+          <tr><td>Allowance</td><td><i class="dot" style="background:var(--route-allow-si)"></i><span class="mono" data-hex="--route-allow-si" data-cr="--route-allow-si|--wafer"></span></td><td><i class="dot" style="background:var(--route-allow-pa)"></i><span class="mono" data-hex="--route-allow-pa" data-cr="--route-allow-pa|--deed"></span></td><td>The payee’s share, inside the envelope</td></tr>
+          <tr><td>Reserve, release</td><td><i class="dot" style="background:var(--route-res-si)"></i><span class="mono" data-hex="--route-res-si" data-cr="--route-res-si|--wafer"></span></td><td><i class="dot" style="background:var(--route-res-pa)"></i><span class="mono" data-hex="--route-res-pa" data-cr="--route-res-pa|--deed"></span></td><td>Held back; released later</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="micro">Data only: bars, ribbons and keys, never body text. Fills need 3:1 against <span class="mono">--bg</span>; paper buy passes on <span class="mono">--deed</span>, not on <span class="mono">--deed-2</span>.</p>
+    </div>
+    <div class="verdicts">
+      <div class="silicon">
+        <div class="plates">
+          <div class="plate ok"><b>MATCH</b><span data-cr="--ok|--ok-bg"></span></div>
+          <div class="plate bad"><b>DIFFERENT</b><span data-cr="--bad|--bad-bg"></span></div>
+          <div class="plate warn"><b>STALE</b><span data-cr="--warn|--warn-bg"></span></div>
+          <div class="plate wait"><b>WAITING</b><span data-cr="--wait|--wait-bg"></span></div>
+        </div>
+      </div>
+      <div class="paper" style="border:var(--hairline) solid var(--rule)">
+        <div class="plates">
+          <div class="plate ok"><b>MATCH</b><span data-cr="--ok|--ok-bg"></span></div>
+          <div class="plate bad"><b>DIFFERENT</b><span data-cr="--bad|--bad-bg"></span></div>
+          <div class="plate warn"><b>STALE</b><span data-cr="--warn|--warn-bg"></span></div>
+          <div class="plate wait"><b>WAITING</b><span data-cr="--wait|--wait-bg"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ §05 type -->
+<section class="band paper" aria-labelledby="h-type">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§05</b><span class="label">Type</span></p>
+      <h2 id="h-type">Engraved, written, <em>marked</em></h2>
+      <p class="lede">A display face for the vow, a sans for the clauses, a mono for what the chip reads and returns.</p>
+    </div>
+    <div class="faces">
+      <div class="face"><span class="label">Display · 1.75rem and up</span><div class="aa d">Aa<em>g</em></div><p class="glyphs d">Covenant <em>sealed</em> 0123456789</p><p>Bodoni Moda. Variable opsz 28–96, wght 400–600; italic pinned at opsz 72, wght 400–500. The Bodoni Moda Project Authors, SIL OFL 1.1.</p></div>
+      <div class="face"><span class="label">Body · clauses, UI</span><div class="aa s">Aa</div><p class="glyphs">Anyone may call settle() once per epoch.</p><p>Instrument Sans. Variable wdth 85–100, wght 400–600. The Instrument Sans Project Authors, SIL OFL 1.1.</p></div>
+      <div class="face"><span class="label">Data · labels, die markings</span><div class="aa m">0x</div><p class="glyphs m">0x18e1 ₮ ≈ ≠ → 1,888</p><p>Fragment Mono Regular, static. Slashed zero. The Fragment-Mono Project Authors, SIL OFL 1.1.</p></div>
+    </div>
+    <div class="scale">
+      <div class="step"><div class="k"><b>Hero</b><span class="micro">--step-hero · clamp(2.75rem, 7vw, 8rem)</span></div><p class="s-hero">routed by a chip anyone can read and <em>nobody can change.</em></p></div>
+      <div class="step"><div class="k"><b>Display</b><span class="micro">--step-display · 2.25–5rem</span></div><p class="s-display">Check that the chip <em>decides</em></p></div>
+      <div class="step"><div class="k"><b>Chapter</b><span class="micro">--step-chapter · 1.75–3.5rem</span></div><p class="s-chapter">II · One beat through <em>163 levels</em></p></div>
+      <div class="step"><div class="k"><b>H2</b><span class="micro">--step-h2 · 1.75–2.5rem</span></div><p class="s-h2">What no chip can do</p></div>
+      <div class="step"><div class="k"><b>Lede</b><span class="micro">--step-lede · 1.125–1.4375rem</span></div><p class="s-lede">Send an IGNIX token’s trading tax to a Covenant kernel instead of a wallet.</p></div>
+      <div class="step"><div class="k"><b>Body</b><span class="micro">--step-body · 1.0625rem / 1.6</span></div><p class="s-body">Once per epoch anyone may call <span class="mono">settle()</span>: the kernel asks one TapeOut circuit, the chip, how to split it, and carries out that split inside an envelope of limits fixed when the kernel was created.</p></div>
+      <div class="step"><div class="k"><b>Label</b><span class="micro">--step-label · 0.75rem mono</span></div><p class="s-label">TapeOut circuit · X Layer 196 · Flow Governor</p></div>
+      <div class="step"><div class="k"><b>Micro</b><span class="micro">--step-micro · 0.6875rem mono</span></div><p class="s-micro">reachA.state 0x18e1040906000001 · bit 0 top left · LSB first</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ §06 interface -->
+<section class="band paper" aria-labelledby="h-ui">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§06</b><span class="label">Interface</span></p>
+      <h2 id="h-ui">Press, <em>route</em>, read</h2>
+      <p class="lede">Square, flat, 48 px tall at phone width. A press sinks one pixel and leaves a square impression.</p>
+    </div>
+    <div class="ui">
+      <div class="tile silicon">
+        <span class="label">On silicon</span>
+        <div class="btns">
+          <button class="btn btn-primary" type="button">Watch the chip decide <svg aria-hidden="true"><use href="#i-arrow-down"/></svg></button>
+          <button class="btn btn-secondary" type="button">Run the eight checks <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+        </div>
+        <div class="btns">
+          <button class="btn btn-primary is-pressed" type="button">Watch the chip decide <svg aria-hidden="true"><use href="#i-arrow-down"/></svg></button>
+          <button class="btn btn-secondary is-pressed" type="button">Run the eight checks <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+        </div>
+        <p class="micro">Rest, then pressed: scale .97, 1 px down over 120 ms; released over 350 ms on the reveal ease.</p>
+        <div>
+          <div class="routebar" role="img" aria-label="State A routes: buy 160, allowance 32, reserve 64 of 256">
+            <i style="flex:160;background:var(--c-buy)"></i><i style="flex:32;background:var(--c-allow)"></i><i style="flex:64;background:var(--c-res)"></i>
+          </div>
+          <p class="rkey"><span style="--k:var(--c-buy)">Buy <b>160</b></span><span style="--k:var(--c-allow)">Allowance <b>32</b></span><span style="--k:var(--c-res)">Reserve <b>64</b></span><span>of 256 · state A, word x · release 2</span></p>
+        </div>
+      </div>
+      <div class="tile paper">
+        <span class="label">On paper</span>
+        <div class="btns">
+          <button class="btn btn-primary" type="button">Open the vault <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+          <button class="btn btn-secondary" type="button">Read the source <svg aria-hidden="true"><use href="#i-external"/></svg></button>
+        </div>
+        <div class="btns">
+          <button class="btn btn-primary is-pressed" type="button">Open the vault <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+          <button class="btn btn-secondary is-pressed" type="button">Read the source <svg aria-hidden="true"><use href="#i-external"/></svg></button>
+        </div>
+        <p class="micro">The arrow is a wire that ends in a pad; on hover the wire nudges 2 px.</p>
+        <div>
+          <div class="routebar" role="img" aria-label="State B routes: buy 256 of 256">
+            <i style="flex:256;background:var(--c-buy)"></i>
+          </div>
+          <p class="rkey"><span style="--k:var(--c-buy)">Buy <b>256</b></span><span style="--k:var(--c-rel)">Release <b>34</b> of the reserve</span><span>of 256 · state B, word x</span></p>
+        </div>
+      </div>
+    </div>
+    <div class="icons" id="icons"></div>
+  </div>
+</section>
+
+<!-- ================================================================ §07 surface and motion -->
+<section class="band paper" aria-labelledby="h-surface">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§07</b><span class="label">Surface, motion</span></p>
+      <h2 id="h-surface">Grid, grain, <em>wavefront</em></h2>
+      <p class="lede">Radius 0. No shadows. Depth comes from the two materials, a fine grain and the order things arrive in.</p>
+    </div>
+    <div class="surface">
+      <div class="tile gridviz">
+        <span class="label">Grid</span>
+        <div class="cols" style="grid-template-columns:repeat(12,1fr)"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <span class="micro">12 columns from 1024 px</span>
+        <div class="cols" style="grid-template-columns:repeat(8,1fr);width:66%"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <span class="micro">8 from 640 px</span>
+        <div class="cols" style="grid-template-columns:repeat(4,1fr);width:30%"><i></i><i></i><i></i><i></i></div>
+        <span class="micro">4 below, with a 16 px side gutter. Deliberate breaks: the hero runs over the canvas, clause numbers hang, silicon bleeds.</span>
+      </div>
+      <div class="tile" style="display:grid;gap:var(--sp-3);align-content:start">
+        <span class="label">Grain</span>
+        <div class="grain-pair silicon"><div class="flat"><span class="micro">flat</span></div><div class="grain"><span class="micro">5% noise</span></div><div class="zoom"><span class="micro">4× zoom</span></div></div>
+        <div class="grain-pair paper" style="border:var(--hairline) solid var(--rule)"><div class="flat"><span class="micro">flat</span></div><div class="grain"><span class="micro">3% noise</span></div><div class="zoom"><span class="micro">4× zoom</span></div></div>
+      </div>
+      <div class="tile" style="display:grid;gap:var(--sp-5);align-content:start">
+        <span class="label">Curves</span>
+        <div class="curves">
+          <figure>
+            <svg viewBox="0 0 100 100" aria-hidden="true"><path class="ax" d="M0 0V100H100"/><path class="hd" d="M0 100L16 0M100 0L30 0"/><path class="cv" d="M0 100C16 0 30 0 100 0"/><rect class="pt" x="14.5" y="-1.5" width="3" height="3"/><rect class="pt" x="28.5" y="-1.5" width="3" height="3"/></svg>
+            <figcaption class="cap"><span class="label">Reveal</span><p class="mono">cubic-bezier(.16, 1, .3, 1)</p><p>Things arriving: lines, plates, pages.</p></figcaption>
+          </figure>
+          <figure>
+            <svg viewBox="0 0 100 100" aria-hidden="true"><path class="ax" d="M0 0V100H100"/><path class="hd" d="M0 100L65 100M100 0L35 0"/><path class="cv" d="M0 100C65 100 35 0 100 0"/><rect class="pt" x="63.5" y="98.5" width="3" height="3"/><rect class="pt" x="33.5" y="-1.5" width="3" height="3"/></svg>
+            <figcaption class="cap"><span class="label">Toggle</span><p class="mono">cubic-bezier(.65, 0, .35, 1)</p><p>Things changing state: A to B, a switch.</p></figcaption>
+          </figure>
+        </div>
+      </div>
+      <div class="tile" style="display:grid;gap:var(--sp-5);align-content:start">
+        <span class="label">Durations</span>
+        <div class="durs">
+          <div class="dur"><span>Press 120</span><i class="g" style="--ms:120"></i></div>
+          <div class="dur"><span>Micro 240</span><i style="--ms:240"></i></div>
+          <div class="dur"><span>Toggle 320</span><i style="--ms:320"></i></div>
+          <div class="dur"><span>Release 350</span><i class="g" style="--ms:350"></i></div>
+          <div class="dur"><span>Reveal 900</span><i style="--ms:900"></i></div>
+          <div class="dur"><span>Page 1100</span><i style="--ms:1100"></i></div>
+        </div>
+        <div class="silicon" style="padding:var(--sp-4)">
+          <div class="wave" aria-hidden="true"><i style="--n:0"></i><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i><i style="--n:4"></i><i style="--n:5"></i><i style="--n:6"></i><i style="--n:7"></i></div>
+          <p class="micro" style="margin-top:var(--sp-3)">Stagger 60 ms per level, in level order, like the wavefront. Reduced motion: every duration is 0.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ §08 do and don't -->
+<section class="band paper" aria-labelledby="h-rules">
+  <div class="wrap grid">
+    <div class="clause grid" style="grid-column:1/-1">
+      <p class="num"><b>§08</b><span class="label">Rules</span></p>
+      <h2 id="h-rules">Do and <em>don’t</em></h2>
+      <p class="lede">Only real artefacts: the netlist die, real state words, computed numbers. Every sentence checked against the claims audit.</p>
+    </div>
+    <div class="rules">
+      <div class="do">
+        <h3>Do</h3>
+        <ol>
+          <li><b>01</b><span>Draw the Seal from a state word the chip actually holds, and say which.</span></li>
+          <li><b>02</b><span>Keep gold for one thing per view: the action, pin 1, the active wire.</span></li>
+          <li><b>03</b><span>Write plain verbs from the reader’s side: “Check it yourself”, “Run the eight checks”.</span></li>
+          <li><b>04</b><span>Keep “Unaudited” and “Adoption is zero” wherever the claims are made.</span></li>
+          <li><b>05</b><span>Put the word next to every verdict colour: MATCH, DIFFERENT, STALE.</span></li>
+        </ol>
+      </div>
+      <div class="dont">
+        <h3>Don’t</h3>
+        <ol>
+          <li><b>01</b><span>Fill a grid with random bits for texture. If it looks like state, it must be state.</span></li>
+          <li><b>02</b><span>Round a corner, add a shadow or a gradient that means nothing.</span></li>
+          <li><b>03</b><span>Set Bodoni below 1.75rem, or the wordmark in capitals.</span></li>
+          <li><b>04</b><span>Use a route colour for text, or for anything that is not money moving.</span></li>
+          <li><b>05</b><span>Use stock photos, AI images or superlatives.</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ================================================================ colophon -->
+<footer class="silicon colophon">
+  <div class="wrap grid">
+    <div class="lock"><svg class="use" viewBox="0 0 10 10" role="img" aria-label="Covenant"><use href="#lockup-s"/></svg></div>
+    <div class="credits">
+      <p>Set in Bodoni Moda, Instrument Sans and Fragment Mono, by their project authors, under the SIL Open Font License 1.1; self-hosted as subsets.</p>
+      <p>Marks drawn by hand on the 32 grid; the wordmark outlined with fontTools; the Seals drawn from <span class="mono">chips/out/fg.witness.json</span>.</p>
+    </div>
+    <div class="cold"><span class="micro" style="text-align:right">Unaudited.<br>Adoption is zero.</span><svg class="use" viewBox="0 0 100 100" role="img" aria-label="Cold seal"><use href="#seal-cold"/></svg></div>
+    <div class="base"><span class="label">Covenant · brand system · phase 0</span><span class="micro">docs/brand/README.md</span></div>
+  </div>
+</footer>
+
+<script>
+  // Each inline mark takes the proportions of its symbol, so it can be sized by height or width alone.
+  document.querySelectorAll('svg.use > use').forEach(function (u) {
+    var s = document.querySelector(u.getAttribute('href'));
+    if (!s) return;
+    var v = s.getAttribute('viewBox').split(/\s+/);
+    u.parentNode.setAttribute('viewBox', '0 0 ' + v[2] + ' ' + v[3]);
+  });
+
+  // The construction grid of the Bond.
+  (function () {
+    var g = document.getElementById('grid32'), s = '';
+    for (var i = 0; i <= 32; i++) s += '<path class="g-minor" d="M' + i + ' 0V32M0 ' + i + 'H32"/>';
+    g.innerHTML = s;
+  })();
+
+  // Bit order: state A, byte k as row k, least significant bit on the left (packages/tap20 packBits).
+  (function () {
+    var hex = '18e1040906000001', el = document.getElementById('bits'), h = '<span class="ch"></span>';
+    for (var c = 0; c < 8; c++) h += '<span class="ch">' + c + '</span>';
+    h += '<span class="ch"></span>';
+    for (var r = 0; r < 8; r++) {
+      var byte = parseInt(hex.substr(2 * r, 2), 16);
+      h += '<span class="rh">byte ' + r + '</span>';
+      for (var c2 = 0; c2 < 8; c2++) {
+        var i = 8 * r + c2, on = (byte >> c2) & 1;
+        h += '<span class="' + (on ? 'set' : '') + '">' + i + '</span>';
+      }
+      h += '<span class="hx">0x' + hex.substr(2 * r, 2) + '</span>';
+    }
+    el.innerHTML = h;
+  })();
+
+  // Icons, from the sprite.
+  (function () {
+    var el = document.getElementById('icons'), syms = document.querySelectorAll('symbol[id^="i-"]'), h = '';
+    syms.forEach(function (s) {
+      var id = s.id, name = id.slice(2), title = (s.querySelector('title') || {}).textContent || '';
+      h += '<div class="icon"><div class="stage"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' + id + '"/></svg></div>' +
+        '<div class="small"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' + id + '"/></svg><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' + id + '"/></svg></div>' +
+        '<span class="label" style="color:var(--fg)">' + name + '</span><span class="micro">' + title + '</span></div>';
+    });
+    el.innerHTML = h;
+  })();
+
+  // Hex values and contrast ratios, measured from the computed tokens in each element's own material.
+  (function () {
+    function rgb(v) {
+      var c = document.createElement('canvas').getContext('2d');
+      c.fillStyle = '#000'; c.fillStyle = v.trim();
+      var s = c.fillStyle;
+      if (s[0] === '#') return [parseInt(s.substr(1, 2), 16), parseInt(s.substr(3, 2), 16), parseInt(s.substr(5, 2), 16)];
+      var m = s.match(/\d+(\.\d+)?/g); return [+m[0], +m[1], +m[2]];
+    }
+    function lum(c) {
+      var a = c.map(function (v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+      return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+    }
+    function hex(c) { return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('').toUpperCase(); }
+    document.querySelectorAll('[data-hex],[data-cr]').forEach(function (el) {
+      var cs = getComputedStyle(el), out = [];
+      if (el.dataset.hex) out.push(hex(rgb(cs.getPropertyValue(el.dataset.hex))));
+      if (el.dataset.cr) {
+        var p = el.dataset.cr.split('|'), a = lum(rgb(cs.getPropertyValue(p[0]))), b = lum(rgb(cs.getPropertyValue(p[1])));
+        var r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        out.push(r.toFixed(2) + ':1' + (el.dataset.hex ? ' on ' + p[1].replace('--', '') : ''));
+      }
+      el.insertAdjacentHTML('beforeend', (el.children.length ? '<br>' : '') + out.join(' · '));
+    });
+  })();
+</script>
+</body>
+</html>
