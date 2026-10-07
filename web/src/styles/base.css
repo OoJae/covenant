@@ -331,9 +331,11 @@ summary:hover {
 /* ---------------------------------------------------------------------------------------------------- page frame */
 
 /* The routed page sits under the fixed header. The landing starts at the very top: its die runs under the header.
-   A page is at least a screen tall, and while its Loading line stands in for it the footer is not there at all:
-   there is nothing below the line to scroll to, and no footer for the page to push away when it arrives (the footer
-   comes back under the page, below the fold). */
+   A page is at least a screen tall, and while its Loading line stands in for it the footer waits just below the
+   screen, fixed and hidden: there is nothing below the line to scroll to, and no footer for the page to push away
+   when it arrives (it comes back under the page, below the fold). It is still laid out there, so its faces load as
+   before (the mono face is not preloaded; with the footer not displayed it came in after the page, and text in it
+   reflowed). */
 main.route {
   display: block;
   min-height: 100vh;
@@ -347,7 +349,9 @@ main.route[data-page='landing'] {
   padding-top: 0;
 }
 main.route:has(> .loading) ~ .colophon {
-  display: none;
+  position: fixed;
+  inset: 100% 0 auto;
+  visibility: hidden;
 }
 /* A loading or failure state shown in place of a page. */
 main.route > .loading,
