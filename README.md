@@ -67,7 +67,7 @@ Both tokens were launched on 2026-10-06 by the deployer with first buy 0, each c
 
 No team wallet holds or trades either token. Flows are whatever outside traders bring; at launch they were zero.
 
-The KeeperTank holds 0 OKB today: nobody has called `Splitter.pull()` yet. TapeOut owes the Splitter 0.085 OKB for the 4,250 transistors minted so far; a `pull()` would send 0.07225 OKB to the tank and 0.01275 OKB to the maintainer. Until then a settle through the tank runs but refunds nothing.
+`Splitter.pull()` was called on 2026-10-06 (block 72,559,111, tx `0xbf9a9253…fa5e`): it sent 0.07225 OKB to the KeeperTank and 0.01275 OKB to the maintainer, for the 4,250 transistors minted. The tank has refunded the keeper's settles since; it held 0.0561 OKB on 2026-10-07.
 
 ## Check it yourself
 
@@ -118,7 +118,7 @@ The processor's five parameters are immutable from its first block:
 | Price | 0.00002 OKB each, fixed; TapeOut's own fees are extra |
 | Creator and payee | the Splitter contract, never a team wallet |
 
-The Splitter is the only address TapeOut pays. Anyone can call `pull()`. It splits everything **85% to the KeeperTank** and **15% to the maintainer** (the deployer), and no key can change the payees or shares. The KeeperTank refunds the gas of each chip's settlements up to that chip's allowance: 85% of the mint price of the transistors the chip burned. So a vault's transistors prepay its own upkeep, once someone has called `pull()` (nobody has yet; see above). The processor's on-chain story states all of this, the addresses and the source commit, and the Splitter reverts unless the story on-chain is exactly that text. No presale, no team allocation, no per-wallet cap.
+The Splitter is the only address TapeOut pays. Anyone can call `pull()`. It splits everything **85% to the KeeperTank** and **15% to the maintainer** (the deployer), and no key can change the payees or shares. The KeeperTank refunds the gas of each chip's settlements up to that chip's allowance: 85% of the mint price of the transistors the chip burned. So a vault's transistors prepay its own upkeep, once someone has called `pull()` (first called on 2026-10-06; see above). The processor's on-chain story states all of this, the addresses and the source commit, and the Splitter reverts unless the story on-chain is exactly that text. No presale, no team allocation, no per-wallet cap.
 
 ## Status
 
