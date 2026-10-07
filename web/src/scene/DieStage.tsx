@@ -478,7 +478,7 @@ export function DieStage({ demo, onProgress, onStage, fallback = false, sceneOpt
                       <span>Nobody writes this</span> <em>but the chip.</em>
                     </p>
                     <p class="die-stage__say-body">
-                      The kernel stores this memory after every settle and feeds it back to the chip at the next one. That is why the same word got a
+                      The kernel keeps this memory between settles and feeds it back to the chip at the next one. That is why the same word got a
                       different answer.
                     </p>
                   </div>
