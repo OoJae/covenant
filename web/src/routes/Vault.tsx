@@ -55,6 +55,9 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
   const now = useChainNow(v);
   const chip = useAsync(() => loadNetlist(rpc, g).then((n) => ({ ...n, chip: chipFromBytes(`chip ${g.chipId}`, n.bytes) })), [v.kernel]);
   const isFG = chip.data?.keccak === FG_KECCAK;
+  // The lede names the Flow Governor from the first render for the two kernels deployments/xlayer.json says hold it
+  // (the netlist read can then only confirm it), so the text never grows a line once it is on screen.
+  const namedFG = isFG || (!chip.data && (same(v.kernel, COVENANT.kernel) || same(v.kernel, COVENANT.kernelV2)));
 
   // clock
   const bound = v.token !== null;
@@ -93,7 +96,7 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
           <>
             This kernel receives {sym}'s trading tax{v2 ? ` in ${qu.symbol}, and any ${qu.symbol} paid to it directly (revenue, routed as tax),` : ''} and, once per{' '}
             {fmtDuration(e.epochLen)} epoch, routes it by chip #{String(g.chipId)}
-            {isFG ? ' (the Flow Governor)' : ''} inside the fixed envelope below. {v.count === 0 ? 'No settle yet.' : `${fmtInt(v.count)} settle${v.count === 1 ? '' : 's'} so far.`}
+            {namedFG ? ' (the Flow Governor)' : ''} inside the fixed envelope below. {v.count === 0 ? 'No settle yet.' : `${fmtInt(v.count)} settle${v.count === 1 ? '' : 's'} so far.`}
           </>
         ) : (
           <>
