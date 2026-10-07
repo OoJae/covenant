@@ -47,6 +47,13 @@ export function Circuit({ processor, id }: { processor: string; id: string }) {
 const GAS_PER_GATE = 2350;
 const CALL_GAS_CAP = 50_000_000;
 
+/** Holds the place of a value that is not known yet: laid out, not shown, not read. */
+const Unseen = ({ text }: { text: string }) => (
+  <span style={{ visibility: 'hidden' }} aria-hidden="true">
+    {text}
+  </span>
+);
+
 function Bench({ c }: { c: CircuitData }) {
   const nl = c.netlist;
   const [inputs, setInputs] = useState<Uint8Array>(() => new Uint8Array(byteLength(nl.nIn)));
@@ -160,20 +167,14 @@ function Bench({ c }: { c: CircuitData }) {
               <dd>{fmtInt(c.block)}</dd>
             </>
           )}
-          {facts && (
-            <>
-              <dt>Logic depth</dt>
-              <dd>
-                {fmtInt(facts.levels)} level{facts.levels === 1 ? '' : 's'}
-              </dd>
-              <dt>Die</dt>
-              <dd>
-                {facts.cols} x {facts.rows} cells, pads included
-              </dd>
-              <dt>Layout hash</dt>
-              <dd class="mono">{facts.layoutHash}</dd>
-            </>
-          )}
+          {/* The die lays the netlist out a frame after the page shows. Its three rows are there from the first frame,
+              each held by an unseen placeholder as long as its value, so the rows under them do not move. */}
+          <dt>Logic depth</dt>
+          <dd>{facts ? `${fmtInt(facts.levels)} level${facts.levels === 1 ? '' : 's'}` : <Unseen text="00 levels" />}</dd>
+          <dt>Die</dt>
+          <dd>{facts ? `${facts.cols} x ${facts.rows} cells, pads included` : <Unseen text="00 x 00 cells, pads included" />}</dd>
+          <dt>Layout hash</dt>
+          <dd class="mono">{facts ? facts.layoutHash : <Unseen text={'0'.repeat(64)} />}</dd>
           <dt>Decoded here</dt>
           <dd>
             {c.consistent ? (
