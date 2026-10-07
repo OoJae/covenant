@@ -23,6 +23,9 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-padding-top: calc(var(--header-h) + var(--sp-4));
+  /* A page whose Loading line fits the screen has no scrollbar (main.route below); the gutter stays, so nothing
+     moves sideways where scrollbars take room. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -328,8 +331,9 @@ summary:hover {
 /* ---------------------------------------------------------------------------------------------------- page frame */
 
 /* The routed page sits under the fixed header. The landing starts at the very top: its die runs under the header.
-   A page is at least a screen tall, so the footer stays below the fold while a page loads (its Loading line is
-   short) and does not jump away when the page arrives. */
+   A page is at least a screen tall, and while its Loading line stands in for it the footer is not there at all:
+   there is nothing below the line to scroll to, and no footer for the page to push away when it arrives (the footer
+   comes back under the page, below the fold). */
 main.route {
   display: block;
   min-height: 100vh;
@@ -341,6 +345,9 @@ main.route {
 }
 main.route[data-page='landing'] {
   padding-top: 0;
+}
+main.route:has(> .loading) ~ .colophon {
+  display: none;
 }
 /* A loading or failure state shown in place of a page. */
 main.route > .loading,
