@@ -46,10 +46,22 @@ export function mountFlat(box: HTMLElement, canvas: HTMLCanvasElement, src: Scen
   const dark = new Uint8Array(x.length);
   let shown = -1;
 
+  let fitted = 0;
+  // Hidden until it has its size: the stage shows this layer only after the die is mounted, and a canvas painted
+  // once at its default 300 × 150 and then at full size would count as a layout shift.
+  canvas.style.visibility = 'hidden';
   const fit = (): void => {
+    const bw = box.clientWidth;
+    const bh = box.clientHeight;
+    // Not laid out yet: the ResizeObserver fits it once it is.
+    if (!bw || !bh) return;
     // The tilt shortens the die; let it run a little wider than the box.
-    const w = Math.min(box.clientWidth * 1.08, (d.width * box.clientHeight * 1.2) / d.height);
-    d.resize(Math.max(1, Math.floor(w)));
+    const w = Math.max(1, Math.floor(Math.min(bw * 1.08, (d.width * bh * 1.2) / d.height)));
+    // Only a new size redraws, so the observer's callback settles at once.
+    if (w === fitted) return;
+    fitted = w;
+    d.resize(w);
+    canvas.style.visibility = '';
     shown = -1;
     if (!motion) d.draw(src.signalsA, stateA, x);
   };
@@ -68,7 +80,8 @@ export function mountFlat(box: HTMLElement, canvas: HTMLCanvasElement, src: Scen
 
   fit();
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
-  ro?.observe(box);
+  if (ro) ro.observe(box);
+  else requestAnimationFrame(fit);
 
   return {
     setProgress(t) {

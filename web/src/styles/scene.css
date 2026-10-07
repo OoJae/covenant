@@ -66,6 +66,9 @@
   position: absolute;
   inset: 0;
   display: none;
+  /* One definite cell, so the die's box is a share of the stage and never of the canvas inside it: fallback.ts
+     sizes the canvas from the box, and a box that grew with its canvas would grow on every fit. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center end;
   padding-right: 2vw;
   perspective: 1600px;
