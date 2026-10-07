@@ -252,7 +252,8 @@ The brand system of `docs/brand/README.md` ("Sealed by a die") now runs the whol
   `font-display: optional` in `fonts.css`, nothing shifts when a face is late.
 - **index.html.** The Bond (16 px cut) on wafer as an inline `data:` SVG icon, `theme-color` #0B0D10, `color-scheme`
   light, the README tagline as description, Open Graph and Twitter `summary_large_image` tags naming
-  `https://oojae.github.io/covenant/og.jpg` (the image itself comes later), and `public/apple-touch-icon.png` (180 px,
+  `https://oojae.github.io/covenant/og.jpg` (`public/og.jpg`, 1200×630, 52,670 bytes, captured from the landing hero by
+  `docs/brand/tools/og_card.mjs`, with `og:image:alt` and `twitter:image:alt`), and `public/apple-touch-icon.png` (180 px,
   171 bytes, three colours).
 
 **Budget** (`scripts/check-budget.mjs`; `test/budget.test.ts` runs it against made-up builds, a clean one and one
