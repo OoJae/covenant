@@ -216,8 +216,10 @@
   gap: var(--sp-4);
   min-width: 0;
 }
-.terminal__title {
+/* The title runs the full width: the two copy buttons sit on their own lines, not in the terminal's corner. */
+.ts-term .terminal__title {
   margin: 0;
+  padding-right: 0;
 }
 .terminal__line {
   display: grid;
@@ -240,11 +242,19 @@
   line-height: 1.6;
   color: var(--fg);
 }
-.terminal .copy {
+/* Each copy button stays in its line's grid column, beside the command it copies (components.css puts a terminal's
+   one button in its corner). */
+.terminal__line .copy {
+  position: static;
   min-height: 2.5rem;
   padding-inline: var(--sp-3);
   gap: var(--sp-2);
   font-size: var(--step-small);
+}
+@media (pointer: coarse) {
+  .terminal__line .copy {
+    min-height: var(--tap);
+  }
 }
 .ts-note {
   max-width: 64ch;
