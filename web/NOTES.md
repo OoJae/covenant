@@ -289,7 +289,9 @@ evaluated, before its component renders; the DeWEB gateway's CSP allows `style-s
 - `pages.css`, the inner pages': `styles/pages.ts`, imported and called by `routes/kernelPages.tsx`,
   `routes/guidePages.tsx`, `routes/Circuit.tsx` and `routes/NotFound.tsx`; the bundler gives it one shared chunk
   (`pages-*.js`, 5.6 KB). A probe of every route in a real browser found no rule of `pages.css` that matches anything
-  on the landing and none on the processor page, which therefore does not load it. Its `@keyframes stamp` was
+  on the landing and none on the processor page, which therefore does not import it. It still arrives on both, where
+  it matches nothing: `app.tsx` fetches the kernel pages, the guides and the bench in the background 1.2 s after the
+  first page is up, and evaluating them adds the sheet. Its `@keyframes stamp` was
   dropped: the bundled stylesheet already kept only `motion.css`'s, and as a later `<style>` it would have replaced
   that one everywhere.
 

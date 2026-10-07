@@ -1,7 +1,8 @@
 /* Page by page (plan section D). Each page keeps one choreographed moment: the audit's plates stamp down in
    sequence, the judge's clauses resolve in order, the hostile page's switch slides, the bench's cells flip.
-   Not in the site's stylesheet: styles/pages.ts adds this file as one <style> element when the first page that uses
-   it loads (none of these rules applies to the landing). No url() and no @import. */
+   Not in the site's stylesheet: styles/pages.ts adds this file as one <style> element when the first module that
+   uses it is evaluated: an inner page opening, or app.tsx's background fetch of those pages' scripts 1.2 s after the
+   first page is up, so the landing gets it too, where none of its rules matches anything. No url() and no @import. */
 
 /* ------------------------------------------------------------------------------------------------ vault */
 
