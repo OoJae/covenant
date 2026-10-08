@@ -73,7 +73,8 @@ How it works:
      also equal `LaunchChipV2.referenceEnvelope(launcher, allowancePayee)` as committed at `a9c3c22`, with the
      deployer as launcher and the Architect agent wallet `0xbe50…6da0` as allowance payee. Then it checks the
      CREATE2 address, `predict` and `isKernel`, and that `Circuits.ownerOf(5)` is this kernel. It prints
-     `token()`: `0x0` on 2026-10-06, so the kernel is not bound to a token yet.
+     `token()`: `0x0` when this run was made on 2026-10-06. The kernel was bound to `ARCH` (`0x7F53…EEEE`) later
+     that day, so the script prints that address now.
    - **Netlists.** For chips 2, 3, 4 and 5 the Fab's SSTORE2 snapshot must be `0x00` followed by the committed
      netlist file (`chips/out/fg.hex` for chips 2 and 5, `chips/cells/glutton/glutton.hex`, `glutton512.hex` at
      the recorded commits). It must also hash to the Fab's `netlistHash` and equal TapeOut's own copy

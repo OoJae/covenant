@@ -51,3 +51,7 @@ deploy/rehearsal-v2.json
 /tools/deweb/sim/broadcast/
 # agent worktrees
 /.claude/
+
+# Demo film: source, captures, audio and renders stay local (the master is attached to a GitHub release)
+/video/
+/covenant vo.m4a

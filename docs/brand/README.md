@@ -1,6 +1,6 @@
 # Covenant brand: "Sealed by a die"
 
-Phase 0 of the brand system: the marks, the tokens, the type and these guidelines. The site does not use them yet; Phase 1 moves `web/src/style.css` onto `web/src/styles/tokens.css` and `fonts.css`.
+The brand system: the marks, the tokens, the type and these guidelines. The site has used them since 2026-10-07 (`web/src/styles/`; `web/NOTES.md` section 3.7).
 
 - Brand sheet: [`sheet.html`](sheet.html) (open it from a local server at the repo root, so that the relative font and token paths resolve), captured as [`brand-sheet.png`](brand-sheet.png) (1440 wide) and [`brand-sheet-375.png`](brand-sheet-375.png) (375 wide).
 - Tokens: [`web/src/styles/tokens.css`](../../web/src/styles/tokens.css). Faces: [`web/src/styles/fonts.css`](../../web/src/styles/fonts.css).
@@ -126,7 +126,7 @@ Rules:
 - Gold is never text on paper: use `--accent-ink`.
 - `--rule` is decorative only. An edge that must be seen uses `--rule-strong`.
 
-Phase 1 adds `web/test/tokens.test.ts`, which checks these pairs automatically.
+`web/test/tokens.test.ts` checks these pairs automatically.
 
 ## Type
 
@@ -256,7 +256,7 @@ For each token we asked: *would I produce this for any brief?* Where the answer 
 | `brand-sheet.png`, `brand-sheet-375.png` | Brand-sheet captures at 1440 and 375 px (quantised to 128 colours) |
 | `tools/build_fonts.py` | Rebuilds `web/src/fonts/*.woff2` from the Google Fonts sources |
 | `tools/make_marks.py` | Redraws every SVG here and the sprite in `sheet.html`; checks the Seal's bit order |
-| `../../web/src/styles/tokens.css` | Tokens (standalone; not yet imported by the app) |
+| `../../web/src/styles/tokens.css` | Tokens (imported by the app through `web/src/styles/all.ts`) |
 | `../../web/src/styles/fonts.css` | `@font-face` rules |
 | `../../web/src/fonts/` | The four woff2 subsets and the three `OFL.txt` licences |
 

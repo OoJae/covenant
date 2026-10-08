@@ -13,4 +13,4 @@ We read the public repositories of other entries to this hackathon as landscape 
 
 What we believe is new in this field, stated narrowly: a taped-out chip with persisted multi-latch state that computes how an IGNIX Directed vault's tax is routed, behind a kernel with no admin, and a processor whose creator is a contract that enforces the split of mint proceeds.
 
-Adoption today is zero. No token has been launched on a Covenant kernel yet; once the team's own tokens are, their flows will be small and are reported as they are.
+Adoption today is zero. The only tokens bound to Covenant's kernels are the two the team launched itself on 2026-10-06, `CVREF` and `ARCH`, with first buy 0. Nobody has bought either, so every settle so far has routed 0. Flows are reported as they are.

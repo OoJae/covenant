@@ -70,7 +70,8 @@ fee. Gas measured on the fork for the Starter: tape-out 1,250,047, create 323,73
 Settles cost gas every epoch. Anyone may call `KeeperTank.settleAndRefund(kernel)`, which refunds the caller from your
 chip's allowance until it is spent; `KeeperTank.topUp(chipId)` adds to it. The refund is paid only from OKB the tank
 holds, and the tank is shared by every chip: your tape-out's 85% reaches it when someone calls `Splitter.pull()`
-(anyone may). On 2026-10-06 (block 72,526,013) the tank held 0 OKB: until a `pull()` a settle runs but refunds nothing. On a
+(anyone may). On 2026-10-06 (block 72,526,013) the tank held 0 OKB: until a `pull()` a settle runs but refunds nothing. `pull()` was
+first called later that day (block 72,559,111); on 2026-10-08 the tank held 0.0446 OKB. On a
 fork, a settle that bought on the curve used 949,291 gas; at X Layer's 0.02 gwei that is about 0.000019 OKB, so the
 Starter's 0.00306 OKB covers on the order of 160 such settles (about 40 hours at one per 15-minute epoch). Do not
 count on anyone else to settle your kernel: if nobody settles, the tax waits in the vault.
