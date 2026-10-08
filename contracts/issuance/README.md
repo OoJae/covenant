@@ -234,7 +234,7 @@ id is 1 (done: the probe is circuit 1, tape-out transaction `0x9e75ed66…ce572f
 ### Verify the sources on OKLink
 
 Done on 2026-10-07: the Splitter, the KeeperTank and the TeamRegistry are verified on OKLink and on Sourcify
-(`exact_match`), like the other eight Covenant contracts. `docs/VERIFY.md` (section 2) has the table, and
+(`exact_match` for these three). The other eight Covenant contracts are verified too. `docs/VERIFY.md` (section 2) has the table, and
 `deploy/verify-explorers.sh` prepares the exact commands. The ones below show their shape, with the live addresses
 above. OKLink asks for a key and accepted the placeholder: `--verifier-api-key none`.
 

@@ -432,7 +432,7 @@ export function Judge() {
         <p class="muted small">
           The cast lines need Foundry's cast (getfoundry.sh) and nothing else. Lines that start with node, python3, make or chips/ run at the root of a
           clone of <a href={REPO}>the repository</a>: node lines with Node 26, make and chips/ lines with the chip venv (make -C chips/rtl venv,
-          Python 3.12). The team audit takes about 25 minutes from an empty cache.
+          Python 3.12). The team audit reads every block since 2026-10-06, so it takes longer each day (25 minutes on 2026-10-08).
         </p>
         <div class="judge-run">
           <button

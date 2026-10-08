@@ -13,8 +13,8 @@ the live addresses differ from the nonce-0 plan of the rehearsal in section 5: S
 `0xB87101F7426BA9175E0a944d3e763dC69B19867f`, TeamRegistry `0x7d1799Ec41b1Eb42Fd0D3f8Dc5326bc4c7c18699`, KeeperTank
 `0xb89BCe53822a99503A937C22974F1224D9Ab6352`, Transistors `0xC372dc307eFE4B551c866A79F582D692A373960A`, Circuits
 `0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b` (`deployments/xlayer.json`, `issuance`). The story on chain is 1,366 bytes
-and names the Splitter, the tank, the registry, the maintainer and the commit. `pull()` has not been called yet: the tank holds 0 OKB. The registry lists the deployer
-only.
+and names the Splitter, the tank, the registry, the maintainer and the commit. `pull()` was first called on 2026-10-06 (block 72,559,111): 0.07225 OKB to the tank, 0.01275 OKB to the maintainer.
+The registry lists the deployer, the keeper and the Architect wallet.
 
 ## 1. Layout
 
