@@ -41,7 +41,8 @@ const addresses = JSON.parse(readFileSync(join(root, 'src/addresses.json'), 'utf
 // links source files on (plain links, never fetched), the XML namespace identifiers Preact needs to create SVG
 // and MathML nodes (never fetched), the Covenant Architect endpoint that deployments/xlayer.json records (a plain
 // link, never fetched), the site's public address on GitHub Pages (the OG and Twitter tags name its og.jpg; a crawler
-// fetches it, the page does not) and the DeWEB mirror on X Layer (a plain link in the footer).
+// fetches it, the page does not), the DeWEB mirror on X Layer (a plain link in the footer) and IGNIX's page of a
+// bound token (a plain link on the vault page, never fetched).
 const deployment = JSON.parse(readFileSync(join(root, '../deployments/xlayer.json'), 'utf8'));
 const architectHosts = ['endpoint', 'freeEndpoint']
   .map((k) => deployment.architect?.[k])
@@ -54,6 +55,7 @@ const allowedHosts = new Set([
   'www.w3.org',
   'oojae.github.io',
   '1-2-283.tapekit.org',
+  'ignix.bot',
   ...architectHosts,
 ]);
 

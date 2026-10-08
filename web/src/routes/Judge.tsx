@@ -40,6 +40,8 @@ const F2 = COVENANT.kernelFactoryV2;
 const R = CAST_RPC;
 const ZERO = '0x0000000000000000000000000000000000000000';
 const notYet = (what: string): Result => ({ ok: null, lines: [`${what} is not deployed yet; this check runs as soon as deployments/xlayer.json names it.`] });
+/** Lens.Replay's seventh field (contracts/core/src/Lens.sol): the evaluator the replay used, not a check. */
+const SEALED_USED = 'The first six values are the checks. The 7th, sealedUsed, names the evaluator: false means TapeOut ran the chip, not the SealedVM.';
 
 const CHECKS: Check[] = [
   {
@@ -148,7 +150,7 @@ const CHECKS: Check[] = [
         )),
       };
     },
-    cast: [{ line: `cast call ${COVENANT.lens ?? '<lens>'} "replay(address,uint32)((bool,bool,bool,bool,bool,bool,bool,bytes14,bytes32))" ${K ?? '<kernel>'} 1 --rpc-url ${R}` }],
+    cast: [{ label: SEALED_USED, line: `cast call ${COVENANT.lens ?? '<lens>'} "replay(address,uint32)((bool,bool,bool,bool,bool,bool,bool,bytes14,bytes32))" ${K ?? '<kernel>'} 1 --rpc-url ${R}` }],
     more: <>The audit page of each settle adds this browser's own recomputation from the netlist bytes: a three-way MATCH.</>,
   },
   {
@@ -317,7 +319,7 @@ const CHECKS: Check[] = [
     cast: [
       { line: `cast call ${F2 ?? '<kernel factory v2>'} "quoteShift()(uint256)" --rpc-url ${R}` },
       { line: `cast call ${F2 ?? '<kernel factory v2>'} "isKernel(address)(bool)" ${K2 ?? '<kernel v2>'} --rpc-url ${R}` },
-      { line: `cast call ${COVENANT.lensV2 ?? '<lens v2>'} "replay(address,uint32)((bool,bool,bool,bool,bool,bool,bool,bytes14,bytes32))" ${K2 ?? '<kernel v2>'} 1 --rpc-url ${R}` },
+      { label: SEALED_USED, line: `cast call ${COVENANT.lensV2 ?? '<lens v2>'} "replay(address,uint32)((bool,bool,bool,bool,bool,bool,bool,bytes14,bytes32))" ${K2 ?? '<kernel v2>'} 1 --rpc-url ${R}` },
       { label: 'The shift and the routing, from the Python reference model (identities over 2,740,850 cases; kernel v1 reproduced with shift 0):', line: 'python3 chips/golden/kernel_model_v2.py' },
     ],
     more: (
@@ -427,6 +429,11 @@ export function Judge() {
           </>
         }
       >
+        <p class="muted small">
+          The cast lines need Foundry's cast (getfoundry.sh) and nothing else. Lines that start with node, python3, make or chips/ run at the root of a
+          clone of <a href={REPO}>the repository</a>: node lines with Node 26, make and chips/ lines with the chip venv (make -C chips/rtl venv,
+          Python 3.12). The team audit takes about 25 minutes from an empty cache.
+        </p>
         <div class="judge-run">
           <button
             type="button"

@@ -132,7 +132,7 @@ function LiveRegister({ q }: { q: Async<Bound[]> }) {
                     {b?.token ? <Address value={b.token} /> : <span class="tag wait">{q.loading ? 'reading…' : q.error ? 'could not read' : 'not bound yet'}</span>}
                   </span>
                   <span class="live-reg__note">
-                    {b?.token ? <a href={`#/k/${b.kernel}`}>vault page, {settles(b.count)}</a> : 'the vault page fills in once a token is bound'}
+                    {b?.token ? <a href={`#/k/${b.kernel}`}>vault page, {settles(b.count, b.idle)}</a> : 'the vault page fills in once a token is bound'}
                   </span>
                 </li>
               );

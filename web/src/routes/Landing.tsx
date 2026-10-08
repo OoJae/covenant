@@ -48,11 +48,12 @@ export function flagships(): { version: 1 | 2; kernel: string }[] {
   return ks;
 }
 
-/** Bound token, its symbol and the settle count of each flagship kernel. The reads (and the chain's kernel ABI)
- * load on demand, so they stay out of the entry script. */
+/** Bound token, its symbol, the settle count and whether any tax has arrived, for each flagship kernel. The reads
+ * (and the chain's kernel ABI) load on demand, so they stay out of the entry script. */
 const boundTokens = (): Promise<Bound[]> => import('../kernel/bound.ts').then((m) => m.boundTokens(flagships()));
 
-export const settles = (n: number | null): string => (n === null ? '? settles' : `${fmtInt(n)} settle${n === 1 ? '' : 's'}`);
+/** "136 settles", and ", 0 tax" while every one of them carried none (kernel/bound.ts `idle`): §03 says it per kernel. */
+export const settles = (n: number | null, idle = false): string => (n === null ? '? settles' : `${fmtInt(n)} settle${n === 1 ? '' : 's'}${idle && n ? ', 0 tax' : ''}`);
 
 /** Scroll to an element (a chapter, a clause) and give it the focus, so the keyboard continues from there. */
 export function goTo(el: HTMLElement | null, immediate = false): void {
@@ -63,6 +64,8 @@ export function goTo(el: HTMLElement | null, immediate = false): void {
 
 export function Landing() {
   const bound = useAsync(boundTokens, []);
+  // The hero's "Try again" asks the chain again for the ledger and for §01's two step reads (TwoStates `again`).
+  const [again, setAgain] = useState(0);
   const [demo, setDemo] = useState<LandingDemo | null>(null);
   const [Stage, setStage] = useState<Stage | null>(null);
   const [S01, setS01] = useState<S01 | null>(null);
@@ -142,7 +145,13 @@ export function Landing() {
                   Run the eight checks <WireIcon dir="right" />
                 </a>
               </div>
-              <LiveLedger q={bound} />
+              <LiveLedger
+                q={bound}
+                retry={() => {
+                  bound.reload();
+                  setAgain((n) => n + 1);
+                }}
+              />
             </div>
           </div>
         </header>
@@ -162,7 +171,7 @@ export function Landing() {
 
       <div class="landing__pa paper">
         <Coda hex={facts?.stateB ?? null} />
-        {S01 ? <S01 n="01" /> : <div id="s01" class="l-ph l-ph--s01" tabIndex={-1} aria-busy="true" />}
+        {S01 ? <S01 n="01" again={again} /> : <div id="s01" class="l-ph l-ph--s01" tabIndex={-1} aria-busy="true" />}
         {Rest ? <Rest bound={bound} /> : <div class="l-ph l-ph--rest" aria-busy="true" />}
       </div>
     </article>
@@ -209,18 +218,20 @@ function Coda({ hex }: { hex: string | null }) {
   );
 }
 
-/** The two live kernels in one ledger: token symbol and settle count, both read from the chain. The rows are there
- * from the first paint (the kernels come from deployments/xlayer.json), so the hero does not grow when the chain
- * answers. */
-function LiveLedger({ q }: { q: Async<Bound[]> }) {
+/** The two live kernels in one ledger: token symbol and settle count, read from the chain; its label adds "no tax
+ * yet" while no kernel has received any (kernel/bound.ts `idle`), in a line that stays one line at 320 px. The rows
+ * are there from the first paint (the kernels come from deployments/xlayer.json), so the hero does not grow when the
+ * chain answers. */
+function LiveLedger({ q, retry }: { q: Async<Bound[]>; retry: () => void }) {
   const rows = flagships();
   if (rows.length === 0) return null;
   return (
     <div class={`hero__ledger${q.data ? ' is-live' : ''}`}>
       <p class="label">
-        <span class="live-pad" aria-hidden="true" /> {q.loading ? `Reading ${CHAIN.name}…` : q.error ? `Could not read ${CHAIN.name}` : `Live on ${CHAIN.name}`}
+        <span class="live-pad" aria-hidden="true" />{' '}
+        {q.loading ? `Reading ${CHAIN.name}…` : q.error ? `Could not read ${CHAIN.name}` : `Live on ${CHAIN.name}${q.data?.every((b) => b.idle) ? ' · no tax yet' : ''}`}
         {q.error && (
-          <button type="button" class="hero__retry" onClick={q.reload}>
+          <button type="button" class="hero__retry" onClick={retry}>
             Try again
           </button>
         )}

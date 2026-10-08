@@ -65,6 +65,10 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
   const nextOpen = v.bindTime + (v.lastEpoch + 1) * e.epochLen;
   const fallbackEpoch = v.lastStepEpoch + e.fallbackEpochs;
 
+  // On the curve with cumulative inflow 0, every recorded settle carried no tax (the totals restart at graduation).
+  // The lede says so, from the same read as the rest of it, until tax arrives.
+  const noTax = v.count > 0 && !grad && v.cumInflow === 0n;
+
   const lifetimeCap = (v.cumInflow * BigInt(e.allowCumBps)) / 10000n;
   const supply = v.token?.totalSupply ?? v.tokenSupply;
   const lockShare = supply > 0n ? Number(((v.lockedTokens + v.burnedTokens) * 10000n) / supply) / 100 : 0;
@@ -97,6 +101,7 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
             This kernel receives {sym}'s trading tax{v2 ? ` in ${qu.symbol}, and any ${qu.symbol} paid to it directly (revenue, routed as tax),` : ''} and, once per{' '}
             {fmtDuration(e.epochLen)} epoch, routes it by chip #{String(g.chipId)}
             {namedFG ? ' (the Flow Governor)' : ''} inside the fixed envelope below. {v.count === 0 ? 'No settle yet.' : `${fmtInt(v.count)} settle${v.count === 1 ? '' : 's'} so far.`}
+            {noTax && ` Every one carried 0 tax${v.curve?.sold === 0n && v.vaultQuoteHeld === 0n ? `: nobody has traded ${sym} yet` : ''}.`}
           </>
         ) : (
           <>
@@ -105,7 +110,13 @@ function View({ v, reload }: { v: VaultData; reload: () => void }) {
           </>
         )
         }
-      />
+      >
+        {bound && (
+          <p class="muted small">
+            Token <Address value={v.token!.address} /> · <a href={`https://ignix.bot/launch?token=${v.token!.address}`}>{sym} on IGNIX</a>
+          </p>
+        )}
+      </PageHead>
 
       <section class="clause">
         <Pin id="01">Facts the chain proves</Pin>

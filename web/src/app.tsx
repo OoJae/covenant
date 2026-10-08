@@ -253,7 +253,7 @@ const whenIdle = (f: () => void): void => {
 /**
  * The colophon, on silicon: the flagship kernel's live Seal (its chip's 64 latches, read with one eth_call once the
  * footer comes near the screen and the browser is idle; the cold seal until then or if the read fails), the honesty
- * line, where the copy stored on X Layer lives, the font credits and the source.
+ * line, where the copy stored on X Layer lives, the font credits, the source and the demo film (a GitHub release).
  */
 function Colophon({ links }: { links: NavLink[] }) {
   const foot = useRef<HTMLElement>(null);
@@ -308,7 +308,8 @@ function Colophon({ links }: { links: NavLink[] }) {
           </p>
           <p>
             A copy of this site is stored on {CHAIN.name} at <a href={MIRROR}>1-2-283.tapekit.org</a>. Circuits run on TapeOut (MIT); netlist semantics per
-            TAP-02 (formerly TAP-20). Source: <a href={REPO}>github.com/OoJae/covenant</a>.
+            TAP-02 (formerly TAP-20). Source: <a href={REPO}>github.com/OoJae/covenant</a>.{' '}
+            <a href={`${REPO}/releases/tag/demo-2026-10-08`}>Demo film, 2 min 20 s</a>.
           </p>
           <p class="muted">
             Set in Bodoni Moda, Instrument Sans and Fragment Mono, by their project authors, under the SIL Open Font License 1.1; self-hosted as subsets.

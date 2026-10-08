@@ -282,7 +282,14 @@ export function Trust() {
           </li>
         </ul>
       </section>
-      {q.error && <p class="warn">Could not read the owners: {q.error.message}</p>}
+      {q.error && (
+        <p class="warn">
+          Could not read the owners: {q.error.message}{' '}
+          <button type="button" class="small press" onClick={q.reload}>
+            Try again
+          </button>
+        </p>
+      )}
     </article>
   );
 }

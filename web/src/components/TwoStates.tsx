@@ -28,7 +28,7 @@ type Chain = { a: StepResult | Error; b: StepResult | Error };
 
 const live = COVENANT.processor !== null && COVENANT.chipId !== null;
 
-export function TwoStates({ n }: { n: string }) {
+export function TwoStates({ n, again }: { n: string; again: number }) {
   const w = witness;
   const [local, setLocal] = useState<Local | null>(null);
   const [localErr, setLocalErr] = useState<string | null>(null);
@@ -45,11 +45,20 @@ export function TwoStates({ n }: { n: string }) {
         setLocal({ a: d.outA, b: d.outB, aState: d.nextA, bState: d.nextB, reachA: d.reachedA, reachB: d.reachedB, keccak: d.keccak }),
       (e: unknown) => setLocalErr(String(e)),
     );
+  }, []);
+  // The two step reads. They run again when the hero's "Try again" does (`again`), so a node that was unreachable
+  // and has come back turns NOT CHECKED into an answer without a reload.
+  useEffect(() => {
     if (!live) return;
+    let on = true;
+    setChain(null);
     const p = processor(COVENANT.processor!);
     const ask = (s: string): Promise<StepResult | Error> => read(rpc, p.step(COVENANT.chipId!, s, w.x)).catch((e: unknown) => (e instanceof Error ? e : new Error(String(e))));
-    void Promise.all([ask(w.reachA.state), ask(w.reachB.state)]).then(([a, b]) => setChain({ a, b }));
-  }, []);
+    void Promise.all([ask(w.reachA.state), ask(w.reachB.state)]).then(([a, b]) => on && setChain({ a, b }));
+    return () => {
+      on = false;
+    };
+  }, [again]);
 
   const x = inputFields(w.x);
   const outA = chain && !(chain.a instanceof Error) ? chain.a.outputs : (local?.a ?? w.outA.y);

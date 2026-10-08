@@ -396,7 +396,8 @@ html.sheet-open {
 }
 .clause > p,
 .clause > ul,
-.clause > ol {
+.clause > ol,
+.page-head > .small {
   max-width: var(--measure);
 }
 .clause__no {
