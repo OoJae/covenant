@@ -12,7 +12,7 @@ An IGNIX token sends its trading tax to a kernel, a contract with no owner. Once
 |---|---|
 | Site, no wallet needed | https://oojae.github.io/covenant/ |
 | Judge guide: eight checks, about five minutes, in the page or in a terminal | https://oojae.github.io/covenant/#/judge |
-| Demo film, 2 min 20 s | https://github.com/OoJae/covenant/releases/tag/demo-2026-10-08 (GitHub serves release files as downloads, not in a player: [720p, 26 MB](https://github.com/OoJae/covenant/releases/download/demo-2026-10-08/covenant-demo-720p.mp4), [1080p60, 220 MB](https://github.com/OoJae/covenant/releases/download/demo-2026-10-08/covenant-demo-1080p60.mp4)) |
+| Demo film, 2 min 20 s | https://youtu.be/T9Xqz162H3M. Downloads: https://github.com/OoJae/covenant/releases/tag/demo-2026-10-08 (GitHub serves release files as downloads, not in a player: [720p, 26 MB](https://github.com/OoJae/covenant/releases/download/demo-2026-10-08/covenant-demo-720p.mp4), [1080p60, 220 MB](https://github.com/OoJae/covenant/releases/download/demo-2026-10-08/covenant-demo-1080p60.mp4)) |
 | X post introducing the project (account [@covenant_0x](https://x.com/covenant_0x)) | https://x.com/covenant_0x/status/2108159763473207659 |
 | Copy of the site stored on X Layer (TapeOut DeWEB) | https://1-2-283.tapekit.org/ |
 | Processor `Covenant` / `CVNT`, TapeOut processor #283 | [`0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b`](https://www.oklink.com/x-layer/evm/address/0xaC90A95bd11eb67A2dD83Ab7ecc0Ea9B521dEF0b) |
