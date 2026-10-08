@@ -9,6 +9,8 @@
 #   deploy/publish-site.sh --broadcast   the same, then SEND it, signed by keystore 'covenant-deployer'.
 #   MONTHS=3 deploy/publish-site.sh ...  months (30 days each) of name activation to pay for if the name is not
 #                                        active yet (default 1; 0.026 OKB per month when written)
+#   RENEW=1 deploy/publish-site.sh ...   pay for MONTHS more of the name even though it is already active (the
+#                                        default leaves an active name alone)
 #   PRUNE=0 deploy/publish-site.sh ...   keep files that are on chain but not in this build. By default they are removed
 #                                        (the plan lists each one before anything is sent), so the container holds exactly
 #                                        this build and verify.ts finds chain = build with no exceptions.
@@ -40,7 +42,8 @@ TAPEOUT_FACTORY=0x1f09DAeFA827f02CBb40967cc91b259763760761
 RPC_URL=${XLAYER_RPC_URL:-https://rpc.xlayer.tech}
 MONTHS=${MONTHS:-1}
 PRUNE=${PRUNE:-1}
-USAGE="usage: [MONTHS=n] [PRUNE=0] deploy/publish-site.sh [--broadcast]"
+RENEW=${RENEW:-0}
+USAGE="usage: [MONTHS=n] [RENEW=1] [PRUNE=0] deploy/publish-site.sh [--broadcast]"
 # verify.ts: the live checks after the send. (The end-to-end test of this script, on a fork, replaces these two:
 # a fork has no second node operator and the official gateway cannot see it.)
 LIVE_VERIFY_OPTS=()
@@ -66,6 +69,11 @@ case "$RPC_URL" in
   *) refuse "the RPC must be an https one, not '$RPC_URL'" ;;
 esac
 [[ "$MONTHS" =~ ^[0-9]+$ ]] && [ "$MONTHS" -ge 1 ] && [ "$MONTHS" -le 120 ] || refuse "MONTHS must be a whole number from 1 to 120, not '$MONTHS'"
+case "$RENEW" in
+  1) PLAN_RENEW=(--renew); PUBLISH_RENEW=true ;;
+  0) PLAN_RENEW=(); PUBLISH_RENEW=false ;;
+  *) refuse "RENEW must be 0 (default: an active name is not paid again) or 1 (pay for MONTHS more), not '$RENEW'" ;;
+esac
 case "$PRUNE" in
   1) PLAN_PRUNE=(--prune); PUBLISH_PRUNE=true; VERIFY_EXTRA=() ;;
   0) PLAN_PRUNE=(); PUBLISH_PRUNE=false; VERIFY_EXTRA=(--allow-extra) ;;
@@ -211,14 +219,14 @@ FORK_BLOCK=$(cast block-number --rpc-url "$FORK")
 NONCE_BEFORE=$(cast nonce $DEPLOYER --rpc-url "$FORK")
 BALANCE_BEFORE=$(cast balance $DEPLOYER --rpc-url "$FORK")
 node tools/deweb/plan.ts --processor "$CIRCUITS" --circuit "$CIRCUIT_ID" --dir "$WORK/sim/site" --months "$MONTHS" \
-  ${PLAN_PRUNE[@]+"${PLAN_PRUNE[@]}"} --from "$DEPLOYER" --rpc "$RPC_URL" --block "$FORK_BLOCK" --timeout 180 --json "$WORK/plan.json" >"$WORK/plan.txt" \
+  ${PLAN_PRUNE[@]+"${PLAN_PRUNE[@]}"} ${PLAN_RENEW[@]+"${PLAN_RENEW[@]}"} --from "$DEPLOYER" --rpc "$RPC_URL" --block "$FORK_BLOCK" --timeout 180 --json "$WORK/plan.json" >"$WORK/plan.txt" \
   || { cat "$WORK/plan.txt" >&2; refuse "plan.ts failed"; }
 sed -n '/^Processor/,/^Chain state/p;/^TOTAL/,$p' "$WORK/plan.txt"
 PROCESSOR_NUMBER=$(jq -r .target.processorNumber "$WORK/plan.json")
 STEPS=$(jq -r '.steps | length' "$WORK/plan.json")
 
 # ---- 7. The rehearsal: the whole publication on that fork, from the scratch copy, impersonating the deployer.
-publish_env=(PROCESSOR="$CIRCUITS" CIRCUIT_ID="$CIRCUIT_ID" PROCESSOR_NUMBER="$PROCESSOR_NUMBER" MONTHS="$MONTHS" PRUNE="$PUBLISH_PRUNE")
+publish_env=(PROCESSOR="$CIRCUITS" CIRCUIT_ID="$CIRCUIT_ID" PROCESSOR_NUMBER="$PROCESSOR_NUMBER" MONTHS="$MONTHS" RENEW="$PUBLISH_RENEW" PRUNE="$PUBLISH_PRUNE")
 say "REHEARSAL on a local fork of X Layer at block $FORK_BLOCK (deployer nonce $NONCE_BEFORE). Nothing is sent."
 if [ "$STEPS" -gt 0 ]; then
   (cd "$WORK/sim" && env "${publish_env[@]}" SITE_DIR=site forge script script/Publish.s.sol --rpc-url "$FORK" \
