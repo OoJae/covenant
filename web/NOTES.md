@@ -60,6 +60,7 @@ Kernel pages:
 ```
 pnpm --filter web verify:kernel                   # node scripts/verify-kernel.ts: two-state demo on chip #2 + every record, MATCH or MISMATCH
 pnpm --filter web verify:kernel -- 0xKernel        # another kernel of the same factory
+pnpm --filter web verify:kernel --last 20          # record 1 and the last 20 of each kernel, not every record (69 s on 2026-10-08)
 
 web/scripts/fork-fixture.sh                        # build the fork fixture, kernel v1 and kernel v2 (about 15 minutes); anvil keeps running
 V2=0 web/scripts/fork-fixture.sh                   # kernel v1 only, as before (EPOCHS, EPOCHS_V2, GRAD_EPOCHS_V2 set the epochs)
@@ -473,6 +474,45 @@ production build in private Chromium, WebKit (iPhone 13 and 1440) and Firefox, w
   the reader has scrolled into chapters II to IV. Matching the stacked chapters to the stage's block geometry would
   put the track's rules into the entry stylesheet; not cheap, not done.
 
+### 3.12 Judge-access fixes (2026-10-08)
+
+From an audit of what a judge meets on the live site. Measured on a production build in private Chromium (320, 375,
+1440), WebKit (iPhone 13 mini and 1440) and Firefox (375, 1440).
+
+- **What the terminal lines need** (`Judge.tsx`): a note under the lede says which lines need only `cast`, which run
+  at the root of a clone (Node 26; the chip venv for `make` and `chips/` lines) and how long the team audit takes.
+  `python3 chips/golden/kernel_model_v2.py` was run with the system's Python 3.9.6 from the root: it needs no venv.
+  `.page-head > .small` takes the reading measure (64ch), with `.clause > p`.
+- **The `false` in a replay tuple** (`Judge.tsx` `SEALED_USED`): the two `Lens.replay` lines (checks 4 and 8) print
+  `(true, true, true, true, true, true, false, …)`. Their label now names the seventh field, `sealedUsed`
+  (`contracts/core/src/Lens.sol` `Replay`): the evaluator the replay used, not a check.
+- **The vault's first screen** (`Vault.tsx`): while the kernel is on the curve and `cumInflow()` is 0, the lede adds
+  "Every one carried 0 tax", and ": nobody has traded SYMBOL yet" only if the curve has also sold nothing
+  (`IgnixManager.tokens().sold`) and the vault holds no tax. It is rendered with the lede, from the same read, so
+  nothing moves. Under the lede: the token's address and a plain link to its page on IGNIX
+  (`ignix.bot/launch?token=…`; `ignix.bot` joined the hosts `check-budget.mjs` allows, a link that is never fetched).
+  With the RPC answer rewritten in the browser: `cumInflow()` = 1 wei removes the sentence; `sold` = 1 leaves "Every
+  one carried 0 tax."
+- **The hero's ledger** (`Landing.tsx`, `kernel/bound.ts`): two more reads per kernel in the same batch
+  (`cumInflow()`, `graduated()`: the totals restart at graduation). While every flagship kernel is idle the label
+  reads "Live on X Layer · no tax yet"; §03 says it per kernel ("vault page, 142 settles, 0 tax"). In the label and
+  not in the rows: a row with seven more characters wraps at 320 px, which would move the hero when the chain
+  answers; the label stays one line there (18 px before and after).
+- **The demo film** (`app.tsx`): a link in the colophon, after the source. As a sixth §04 tile it sat alone on a
+  second row at 1440.
+- **Without JavaScript** (`index.html`): the `noscript` line is a paragraph on silicon (the entry stylesheet loads
+  without scripts) with a link to the README's "Check it yourself".
+- **Try again** (`Landing.tsx`, `TwoStates.tsx`, `Trust.tsx`): the hero's "Try again" also re-runs §01's two
+  `Circuits.step` reads (node unreachable: NOT CHECKED; reachable again and one press: MATCH, no reload); the trust
+  page's "Could not read the owners" line has a "Try again" button (pressed with the keyboard: both Safes read).
+- **Checks**: no console error, no failed request and no horizontal scroll on the landing, both vaults, the judge
+  guide and the page without JavaScript in all seven configurations; Chromium CLS 0 on the landing and both vaults
+  (layout-shift entries), and in WebKit and Firefox, which do not report them, the layout positions of the hero's
+  parts and of the vault's head and first sections were the same before and after the chain answered. The one
+  difference, in WebKit, is the stage's own height when its chunk arrives, the same on the published build. Each new
+  link takes the keyboard focus with the 2 px ring (Option+Tab in WebKit, as in Safari); both IGNIX links were
+  followed in the three engines and opened "Covenant Reference $CVREF" and "Covenant Architect $ARCH".
+
 ## 4. Verified
 
 All on 2026-10-04 from this machine, read-only.
@@ -523,6 +563,12 @@ Chromium driven through Playwright, production build served as static files by `
 - With `processor` set in `addresses.json` (tried with a stand-in address, then reverted) the landing page shows the processor and probe links and hides the examples.
 
 ### 4.5 Sizes
+
+After the judge-access fixes (3.12), `node scripts/check-budget.mjs`: **total 519,362 of 520,000 (99.9%)**, **entry
+103,729 of 112,000 (92.6%)**, **first paint 184,677 of 196,000 (94.2%)**, fonts 89,676 of 100,000; 638 bytes left in
+all. Entry: stylesheet 40,975 (+18), `index-*.js` 37,786 (+218), `index.html` 3,075 (+249: the `noscript` paragraph).
+On demand: DieStage 23,742 (unchanged), `kernelPages` 53,872 (+330), `guidePages` 29,915 (+649), `TwoStates` 8,055
+(+59), `bound-*.js` 780 (+92), `LandingClauses` 8,617 (+7). `og.jpg` was not re-encoded.
 
 After the release fixes (3.11), `node scripts/check-budget.mjs`: **total 517,740 of 520,000 (99.6%)**, **entry 103,244
 of 112,000 (92.2%)**, **first paint 184,192 of 196,000 (94.0%)**, fonts 89,676 of 100,000; 2,260 bytes left in all.

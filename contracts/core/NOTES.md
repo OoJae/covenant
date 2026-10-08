@@ -124,8 +124,8 @@ cast call <KernelFactory> "kernelImpl()(address)" --rpc-url $RPC
 cast call <KernelFactory> "fab()(address)" --rpc-url $RPC
 ```
 
-Verification on OKLink follows the pattern of `contracts/evaluator/README.md` (its step 3). It was not run
-for either package. The KernelFactory's constructor arguments are the values the script prints under
+Verification on OKLink follows the pattern of `contracts/evaluator/README.md` (its step 3). It was run on
+2026-10-07 for every Covenant contract, on OKLink and on Sourcify (`docs/VERIFY.md`, section 2). The KernelFactory's constructor arguments are the values the script prints under
 "inputs", in that order, without the three lines that are only information (the processor's transistor
 contract, its circuit count, and the beacon's implementation now); the Kernel implementation and the Lens
 have none.

@@ -583,7 +583,8 @@ and 4). Commands that send mainnet transactions are for the human who holds the 
 8. **The registry trusts its listed wallets.** A listed wallet can invite any wallet, and an invitation
    cannot be withdrawn. The list is as trustworthy as the least careful wallet on it, starting with the
    deployer. Role text is free: 64 bytes that are not validated.
-9. **OKLink verification** is a template; it cannot be run before the contracts exist.
+9. **OKLink verification** was a template until the contracts existed. It was run on 2026-10-07: the three
+   contracts are verified on OKLink and on Sourcify (`docs/VERIFY.md`, section 2).
 10. **Addresses in the story depend on the deployer's nonce.** With nonce 0 they are the ones in section 5.
     Any transaction from the deployer before the broadcast changes them; the script then prints, and the
     processor carries, the story for the new addresses. `script/ignite.sh --broadcast` run twice would create

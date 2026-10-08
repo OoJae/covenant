@@ -1,6 +1,6 @@
 # Notes on the TAP drafts in this directory
 
-Written on 2026-10-04, updated on 2026-10-07. **Nothing has been submitted:** no issue, pull request or comment was opened anywhere, and no transaction was sent to any chain. The 2026-10-07 update made read-only calls only (`gh api` on the TAPs repository, `eth_call` on X Layer). The texts to post are in `POSTS.md`, waiting for approval.
+Written on 2026-10-04, updated on 2026-10-07. **Nothing has been submitted:** no issue, pull request or comment was opened anywhere, and no transaction was sent to any chain. The 2026-10-07 update made read-only calls only (`gh api` on the TAPs repository, `eth_call` on X Layer). The texts to post (`POSTS.md`) are kept out of the repository, in the local folder `docs/outreach/`, waiting for approval.
 
 The circuit netlist standard was numbered TAP-20 until PR #45 (merged 2026-10-04, after TAP-01 §6.1 was changed by PR #48 to reserve 2 to 9 for foundational standards). It is TAP-02 now, and these notes use that name except where they quote older text. Its section numbers did not change.
 
@@ -22,7 +22,7 @@ The circuit netlist standard was numbered TAP-20 until PR #45 (merged 2026-10-04
 7. **Outputs.** `covenant-v1.pins.json`, `covenant-v1.vectors.json`, `shift-toggle.pins.json` and `pin-manifest.schema.json` are byte-identical. `manifest-vectors.json` differs only in two strings that name the generator (`note`, `conformance.profileFile`); `replay-vectors.json` differs only in `note`. Both were compared member by member against the previous files, and both generators reproduce their files when run again, with the vendored reference and with the upstream one.
 8. **`check_assets.py`** first checks the SHA-256 of `covenant-v1.pins.json` (must be `0x77a721cd…6eb5`), `shift-toggle.pins.json` and `pin-manifest.schema.json`, with the standard library only, then runs the schema checks as before. A copy with one byte of `covenant-v1.pins.json` changed fails (tried).
 9. **`gen_covenant_manifest.py`** had stopped at an assertion: commit `32779cc` (2026-10-05) reworded `chips/INTERFACE.md` section 2 to `112 <= nNand + nLatch <= 3400`. Its pattern now accepts the lower bound (the profile has none), and it again writes both files byte for byte. The copy at `fc90bbf`, which draft 1 links, still has the old pattern.
-10. **New:** `assets/lint_tap.py`, `export_upstream.py`, `POSTS.md`.
+10. **New:** `assets/lint_tap.py`, `export_upstream.py`, `POSTS.md` (since moved to `docs/outreach/`, which is not in the repository).
 
 ### 0.2 Results
 
@@ -57,7 +57,7 @@ The circuit netlist standard was numbered TAP-20 until PR #45 (merged 2026-10-04
 |---|---|
 | `tap-draft-circuit-pin-manifest.md` | Draft TAP 1: the pin manifest (format, binding, publication, commitment, profiles) |
 | `tap-draft-stateful-consumers.md` | Draft TAP 2: how a consumer contract keeps latch state, records beats and pins the evaluator |
-| `POSTS.md` | The three texts to post (comment on #44, Idea issue, pull request body), for approval |
+| `../outreach/POSTS.md` (local only, not in the repository) | The three texts to post (comment on #44, Idea issue, pull request body), for approval |
 | `export_upstream.py` | Lays the drafts and their assets out in a clone of the TAPs repository and checks them there (section 4) |
 | `assets/pin-manifest.schema.json` | JSON Schema (draft 2020-12) of the manifest. Also used by `chips/kit/kit.py` and `chips/synth/gen_pins.py` |
 | `assets/covenant-v1.pins.json` | Covenant interface v1 as a profile. Generated; never edit: its digest is claimed by deployed manifests |

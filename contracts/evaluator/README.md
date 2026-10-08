@@ -297,8 +297,9 @@ forge script script/DeployEvaluator.s.sol --rpc-url https://rpc.xlayer.tech \
 
 The addresses are printed and saved in `broadcast/DeployEvaluator.s.sol/196/run-latest.json`.
 
-**3. Verify on OKLink.** Needs an OKLink API key. Not run from here: the endpoint was only probed (see
-NOTES.md).
+**3. Verify on OKLink.** Done on 2026-10-07 for both contracts, on OKLink and on Sourcify (`docs/VERIFY.md`,
+section 2; `deploy/verify-explorers.sh` prepares the exact commands). OKLink asks for a key and accepted the
+placeholder `none`. The shape of the commands:
 
 ```
 export OKLINK_API_KEY=...

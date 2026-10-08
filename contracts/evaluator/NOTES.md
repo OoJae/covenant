@@ -194,9 +194,9 @@ Bytecode of this revision (changes with any edit to the sources, comments includ
    every tape-out revert with `LeftOver` for as long as it stays in place. Recorded chips, their snapshots
    and kernels are unaffected; new chips would need a new Fab. A processor that lies in every view cannot
    be defeated by any check (section 6, finding 4).
-2. **OKLink verification was not run.** The command in the README follows Foundry's `--verifier oklink` and
-   the endpoint answers, but no contract was submitted. Both contracts have been deployed since (2026-10-06); their
-source is not yet verified on OKLink (`docs/VERIFY.md`).
+2. **OKLink verification was not run from this package.** The command in the README follows Foundry's
+   `--verifier oklink`. Both contracts were deployed on 2026-10-06, and their sources were verified on OKLink and
+   on Sourcify on 2026-10-07 (`docs/VERIFY.md`, section 2).
 3. **TapeOut's deployed build used via-IR.** Inferred: its source does not compile otherwise. OKLink's record
    does not show the flag. It does not matter for these contracts.
 4. **Gas is measured in Foundry's EVM with Cancun rules.** X Layer runs a later fork and looks like an
