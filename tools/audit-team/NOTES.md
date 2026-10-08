@@ -61,7 +61,11 @@ flagged, marked as having had no effect.
 KeeperTank, TeamRegistry, Transistors, Circuits, SealedVM, Fab, KernelFactory, Lens, kernels) and the keeper stay
 null there: `deployments/xlayer.json`, written from the chain by the signing sessions, is the one record, and
 `--deployment deployments/xlayer.json` fills them in (an address named in both places must be the same). Known
-Covenant contracts are named in the report, so calls to them are not unknown targets.
+Covenant contracts are named in the report, so calls to them are not unknown targets. `other` names the further
+contracts the team calls: the OKX.AI agent registry, and TapeOut's three DeWEB contracts (container opener,
+SiteRegistry, DomainBinding), to which the deployer publishes the site. Every transaction `deployments/xlayer.json`
+lists under `site.txs` goes to one of those three (125 on 2026-10-08: 1 `open`, 73 `putFile`, 26 `appendChunk`,
+24 `removeFile`, 1 `bind`). Until they were listed, each of them was a `WARN`.
 
 ## USD₮0 and kernel v2
 

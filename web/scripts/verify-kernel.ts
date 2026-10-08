@@ -6,21 +6,31 @@
 //
 //   node scripts/verify-kernel.ts               the flagship kernel of deployments/xlayer.json (and the v2 one, if recorded)
 //   node scripts/verify-kernel.ts 0xKernel      another kernel of either factory
+//   node scripts/verify-kernel.ts --last 20     record 1 and the last 20 of each kernel, not every record (about
+//                                               1.5 s per record over the public RPC; each kernel gains 96 a day)
 
 import { readFileSync } from 'node:fs';
 import { processor, read, toBytes } from '@covenant/chain';
 import { parse, step } from '@covenant/tap20';
 import { COVENANT, rpc } from '../src/config.ts';
-import { loadAudit, loadNetlist, loadRecords, loadVault } from '../src/data/kernel.ts';
+import { loadAudit, loadNetlist, loadRecords, loadVault, type RecordRow } from '../src/data/kernel.ts';
 import { routeDiff } from '../src/kernel/chip.ts';
 import { inputFields, lg8s, route, stateBytes, stateWord32, wordOf } from '../src/kernel/model.ts';
 import { isAddress } from '../src/format.ts';
 
 const hex = (b: Uint8Array): string => '0x' + Buffer.from(b).toString('hex');
 const args = process.argv.slice(2).filter((a) => a !== '--');
+// --last N (or --last=N): check record 1 and the last N records of each kernel. Without it, every record.
+let last: number | null = null;
+const at = args.findIndex((a) => a === '--last' || a.startsWith('--last='));
+if (at >= 0) {
+  const [flag] = args.splice(at, 1);
+  const value = flag.includes('=') ? flag.slice(flag.indexOf('=') + 1) : (args.splice(at, 1)[0] ?? '');
+  last = /^[1-9]\d{0,8}$/.test(value) ? Number(value) : NaN;
+}
 const KS = args[0] ? [args[0]] : [COVENANT.kernel, COVENANT.kernelV2].filter((k): k is string => !!k);
-if (KS.length === 0 || !KS.every(isAddress) || (!COVENANT.lens && !COVENANT.lensV2)) {
-  console.error('usage: node scripts/verify-kernel.ts [0xKernel]  (needs a kernel and its Lens in deployments/xlayer.json)');
+if (Number.isNaN(last) || KS.length === 0 || !KS.every(isAddress) || (!COVENANT.lens && !COVENANT.lensV2)) {
+  console.error('usage: node scripts/verify-kernel.ts [0xKernel] [--last N]  (needs a kernel and its Lens in deployments/xlayer.json; N is a whole number from 1)');
   process.exit(2);
 }
 let bad = 0;
@@ -50,7 +60,13 @@ for (const K of KS) {
   console.log(`${s0} ${v.kernel} (by ${v.kind.by}): ${v.count} records, token ${v.token?.address ?? 'none'}, clone ${v.clone.isClone && v.argsMatch}, implementation clean ${forbidden?.length === 0 && v.implScan?.delegatecall === 0}`);
   const nl = await loadNetlist(rpc, v.globals);
   const chip = parse(nl.bytes, 96, 112);
-  const rows = v.count ? await loadRecords(rpc, K, 1, v.count, v.kind.version) : [];
+  // With --last N: record 1 and the last N. loadRecords also reads the record before a range, for the state its
+  // first record was stepped from, so each row is checked exactly as in a full run.
+  const from = last === null ? 1 : Math.max(1, v.count - last + 1);
+  const ranges = from > 2 ? [[1, 1], [from, v.count]] : [[1, v.count]];
+  if (last !== null) console.log(`         --last ${last}: checking ${from > 2 ? v.count - from + 2 : v.count} of ${v.count} records${from > 2 ? ` (1 and ${from} to ${v.count})` : ''}`);
+  const rows: RecordRow[] = [];
+  for (const [a, b] of ranges) rows.push(...(await loadRecords(rpc, K, a, b, v.kind.version)));
   for (const r of rows) {
     const grad = (r.rec.flags & 64) !== 0;
     const sh = grad ? 0 : v.kind.shift;

@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { planWallets } from '../audit-team.ts';
 import { parseDeployment } from '../../launch-check/deployment.ts';
 import { COVENANT_CONTRACTS, ConfigError, SEL, TOPIC, parseKnown, parseWalletsTable, selectorName, selectorOf, withDeployment } from '../known.ts';
+import { SIGNATURES as DEWEB } from '../../deweb/src/abi.ts';
+import { XLAYER } from '../../deweb/src/chain.ts';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -22,7 +24,17 @@ test('addresses.json names the fixed contracts and the deployer, and leaves the 
   for (const c of COVENANT_CONTRACTS) assert.equal(k[c], null, `covenant.${c} is filled in after deployment`);
   assert.deepEqual([...COVENANT_CONTRACTS], ['splitter', 'keeperTank', 'teamRegistry', 'transistors', 'circuits', 'sealedVM', 'fab', 'kernelFactory', 'lens', 'kernelFactoryV2', 'lensV2']);
   assert.deepEqual(k.kernels, []);
-  assert.deepEqual(Object.values(k.other), ['0x8004a169fb4a3325136eb29fa0ceb6d2e539a432']);
+  // the OKX.AI agent registry, then TapeOut's three DeWEB contracts (the site's publish transactions go to them)
+  assert.deepEqual(Object.values(k.other), [
+    '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432',
+    XLAYER.opener.toLowerCase(),
+    XLAYER.registry.toLowerCase(),
+    XLAYER.binding.toLowerCase(),
+  ]);
+  assert.deepEqual(
+    Object.keys(k.other).slice(1).map((label) => label.slice(0, label.indexOf(' ('))),
+    ['TapeOut DeWEB container opener', 'TapeOut DeWEB SiteRegistry', 'TapeOut DeWEB DomainBinding'],
+  );
   // ERC-4337 EntryPoints and the known smart-wallet implementation (OKX Agentic Wallet)
   assert.deepEqual(k.entryPoints, [
     { address: '0x0000000071727de22e5e9d8baf0edac6f37da032', label: 'EntryPoint v0.7' },
@@ -153,4 +165,10 @@ test('selectors and topics are computed from signatures and match the values mea
   assert.equal(selectorName(selectorOf('settleAndRefund(address)')), 'settleAndRefund');
   assert.equal(selectorName(selectorOf('create((address,uint32,address,uint16,uint16,uint16,uint16,uint16,uint16,uint16,uint16,uint16,bool,address),uint256,bytes32)')), 'create');
   assert.equal(selectorName('0x0c307f76'), null);
+  // the DeWEB calls a site publication sends, by the selectors tools/deweb records for them
+  for (const name of ['open', 'putFile', 'appendChunk', 'removeFile', 'setFallback', 'bind'] as const) {
+    assert.equal(selectorOf(DEWEB[name][0]), '0x' + DEWEB[name][1], name);
+    assert.equal(selectorName('0x' + DEWEB[name][1]), name);
+  }
+  assert.equal(selectorName(selectorOf('bind(address)')), 'bind', "a kernel's bind keeps its name");
 });

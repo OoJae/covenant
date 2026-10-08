@@ -303,6 +303,13 @@ const SIGNATURES: readonly string[] = [
   'burnFrom(address,uint256,uint256)',
   'withdraw()',
   'sweepFees()',
+  // TapeOut DeWEB: container opener, SiteRegistry, DomainBinding (the calls tools/deweb/src/plan.ts can plan)
+  'open(address,uint256)',
+  'putFile(address,string,string,bytes32,bytes)',
+  'appendChunk(address,string,uint256,bytes)',
+  'removeFile(address,string)',
+  'setFallback(address,string)',
+  'bind(string,address,uint256)',
   // ERC-4337 EntryPoint v0.7
   'handleOps((address,uint256,bytes,bytes,bytes32,uint256,bytes32,bytes,bytes)[],address)',
 ];

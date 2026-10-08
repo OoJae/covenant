@@ -11,7 +11,9 @@ import { authorizationHash } from '../../launch-check/rlp.ts';
 import { launch, testSigner } from '../../launch-check/test/helpers.ts';
 import { runAudit, type AuditResult, type Row } from '../audit.ts';
 import { Chain } from '../chain.ts';
-import { TOPIC, selectorOf, type Known, type Wallet } from '../known.ts';
+import { SIGNATURES as DEWEB } from '../../deweb/src/abi.ts';
+import { XLAYER } from '../../deweb/src/chain.ts';
+import { TOPIC, parseKnown, selectorOf, type Known, type Wallet } from '../known.ts';
 import { renderMarkdown, toJson, verdictLines } from '../report.ts';
 import { FakeChain, MANAGER, ROUTER, WOKB, TAPEOUT, ZERO, known, topicAddress } from './fake-chain.ts';
 
@@ -167,6 +169,38 @@ test('what must not be flagged is not', async () => {
   assert.equal(r.unknownTargets, 2);
   assert.match(rowsOf(r)[3].classification, /unknown target \(an address without code\): plain transfer/);
   assert.match(verdictLines(r).join('\n'), /^WARN {11}2 {2}transactions to targets that are not in the known list \(a warning, not a flag\)$/m);
+});
+
+test("the site's DeWEB publish transactions go to contracts addresses.json names: no warning", async () => {
+  // what deploy/publish-site.sh sends from the deployer: open (0.08 OKB), putFile, appendChunk, removeFile, bind (0.026 OKB)
+  const [opener, registry, binding] = [XLAYER.opener, XLAYER.registry, XLAYER.binding].map((a) => a.toLowerCase());
+  const publish = (chain: FakeChain): void => {
+    for (const a of [opener, registry, binding]) chain.code.set(a, '0x60');
+    chain.add(10, { from: W, to: opener, input: call(DEWEB.open[0]), value: 8n * 10n ** 16n });
+    chain.add(11, { from: W, to: registry, input: call(DEWEB.putFile[0]) });
+    chain.add(12, { from: W, to: registry, input: call(DEWEB.appendChunk[0]) });
+    chain.add(13, { from: W, to: registry, input: call(DEWEB.removeFile[0]) });
+    chain.add(14, { from: W, to: binding, input: call(DEWEB.bind[0]), value: 26n * 10n ** 15n });
+  };
+  const named = world();
+  named.cfg.other = parseKnown(readFileSync(new URL('../addresses.json', import.meta.url), 'utf8')).other;
+  publish(named.chain);
+  const r = await audit(named.chain, named.cfg);
+  assert.deepEqual(flagsOf(r), ['ok', 'ok', 'ok', 'ok', 'ok']);
+  assert.equal(r.unknownTargets, 0);
+  assert.equal(r.exitCode, 0);
+  assert.deepEqual(
+    rowsOf(r).map((x) => x.classification.replace(/ \(.*\)(?=: )/, '')),
+    ['TapeOut DeWEB container opener: open()', 'TapeOut DeWEB SiteRegistry: putFile()', 'TapeOut DeWEB SiteRegistry: appendChunk()', 'TapeOut DeWEB SiteRegistry: removeFile()', 'TapeOut DeWEB DomainBinding: bind()'],
+  );
+  assert.match(verdictLines(r).join('\n'), /^NOTE {11}0 {2}transactions to targets that are not in the known list \(a warning, not a flag\)$/m);
+
+  // the same five without those entries: the warning a run gave before they were listed
+  const bare = world();
+  publish(bare.chain);
+  const before = await audit(bare.chain, bare.cfg);
+  assert.equal(before.unknownTargets, 5);
+  assert.equal(before.exitCode, 0);
 });
 
 test('a reverted transaction is still listed and flagged, and said to have had no effect', async () => {

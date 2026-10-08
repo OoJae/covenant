@@ -1,5 +1,5 @@
 {
-  "description": "Addresses the team audit knows (X Layer, chain 196). The IGNIX and DEX addresses are fixed. 'other' maps a label to the address of any further contract the team calls, so that calls to it are not listed as unknown targets.",
+  "description": "Addresses the team audit knows (X Layer, chain 196). The IGNIX and DEX addresses are fixed. 'other' maps a label to the address of any further contract the team calls, so that calls to it are not listed as unknown targets: the OKX.AI agent registry, and TapeOut's three DeWEB contracts, to which the deployer publishes the site (tools/deweb; the transactions are listed in deployments/xlayer.json under site.txs).",
   "chainId": 196,
   "ignixManager": "0x96B51c57e5346D0C0198899243cf851D1E23C309",
   "tapeoutFactory": "0x1f09daefa827f02cbb40967cc91b259763760761",
@@ -25,7 +25,10 @@
     "kernels": []
   },
   "other": {
-    "OKX.AI agent registry (ERC-721; minted agent 14683, the Architect, to its agent wallet)": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432"
+    "OKX.AI agent registry (ERC-721; minted agent 14683, the Architect, to its agent wallet)": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432",
+    "TapeOut DeWEB container opener (CircuitAccountOpener; open pays the one-time fee for a circuit's site container)": "0x536adD8F30f03b69f6fbF29d425A816A0dC50106",
+    "TapeOut DeWEB SiteRegistry (holds a container's files; the site is published with putFile, appendChunk and removeFile)": "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6",
+    "TapeOut DeWEB DomainBinding (bind pays the monthly fee of the site's name, 1.2.283.tape)": "0x68809Fd2fb343aA57D0aeB7f33Defe477c9666f9"
   },
   "entryPoints": {
     "comment": "ERC-4337 EntryPoints (canonical deployments, both with code on X Layer). For a team wallet that is a smart wallet, the audit scans their UserOperationEvent logs (sender = the wallet) from the wallet's first activity to the audit block, and audits each user operation like a transaction.",
